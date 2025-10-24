@@ -28,9 +28,13 @@ export async function getUnit(orgId: string, userId: string, email: string, unit
             'X-Email': email,
         },
     });
+    if (!response.ok) {
+        throw new Error(`Failed to get unit: ${response.statusText}`);
+    }
+    return response.json();
 }
 
-export async function createUnit(orgId: string, userId: string, email: string, unitId: string) {
+export async function createUnit(orgId: string, userId: string, email: string, name: string) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'POST',
         headers: {
@@ -41,7 +45,7 @@ export async function createUnit(orgId: string, userId: string, email: string, u
             'X-Email': email,
         },
         body: JSON.stringify({
-            id: unitId,
+            name: name,
         }),
     });
     console.log(response)

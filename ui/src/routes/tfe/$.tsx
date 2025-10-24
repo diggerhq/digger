@@ -5,9 +5,18 @@ async function handler({ request }) {
   const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}${url.pathname}${url.search}`, {
     method: request.method,
     headers: request.headers,
-    body: request.method !== 'GET' ? await request.blob() : undefined
+    // body: request.method !== 'GET' ? await request.blob() : undefined
   });
-  return response;
+
+// important, remove all encoding headers since the fetch already decompresses the gzip
+// the removal of headeres avoids gzip errors in the client
+const headers = new Headers(response.headers);
+headers.delete('Content-Encoding');
+headers.delete('content-length');
+headers.delete('transfer-encoding');
+headers.delete('connection');
+
+  return new Response(response.body, { headers });
 }
 
 export const Route = createFileRoute('/tfe/$')({

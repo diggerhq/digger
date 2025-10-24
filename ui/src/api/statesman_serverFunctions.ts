@@ -16,8 +16,8 @@ export const getUnitFn = createServerFn({method: 'GET'})
 })
 
 export const createUnitFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {userId: string, organisationId: string, email: string, name: string}) => data)
   .handler(async ({ data }) => {
-    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.unitId)
+    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.name)
     return unit
 })

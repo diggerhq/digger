@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
+import { getUnitFn } from '@/api/statesman_serverFunctions'
 
 function CopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false)
@@ -54,6 +55,12 @@ export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/$unitId',
 )({
   component: RouteComponent,
+  loader: async ({ context, params: {unitId} }) => {
+    const { user, organisationId } = context;
+    const unitData = await getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
+    console.log(unitData)
+    return { unitData: unitData, user, organisationId }
+  }
 })
 
 // Mock data - replace with actual data fetching
@@ -85,6 +92,7 @@ function formatBytes(bytes: number) {
 }
 
 function formatDate(date: Date) {
+  return date
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -95,9 +103,16 @@ function formatDate(date: Date) {
 }
 
 function RouteComponent() {
-  const { unitId } = useParams({ from: '/_authenticated/_dashboard/dashboard/units/$unitId' })
-  const unit = mockUnit // Replace with actual data fetching
-
+  const data = Route.useLoaderData()
+  const { unitData, organisationId } = data
+  console.log(unitData)
+  const unit = unitData
+  if (!unit.versions) {
+    unit.versions = []
+  }
+  if (!unit.dependencies) {
+    unit.dependencies = []
+  }
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
@@ -139,9 +154,12 @@ function RouteComponent() {
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">{unit.id}</CardTitle>
+            <CardTitle className="text-2xl">{unit.name}</CardTitle>
             <CardDescription>
-              Version {unit.version} • Last updated {formatDate(unit.updatedAt)} • {formatBytes(unit.size)}
+              ID: {unit.id}
+            </CardDescription>
+            <CardDescription>
+              Version {unit.version} • Last updated {formatDate(unit.updated)} • {formatBytes(unit.size)}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -170,9 +188,9 @@ function RouteComponent() {
 {`terraform {
   cloud {
     hostname = "mo-opentaco-test.ngrok.app"
-    organization = "opentaco"    
+    organization = "${organisationId}"    
     workspaces {
-      name = "momo"
+      name = "${unit.id}"
     }
   }
 }`}

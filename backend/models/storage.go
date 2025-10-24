@@ -1394,6 +1394,17 @@ func (db *Database) GetOrganisation(tenantId any) (*Organisation, error) {
 	return org, nil
 }
 
+func (d *Database) GetUserByEmail(email string) (*User, error) {
+	user := User{}
+	err := d.GormDB.Where("email = ?", email).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+	}
+	return &user, err
+}
+
 func (db *Database) CreateUser(email string, externalSource string, externalId string, orgId uint, username string) (*User, error) {
 	user := &User{
 		Email:          email,

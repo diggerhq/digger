@@ -91,6 +91,13 @@ func (d DiggerController) CreateUserInternal(c *gin.Context) {
 		return
 	}
 
+	existingUser, err := models.DB.GetUserByEmail(userEmail)
+	if existingUser != nil && err == nil {
+		slog.Error("User email already exists", "email", userEmail)
+		c.JSON(http.StatusConflict, gin.H{"error": "User email already exists"})
+		return
+	}
+
 	// for now using email for username since we want to deprecate that field
 	username := userEmail
 	user, err := models.DB.CreateUser(userEmail, extUserSource, extUserId, org.ID, username)
