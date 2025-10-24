@@ -1,0 +1,311 @@
+name: Test Database Migrations
+
+on:
+  pull_request:
+    paths:
+      - 'taco/internal/query/types/**'
+      - 'taco/internal/query/migration/**'
+      - 'taco/internal/queryfactory/**'
+      - 'taco/atlas.hcl'
+      - 'taco/internal/atlas_loader.go'
+      - '.github/workflows/test-migrations.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'taco/internal/query/types/**'
+      - 'taco/internal/query/migration/**'
+      - 'taco/internal/queryfactory/**'
+      - 'taco/atlas.hcl'
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  test-postgres:
+    name: Test PostgreSQL Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16.1
+        env:
+          POSTGRES_DB: opentaco_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          go build -o statesman ./cmd/statesman
+
+      - name: Test migrations with binary
+        working-directory: taco
+        env:
+          OPENTACO_BACKEND: postgres
+          OPENTACO_POSTGRES_HOST: localhost
+          OPENTACO_POSTGRES_PORT: 5432
+          OPENTACO_POSTGRES_USER: postgres
+          OPENTACO_POSTGRES_PASSWORD: postgres
+          OPENTACO_POSTGRES_DATABASE: opentaco_test
+          OPENTACO_POSTGRES_SSLMODE: disable
+          OPENTACO_AUTH_DISABLE: true
+          OPENTACO_JWT_SECRET: test-secret-key-for-ci
+        run: |
+          # Run binary in background (it will apply migrations on startup)
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          
+          # Give it time to apply migrations
+          sleep 5
+
+      - name: Verify migrations applied
+        env:
+          PGPASSWORD: postgres
+        run: |
+          echo "Checking if atlas_schema_revisions table exists..."
+          psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep atlas_schema_revisions
+          
+          echo "Checking applied migrations..."
+          psql -h localhost -U postgres -d opentaco_test -c "SELECT version FROM atlas_schema_revisions ORDER BY version;"
+          
+          echo "Checking if key tables exist..."
+          psql -h localhost -U postgres -d opentaco_test -c "\dt" | grep -E "units|organizations|users|rules"
+
+  test-mysql:
+    name: Test MySQL Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: opentaco_test
+          MYSQL_USER: mysql
+          MYSQL_PASSWORD: mysql
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          go build -o statesman ./cmd/statesman
+
+      - name: Test migrations with binary
+        working-directory: taco
+        env:
+          OPENTACO_BACKEND: mysql
+          OPENTACO_MYSQL_HOST: localhost
+          OPENTACO_MYSQL_PORT: 3306
+          OPENTACO_MYSQL_USER: mysql
+          OPENTACO_MYSQL_PASSWORD: mysql
+          OPENTACO_MYSQL_DATABASE: opentaco_test
+          OPENTACO_AUTH_DISABLE: true
+          OPENTACO_JWT_SECRET: test-secret-key-for-ci
+        run: |
+          # Run binary in background (it will apply migrations on startup)
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          
+          # Give it time to apply migrations
+          sleep 5
+
+      - name: Verify migrations applied
+        run: |
+          echo "Checking if atlas_schema_revisions table exists..."
+          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep atlas_schema_revisions
+          
+          echo "Checking applied migrations..."
+          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SELECT version FROM atlas_schema_revisions ORDER BY version;"
+          
+          echo "Checking if key tables exist..."
+          mysql -h 127.0.0.1 -u mysql -pmysql opentaco_test -e "SHOW TABLES;" | grep -E "units|organizations|users|rules"
+
+  test-sqlite:
+    name: Test SQLite Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          go build -o statesman ./cmd/statesman
+
+      - name: Test migrations with binary
+        working-directory: taco
+        env:
+          OPENTACO_BACKEND: sqlite
+          OPENTACO_SQLITE_PATH: ./test.db
+          OPENTACO_AUTH_DISABLE: true
+          OPENTACO_JWT_SECRET: test-secret-key-for-ci
+        run: |
+          # Run binary in background (it will apply migrations on startup)
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          
+          # Give it time to apply migrations
+          sleep 5
+
+      - name: Verify migrations applied
+        working-directory: taco
+        run: |
+          echo "Checking if atlas_schema_revisions table exists..."
+          sqlite3 test.db ".tables" | grep atlas_schema_revisions
+          
+          echo "Checking applied migrations..."
+          sqlite3 test.db "SELECT version FROM atlas_schema_revisions ORDER BY version;"
+          
+          echo "Checking if key tables exist..."
+          sqlite3 test.db ".tables" | grep -E "units|organizations|users|rules"
+
+  test-sqlserver:
+    name: Test SQL Server Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: YourStrong@Passw0rd
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Create test database
+        run: |
+          # Wait for SQL Server to be fully ready
+          sleep 10
+          docker exec $(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest) \
+            /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' \
+            -Q 'CREATE DATABASE opentaco_test'
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          go build -o statesman ./cmd/statesman
+
+      - name: Test migrations with binary
+        working-directory: taco
+        env:
+          OPENTACO_BACKEND: mssql
+          OPENTACO_MSSQL_HOST: localhost
+          OPENTACO_MSSQL_PORT: 1433
+          OPENTACO_MSSQL_USER: sa
+          OPENTACO_MSSQL_PASSWORD: YourStrong@Passw0rd
+          OPENTACO_MSSQL_DATABASE: opentaco_test
+          OPENTACO_AUTH_DISABLE: true
+          OPENTACO_JWT_SECRET: test-secret-key-for-ci
+        run: |
+          # Run binary in background (it will apply migrations on startup)
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory || true
+          
+          # Give it time to apply migrations
+          sleep 5
+
+      - name: Verify migrations applied
+        run: |
+          echo "Checking if atlas_schema_revisions table exists..."
+          docker exec $(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest) \
+            /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' -d opentaco_test \
+            -Q "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'atlas_schema_revisions'"
+          
+          echo "Checking applied migrations..."
+          docker exec $(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest) \
+            /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' -d opentaco_test \
+            -Q "SELECT version FROM atlas_schema_revisions ORDER BY version"
+          
+          echo "Checking if key tables exist..."
+          docker exec $(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest) \
+            /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' -d opentaco_test \
+            -Q "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME"
+
+  # Summary job that requires all database tests to pass
+  all-migrations-passed:
+    name: All Migrations Passed
+    runs-on: ubuntu-latest
+    needs: [test-postgres, test-mysql, test-sqlite, test-sqlserver]
+    steps:
+      - name: All tests passed
+        run: echo "✅ All database migrations tested successfully!"
+
