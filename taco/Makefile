@@ -117,6 +117,7 @@ atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-a
 	@echo "\n📊 SQLite..." && atlas migrate diff $(NAME) --env sqlite
 	@echo "\n🔄 Renaming migration files for golang-migrate compatibility..."
 	@find internal/query/migration/atlas/migrations -name "*.sql" ! -name "*.up.sql" ! -name "*.down.sql" -type f | while read f; do mv "$$f" "$${f%.sql}.up.sql"; done
+	@echo "\n🔐 Updating Atlas checksums after rename..."
 	@$(MAKE) atlas-hash-all
 	@echo "\n✅ All migrations generated successfully!"
 

@@ -37,3 +37,6 @@ data/
 
 
 taco/data/
+
+# Atlas migration checksums (auto-generated)
+**/migrations/**/atlas.sum
