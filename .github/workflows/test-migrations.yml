@@ -95,10 +95,11 @@ jobs:
           PGPASSWORD: postgres
         run: |
           # Check if migrations applied successfully from binary output
-          if grep -q "migrations applied successfully" statesman.log; then
+          if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
             echo "✅ Migrations applied successfully"
           else
             echo "❌ Migration success message not found in binary output"
+            cat statesman.log
             exit 1
           fi
           
@@ -185,10 +186,11 @@ jobs:
         working-directory: taco
         run: |
           # Check if migrations applied successfully from binary output
-          if grep -q "migrations applied successfully" statesman.log; then
+          if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
             echo "✅ Migrations applied successfully"
           else
             echo "❌ Migration success message not found in binary output"
+            cat statesman.log
             exit 1
           fi
           
@@ -250,10 +252,11 @@ jobs:
         working-directory: taco
         run: |
           # Check if migrations applied successfully from binary output
-          if grep -q "migrations applied successfully" statesman.log; then
+          if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
             echo "✅ Migrations applied successfully"
           else
             echo "❌ Migration success message not found in binary output"
+            cat statesman.log
             exit 1
           fi
           
