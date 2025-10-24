@@ -112,6 +112,8 @@ atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-a
 		echo "💡 Tip: Use 'make atlas-diff-all name=descriptive_name' for better naming"; \
 	fi
 	@mkdir -p internal/query/migration/atlas/migrations/postgres internal/query/migration/atlas/migrations/mysql internal/query/migration/atlas/migrations/sqlite
+	@echo "\n🔐 Generating checksums for existing migrations..."
+	@$(MAKE) atlas-hash-all
 	@echo "\n📊 PostgreSQL..." && atlas migrate diff $(NAME) --env postgres
 	@echo "\n📊 MySQL..." && atlas migrate diff $(NAME) --env mysql
 	@echo "\n📊 SQLite..." && atlas migrate diff $(NAME) --env sqlite
