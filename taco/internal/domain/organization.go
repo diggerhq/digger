@@ -28,13 +28,13 @@ var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$`)
 
 // Organization represents an organization in the domain layer
 type Organization struct {
-	ID          string
-	Name        string  // Non-unique display name
-	ExternalID  *string // Optional unique external identifier
-	DisplayName string
-	CreatedBy   string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID            string // UUID (primary key, for API)
+	Name          string // Unique identifier (e.g., "acme") - used in CLI and paths
+	DisplayName   string // Friendly name (e.g., "Acme Corp") - shown in UI
+	ExternalOrgID string // External org identifier (empty string if not set)
+	CreatedBy     string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // ============================================
@@ -43,8 +43,9 @@ type Organization struct {
 
 // OrganizationRepository defines the interface for organization data access
 type OrganizationRepository interface {
-	Create(ctx context.Context, name, displayName, createdBy string) (*Organization, error)
-	Get(ctx context.Context, orgUUID string) (*Organization, error)
+	Create(ctx context.Context, orgID, name, displayName, externalOrgID, createdBy string) (*Organization, error)
+	Get(ctx context.Context, orgID string) (*Organization, error)
+	GetByExternalID(ctx context.Context, externalOrgID string) (*Organization, error)
 	List(ctx context.Context) ([]*Organization, error)
 	Delete(ctx context.Context, orgUUID string) error
 

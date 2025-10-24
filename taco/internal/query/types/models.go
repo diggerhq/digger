@@ -106,13 +106,13 @@ func (rut *RuleUnitTag) BeforeCreate(tx *gorm.DB) error {
 }
 
 type Organization struct {
-	ID          string  `gorm:"type:varchar(36);primaryKey"`
-	Name        string  `gorm:"type:varchar(255);not null"`                 // Non-unique display name
-	ExternalID  *string `gorm:"type:varchar(255);uniqueIndex"`              // Unique external identifier (optional)
-	DisplayName string  `gorm:"type:varchar(255);not null"`
-	CreatedBy   string  `gorm:"type:varchar(255);not null"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID            string `gorm:"type:varchar(36);primaryKey"`
+	Name          string `gorm:"type:varchar(255);not null;"` // name used for internal references
+	DisplayName   string `gorm:"type:varchar(255);not null"`             // Friendly name (e.g., "Acme Corp") - shown in UI
+	ExternalOrgID *string `gorm:"type:varchar(500);uniqueIndex"`          // External org identifier (optional, nullable)
+	CreatedBy     string `gorm:"type:varchar(255);not null"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 func (o *Organization) BeforeCreate(tx *gorm.DB) error {

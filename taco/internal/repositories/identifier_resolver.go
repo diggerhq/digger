@@ -29,50 +29,30 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		return "", fmt.Errorf("database not available")
 	}
 	
-	// Check if it's a UUID
-	if domain.IsUUID(identifier) {
-		var org struct{ ID string }
-		err := r.db.WithContext(ctx).
-			Table("organizations").
-			Select("id").
-			Where("id = ?", identifier).
-			First(&org).Error
-		
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return "", fmt.Errorf("organization not found: %s", identifier)
-			}
-			return "", err
-		}
-		
-		return identifier, nil
+	parsed, err := domain.ParseIdentifier(identifier)
+	if err != nil {
+		return "", err
 	}
 	
-	// Check if it's an external ID (format: "ext:provider:id")
-	if strings.HasPrefix(identifier, "ext:") {
-		parts := strings.SplitN(identifier, ":", 3)
-		if len(parts) != 3 {
-			return "", fmt.Errorf("invalid external ID format, expected 'ext:provider:id', got: %s", identifier)
-		}
-		
-		var org struct{ ID string }
-		err := r.db.WithContext(ctx).
-			Table("organizations").
-			Select("id").
-			Where("external_id = ?", identifier).
-			First(&org).Error
-		
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return "", fmt.Errorf("organization not found with external ID: %s", identifier)
-			}
-			return "", err
-		}
-		
-		return org.ID, nil
+	// If already a UUID, return it
+	if parsed.Type == domain.IdentifierTypeUUID {
+		return parsed.UUID, nil
 	}
 	
-	return "", fmt.Errorf("organization identifier must be UUID or external ID (ext:provider:id), got: %s", identifier)
+	
+	// If not found by name, try external org ID
+	// This handles cases where someone passes an external ID directly
+	err = r.db.WithContext(ctx).
+		Table("organizations").
+		Select("id").
+		Where("external_org_id = ?", parsed.Name).
+		First(&result).Error
+	
+	if err == nil {
+		return result.ID, nil
+	}
+	
+	return "", fmt.Errorf("organization not found: %s", parsed.Name)
 }
 
 // ResolveUnit resolves unit identifier to UUID within an organization
