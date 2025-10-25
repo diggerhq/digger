@@ -9,6 +9,9 @@ WORKDIR /go/src/github.com/diggerhq/digger/taco
 COPY cmd/statesman/ ./cmd/statesman/
 COPY internal/ ./internal/
 COPY pkg/sdk/ ./pkg/sdk/
+COPY migrations/ ./migrations/
+COPY scripts/ ./scripts/
+COPY atlas.hcl ./atlas.hcl
 
 # Download dependencies and build
 # Note: CGO is required for SQLite support
