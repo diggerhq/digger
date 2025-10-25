@@ -224,6 +224,12 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
+      - name: Create SQLite database directory
+        working-directory: taco
+        run: |
+          mkdir -p .data
+          echo "Created .data directory for SQLite database"
+
       - name: Generate migration checksums for SQLite
         working-directory: taco
         run: |
@@ -233,10 +239,14 @@ jobs:
       - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
         run: |
-          echo "Applying SQLite migrations..."
+          echo "Applying SQLite migrations to ${{ github.workspace }}/taco/.data/test.db"
           atlas migrate apply \
-            --url "sqlite://test.db" \
+            --url "sqlite://${{ github.workspace }}/taco/.data/test.db" \
             --dir "file://migrations/sqlite"
+          
+          # Verify database file was created
+          ls -lh .data/test.db
+          echo "✅ Migrations applied successfully"
 
       - name: Build statesman binary
         working-directory: taco
@@ -247,7 +257,7 @@ jobs:
         working-directory: taco
         env:
           OPENTACO_QUERY_BACKEND: sqlite
-          OPENTACO_SQLITE_PATH: test.db
+          OPENTACO_SQLITE_PATH: ${{ github.workspace }}/taco/.data/test.db
           OPENTACO_AUTH_DISABLE: true
         run: |
           # Run binary and capture output
