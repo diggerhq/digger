@@ -6,6 +6,12 @@ BACKEND=${OPENTACO_BACKEND:-sqlite}
 
 echo "Starting OpenTaco Statesman with backend: $BACKEND"
 
+# Generate checksums for migration directories (atlas.sum files are gitignored)
+echo "Generating migration checksums..."
+atlas migrate hash --dir "file:///app/migrations/postgres" 2>/dev/null || true
+atlas migrate hash --dir "file:///app/migrations/mysql" 2>/dev/null || true
+atlas migrate hash --dir "file:///app/migrations/sqlite" 2>/dev/null || true
+
 # Apply migrations based on backend type
 case $BACKEND in
   postgres)

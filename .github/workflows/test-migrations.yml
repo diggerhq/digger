@@ -56,6 +56,12 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
+      - name: Generate migration checksums for PostgreSQL
+        working-directory: taco
+        run: |
+          echo "Generating checksums for PostgreSQL migrations..."
+          atlas migrate hash --dir "file://migrations/postgres"
+
       - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
         env:
@@ -143,6 +149,12 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
+      - name: Generate migration checksums for MySQL
+        working-directory: taco
+        run: |
+          echo "Generating checksums for MySQL migrations..."
+          atlas migrate hash --dir "file://migrations/mysql"
+
       - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
         env:
@@ -212,6 +224,12 @@ jobs:
         run: |
           curl -sSf https://atlasgo.sh | sh
           atlas version
+
+      - name: Generate migration checksums for SQLite
+        working-directory: taco
+        run: |
+          echo "Generating checksums for SQLite migrations..."
+          atlas migrate hash --dir "file://migrations/sqlite"
 
       - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
