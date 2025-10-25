@@ -257,7 +257,7 @@ jobs:
         working-directory: taco
         env:
           OPENTACO_QUERY_BACKEND: sqlite
-          OPENTACO_SQLITE_PATH: ${{ github.workspace }}/taco/.data/test.db
+          OPENTACO_SQLITE_DB_PATH: ${{ github.workspace }}/taco/.data/test.db
           OPENTACO_AUTH_DISABLE: true
         run: |
           # Run binary and capture output

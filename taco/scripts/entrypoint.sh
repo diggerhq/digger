@@ -26,7 +26,7 @@ case $BACKEND in
     ;;
   sqlite)
     echo "Applying SQLite migrations..."
-    SQLITE_PATH=${OPENTACO_SQLITE_PATH:-/app/data/taco.db}
+    SQLITE_PATH=${OPENTACO_SQLITE_DB_PATH:-/app/data/taco.db}
     # Ensure directory exists
     mkdir -p "$(dirname "$SQLITE_PATH")"
     DB_URL="sqlite://$SQLITE_PATH"
