@@ -11,13 +11,16 @@ import { Sidebar, SidebarMenuButton, SidebarGroupContent, SidebarGroupLabel, Sid
 import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
 import globalCssUrl from '@/styles/global.css?url'
 import { Toaster } from '@/components/ui/toaster';
+import { getPublicServerConfig } from '@/lib/env.server';
+
 
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
     const { auth, organisationId } = await getAuth();
     const organisationDetails = organisationId ? await getOrganisationDetails({data: {organizationId: organisationId}}) : null;
-    return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name  };
+    const publicServerConfig : Env = await getPublicServerConfig()
+    return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };
   },
   head: () => ({
     meta: [

@@ -138,5 +138,5 @@ export async function deleteUnit(orgId: string, userId: string, email: string, u
     if (!response.ok) {
         throw new Error(`Failed to delete unit: ${response.statusText}`);
     }
-    return response.json();
+
 }

@@ -53,6 +53,5 @@ export const createUnitFn = createServerFn({method: 'POST'})
 export const deleteUnitFn = createServerFn({method: 'POST'})
   .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unit : any = await deleteUnit(data.organisationId, data.userId, data.email, data.unitId)
-    return unit
+    await deleteUnit(data.organisationId, data.userId, data.email, data.unitId)
 })

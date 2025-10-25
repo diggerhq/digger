@@ -24,8 +24,23 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from '@/hooks/use-toast'
 import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn } from '@/api/statesman_serverFunctions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { getPublicServerConfig } from '@/lib/env.server'
+import type { Env } from '@/lib/env.server'
+
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 function CopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false)
@@ -61,14 +76,19 @@ export const Route = createFileRoute(
     const unitData = await getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
     const unitVersionsData = await getUnitVersionsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
     const unitStatusData = await getUnitStatusFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
-    const publicUrl = process.env.PUBLIC_URL || '<hostname>'
+    
+    const publicServerConfig = context.publicServerConfig
+    const publicHostname = publicServerConfig.PUBLIC_HOSTNAME || '<hostname>'
+
+
     return { 
       unitData: unitData, 
       unitStatus: unitStatusData,
       unitVersions: unitVersionsData.versions, 
       user, 
       organisationId, 
-      publicUrl 
+      publicHostname,
+
     }
   }
 })
@@ -97,7 +117,7 @@ function formatDate(input: Date | string | number) {
 
 function RouteComponent() {
   const data = Route.useLoaderData()
-  const { unitData, unitVersions, unitStatus, organisationId, publicUrl, user } = data
+  const { unitData, unitVersions, unitStatus, organisationId, publicHostname, user } = data
   const unit = unitData
   const router = useRouter()
 
@@ -111,14 +131,25 @@ function RouteComponent() {
           unitId: unit.id,
         },
       })
+      toast({
+        title: 'Unit unlocked',
+        description: `Unit ${unit.name} was unlocked successfully.`,
+        duration: 1000,
+        variant: "default"
+      })
       router.invalidate()
     } catch (error) {
+      toast({
+        title: 'Failed to unlock unit',
+        description: `Failed to unlock unit ${unit.name}.`,
+        duration: 5000,
+        variant: "destructive"
+      })
       console.error('Failed to unlock unit', error)
     }
   }
 
   const handleLock = async () => {
-    alert('Locking unit')
     try {
       await lockUnitFn({
         data: {
@@ -128,8 +159,20 @@ function RouteComponent() {
           unitId: unit.id,
         },
       })
+      toast({
+        title: 'Unit locked',
+        description: `Unit ${unit.name} was locked successfully.`,
+        duration: 1000,
+        variant: "default"
+      })
       router.invalidate()
     } catch (error) {
+      toast({
+        title: 'Failed to lock unit',
+        description: `Failed to lock unit ${unit.name}.`,
+        duration: 5000,
+        variant: "destructive"
+      })
       console.error('Failed to lock unit', error)
     }
   }
@@ -145,11 +188,25 @@ function RouteComponent() {
           unitId: unit.id,
         },
       })
+
+      toast({
+        title: 'Unit deleted',
+        description: `Unit ${unit.name} was deleted successfully.`,
+        duration: 1000,
+        variant: "default"
+      })
       router.invalidate()
     } catch (error) {
       console.error('Failed to delete unit', error)
+      toast({
+        title: 'Failed to delete unit',
+        description: `Failed to delete unit ${unit.name}.`,
+        duration: 5000,
+        variant: "destructive"
+      })
+      return
     }
-    router.navigate({ to: '/dashboard/units' })
+    setTimeout(() => router.navigate({ to: '/dashboard/units' }), 500)
   }
   
   return (
@@ -229,7 +286,7 @@ function RouteComponent() {
                     <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">
 {`terraform {
   cloud {
-    hostname = "${publicUrl}"
+    hostname = "${publicHostname}"
     organization = "${organisationId}"    
     workspaces {
       name = "${unit.id}"
@@ -240,7 +297,7 @@ function RouteComponent() {
                     <CopyButton 
                       content={`terraform {
   cloud {
-    hostname = "${publicUrl}"
+    hostname = "${publicHostname}"
     organization = "${organisationId}"    
     workspaces {
       name = "${unit.id}"
@@ -258,8 +315,8 @@ function RouteComponent() {
                       First, authenticate with the remote backend:
                     </p>
                     <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">terraform login mo-opentaco-test.ngrok.app</pre>
-                      <CopyButton content="terraform login mo-opentaco-test.ngrok.app" />
+                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">terraform login {publicHostname}</pre>
+                      <CopyButton content={`terraform login ${publicHostname}`} />
                     </div>
                   </div>
 
@@ -314,44 +371,50 @@ function RouteComponent() {
                 <CardDescription>Previous versions of this unit</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Hash</TableHead>
-                      <TableHead className="w-[120px]">Size</TableHead>
-                      <TableHead className="w-[230px]">Date</TableHead>
-                      <TableHead className="w-[220px] text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {unitVersions.map((version: any) => {
-                      const shortHash = String(version.hash).slice(0, 8)
-                      return (
-                        <TableRow key={version.hash}>
-                          <TableCell>
-                            <code className="text-xs">{shortHash}</code>
-                          </TableCell>
-                          <TableCell>{formatBytes(Number(version.size) || 0)}</TableCell>
-                          <TableCell>{formatDate(version.timestamp)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {!version.isLatest && (
+                {(!unitVersions || unitVersions.length === 0) ? (
+                  <div className="p-10 border border-dashed rounded-md text-center text-sm text-muted-foreground">
+                    No versions yet. A version will appear after the first state is uploaded.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Hash</TableHead>
+                        <TableHead className="w-[120px]">Size</TableHead>
+                        <TableHead className="w-[230px]">Date</TableHead>
+                        <TableHead className="w-[220px] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {unitVersions.map((version: any) => {
+                        const shortHash = String(version.hash).slice(0, 8)
+                        return (
+                          <TableRow key={version.hash}>
+                            <TableCell>
+                              <code className="text-xs">{shortHash}</code>
+                            </TableCell>
+                            <TableCell>{formatBytes(Number(version.size) || 0)}</TableCell>
+                            <TableCell>{formatDate(version.timestamp)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {!version.isLatest && (
+                                  <Button variant="outline" size="sm">
+                                    <History className="mr-2 h-4 w-4" />
+                                    Restore
+                                  </Button>
+                                )}
                                 <Button variant="outline" size="sm">
-                                  <History className="mr-2 h-4 w-4" />
-                                  Restore
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Download
                                 </Button>
-                              )}
-                              <Button variant="outline" size="sm">
-                                <Download className="mr-2 h-4 w-4" />
-                                Download
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -384,10 +447,27 @@ function RouteComponent() {
                       This will permanently delete this unit and all of its version history. 
                       This action cannot be undone. Make sure to back up any important state before proceeding.
                     </p>
-                    <Button variant="destructive" className="gap-2" onClick={handleDelete}>
-                      <Trash2 className="h-4 w-4" />
-                      Delete Unit
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="gap-2">
+                          <Trash2 className="h-4 w-4" />
+                          Delete Unit
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this unit?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the unit
+                            and all of its version history.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
