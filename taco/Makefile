@@ -104,14 +104,6 @@ atlas-install: ## Install Atlas CLI and GORM provider
 	@go install ariga.io/atlas-provider-gorm@latest
 	@echo "✅ Atlas tools installed successfully"
 
-# Download Atlas amd64 binary for packaging
-atlas-download-binary: ## Download Atlas amd64 Linux binary for embedding
-	@echo "Downloading Atlas amd64 binary..."
-	@mkdir -p internal/query/migration/atlas/bin
-	@curl -sSfL https://release.ariga.io/atlas/atlas-linux-amd64-latest -o internal/query/migration/atlas/bin/atlas
-	@chmod +x internal/query/migration/atlas/bin/atlas
-	@echo "✅ Atlas binary downloaded to internal/query/migration/atlas/bin/atlas"
-
 # Generate migrations for all database dialects (Postgres, MySQL, SQLite)
 atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-all name=my_change)
 	@echo "Generating migrations for all databases..."
@@ -119,7 +111,7 @@ atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-a
 		echo "⚠️  Using auto-generated name: $(NAME)"; \
 		echo "💡 Tip: Use 'make atlas-diff-all name=descriptive_name' for better naming"; \
 	fi
-	@mkdir -p internal/query/migration/atlas/migrations/postgres internal/query/migration/atlas/migrations/mysql internal/query/migration/atlas/migrations/sqlite
+	@mkdir -p migrations/postgres migrations/mysql migrations/sqlite
 	@echo "\n🔐 Generating checksums for existing migrations..."
 	@$(MAKE) atlas-hash-all
 	@echo "\n📊 PostgreSQL..." && atlas migrate diff $(NAME) --env postgres
@@ -138,6 +130,6 @@ atlas-lint-all: ## Validate and lint all migration files
 
 # Update migration directory hashes (called automatically by atlas-diff-all)
 atlas-hash-all:
-	@atlas migrate hash --dir file://internal/query/migration/atlas/migrations/postgres 2>/dev/null || true
-	@atlas migrate hash --dir file://internal/query/migration/atlas/migrations/mysql 2>/dev/null || true
-	@atlas migrate hash --dir file://internal/query/migration/atlas/migrations/sqlite 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/postgres 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/mysql 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/sqlite 2>/dev/null || true

@@ -4,14 +4,10 @@
 package queryfactory
 
 import (
-	"context"
 	"fmt"
-	"log"
 	"strings"
-	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/query"
-	"github.com/diggerhq/digger/opentaco/internal/query/migration/atlas"
 	"github.com/diggerhq/digger/opentaco/internal/query/mssql"
 	"github.com/diggerhq/digger/opentaco/internal/query/mysql"
 	"github.com/diggerhq/digger/opentaco/internal/query/postgres"
@@ -20,22 +16,20 @@ import (
 )
 
 // NewQueryStore creates a new query.Store based on the provided configuration.
-// It handles both database connection and schema migration.
+// NOTE: Migrations are NOT applied automatically. They must be applied via:
+//   - Docker/Production: entrypoint.sh runs "atlas migrate apply" before starting
+//   - Local Dev: Run "atlas migrate apply" manually before starting statesman
 func NewQueryStore(cfg query.Config) (query.Store, error) {
 	backend := strings.ToLower(cfg.Backend)
 
 	// Step 1: Connect to database (get GORM DB instance)
-	db, dialect, err := connectDatabase(backend, cfg)
+	db, _, err := connectDatabase(backend, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 2: Run migrations
-	if err := runMigrations(db, dialect, cfg); err != nil {
-		return nil, fmt.Errorf("migration failed: %w", err)
-	}
-
-	// Step 3: Create store (data access layer)
+	// Step 2: Create store (data access layer)
+	// NOTE: Migrations must be applied externally (see function comment above)
 	return createStore(db, backend)
 }
 
@@ -57,21 +51,6 @@ func connectDatabase(backend string, cfg query.Config) (*gorm.DB, string, error)
 	default:
 		return nil, "", fmt.Errorf("unsupported OPENTACO_QUERY_BACKEND value: %q (supported: sqlite, postgres, mssql, mysql)", backend)
 	}
-}
-
-// runMigrations applies schema migrations using Atlas
-func runMigrations(db *gorm.DB, dialect string, cfg query.Config) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	atlasMigrator := atlas.NewMigrator(dialect, cfg)
-	
-	log.Printf("Applying Atlas migrations for %s...", dialect)
-	if err := atlasMigrator.Migrate(ctx, db); err != nil {
-		return fmt.Errorf("atlas migration failed: %w", err)
-	}
-
-	return nil
 }
 
 // createStore creates the actual store implementation

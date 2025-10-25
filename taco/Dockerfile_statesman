@@ -9,15 +9,8 @@ WORKDIR /go/src/github.com/diggerhq/digger/taco
 COPY cmd/statesman/ ./cmd/statesman/
 COPY internal/ ./internal/
 COPY pkg/sdk/ ./pkg/sdk/
-COPY Makefile ./Makefile
 
-# Download Atlas amd64 binary for embedding into statesman binary
-RUN apt-get update && apt-get install -y curl make && \
-    make atlas-download-binary && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Download dependencies and build (Atlas binary will be embedded via go:embed)
+# Download dependencies and build
 # Note: CGO is required for SQLite support
 RUN cd cmd/statesman && \
     go mod tidy && \
@@ -26,15 +19,12 @@ RUN cd cmd/statesman && \
     -a \
     -o statesman .
 
-# Install Atlas CLI for migrations (fallback for dev/debugging)
-RUN go install ariga.io/atlas/cmd/atlas@latest
-
 # Multi-stage build - use a minimal image for runtime
 FROM ubuntu:24.04 AS runner
 ARG COMMIT_SHA
 WORKDIR /app
 
-# Install ca-certificates and curl for HTTPS requests
+# Install ca-certificates, curl for HTTPS requests
 RUN apt-get update && \
     apt-get install -y ca-certificates curl && \
     apt-get clean && \
@@ -42,20 +32,23 @@ RUN apt-get update && \
 
 RUN echo "commit sha: ${COMMIT_SHA}"
 
-# Install Atlas CLI for customer use
+# Install Atlas CLI for migrations
 RUN curl -sSf https://atlasgo.sh | sh
 
-# Copy the binary from builder stage (contains embedded Atlas + migrations)
+# Copy the binary from builder stage
 COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/statesman/statesman /app/statesman
 
-# Copy migration files for customer Atlas CLI usage
-COPY --from=builder /go/src/github.com/diggerhq/digger/taco/internal/query/migration/atlas/migrations /app/migrations
+# Copy migration files
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/migrations /app/migrations
 
-# Copy atlas.hcl for customer reference (optional)
+# Copy entrypoint script
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/scripts/entrypoint.sh /app/entrypoint.sh
+
+# Copy atlas.hcl for reference
 COPY --from=builder /go/src/github.com/diggerhq/digger/taco/atlas.hcl /app/atlas.hcl
 
-# Make the binary executable
-RUN chmod +x /app/statesman
+# Make scripts executable
+RUN chmod +x /app/statesman /app/entrypoint.sh
 
 # Expose the port that statesman runs on
 EXPOSE 8080
@@ -63,10 +56,12 @@ EXPOSE 8080
 # Set environment variables with defaults
 ENV OPENTACO_PORT=8080
 ENV OPENTACO_STORAGE=memory
+ENV OPENTACO_BACKEND=sqlite
+ENV OPENTACO_SQLITE_PATH=/app/data/taco.db
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/healthz || exit 1
 
-# Run the statesman binary
-ENTRYPOINT ["/app/statesman"]
+# Run via entrypoint script (applies migrations then starts statesman)
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]

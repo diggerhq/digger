@@ -5,17 +5,17 @@ variable "DB_URL" {
 
 variable "POSTGRES_MIGRATIONS_DIR" {
   type    = string
-  default = "file://internal/query/migration/atlas/migrations/postgres"
+  default = "file://migrations/postgres"
 }
 
 variable "MYSQL_MIGRATIONS_DIR" {
   type    = string
-  default = "file://internal/query/migration/atlas/migrations/mysql"
+  default = "file://migrations/mysql"
 }
 
 variable "SQLITE_MIGRATIONS_DIR" {
   type    = string
-  default = "file://internal/query/migration/atlas/migrations/sqlite"
+  default = "file://migrations/sqlite"
 }
 
 data "external_schema" "gorm_postgres" {
