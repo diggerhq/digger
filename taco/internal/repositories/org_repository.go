@@ -23,6 +23,14 @@ type orgRepository struct {
 	db *gorm.DB
 }
 
+// Helper function to safely get string value from pointer
+func getStringValue(ptr *string) string {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
+}
+
 // NewOrgRepository creates a new organization repository
 // Takes a GORM database connection as infrastructure dependency
 func NewOrgRepository(db *gorm.DB) domain.OrganizationRepository {
@@ -40,7 +48,7 @@ func NewOrgRepositoryFromQueryStore(queryStore interface{}) domain.OrganizationR
 }
 
 // Create creates a new organization
-func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy string) (*domain.Organization, error) {
+func (r *orgRepository) Create(ctx context.Context, orgID, name, displayName, externalOrgID, createdBy string) (*domain.Organization, error) {
 	// Normalize org ID to lowercase for case-insensitivity
 	orgID = strings.ToLower(strings.TrimSpace(orgID))
 	
@@ -49,7 +57,7 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy strin
 		return nil, err
 	}
 
-	// Check if org already exists (infrastructure logic)
+	// Check if org already exists by name (infrastructure logic)
 	var existing types.Organization
 	err := r.db.WithContext(ctx).Where(queryOrgByName, orgID).First(&existing).Error
 	if err == nil {
@@ -59,14 +67,32 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy strin
 		return nil, fmt.Errorf("failed to check existing org: %w", err)
 	}
 
+	// Check if external org ID already exists (if provided)
+	if externalOrgID != "" {
+		var existingExternal types.Organization
+		err := r.db.WithContext(ctx).Where("external_org_id = ?", externalOrgID).First(&existingExternal).Error
+		if err == nil {
+			return nil, fmt.Errorf("external org ID already exists: %s", externalOrgID)
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("failed to check existing external org ID: %w", err)
+		}
+	}
+
 	// Create new org entity
 	now := time.Now()
+	var externalOrgIDPtr *string
+	if externalOrgID != "" {
+		externalOrgIDPtr = &externalOrgID
+	}
+	
 	entity := &types.Organization{
-		Name:        orgID,
-		DisplayName: name,
-		CreatedBy:   createdBy,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Name:          orgID,
+		DisplayName:   displayName,
+		ExternalOrgID: externalOrgIDPtr,
+		CreatedBy:     createdBy,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
@@ -76,17 +102,20 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, createdBy strin
 	slog.Info("Organization created successfully",
 		"orgID", orgID,
 		"name", name,
+		"displayName", displayName,
+		"externalOrgID", externalOrgID,
 		"createdBy", createdBy,
 	)
 
 	// Convert entity to domain model
 	return &domain.Organization{
-		ID:          entity.ID,
-		Name:        entity.Name,
-		DisplayName: entity.DisplayName,
-		CreatedBy:   entity.CreatedBy,
-		CreatedAt:   entity.CreatedAt,
-		UpdatedAt:   entity.UpdatedAt,
+		ID:            entity.ID,
+		Name:          entity.Name,
+		DisplayName:   entity.DisplayName,
+		ExternalOrgID: getStringValue(entity.ExternalOrgID),
+		CreatedBy:     entity.CreatedBy,
+		CreatedAt:     entity.CreatedAt,
+		UpdatedAt:     entity.UpdatedAt,
 	}, nil
 }
 
@@ -103,12 +132,36 @@ func (r *orgRepository) Get(ctx context.Context, orgID string) (*domain.Organiza
 
 	// Convert entity to domain model
 	return &domain.Organization{
-		ID:          entity.ID,
-		Name:        entity.Name,
-		DisplayName: entity.DisplayName,
-		CreatedBy:   entity.CreatedBy,
-		CreatedAt:   entity.CreatedAt,
-		UpdatedAt:   entity.UpdatedAt,
+		ID:            entity.ID,
+		Name:          entity.Name,
+		DisplayName:   entity.DisplayName,
+		ExternalOrgID: getStringValue(entity.ExternalOrgID),
+		CreatedBy:     entity.CreatedBy,
+		CreatedAt:     entity.CreatedAt,
+		UpdatedAt:     entity.UpdatedAt,
+	}, nil
+}
+
+// GetByExternalID retrieves an organization by external org ID
+func (r *orgRepository) GetByExternalID(ctx context.Context, externalOrgID string) (*domain.Organization, error) {
+	var entity types.Organization
+	err := r.db.WithContext(ctx).Where("external_org_id = ?", externalOrgID).First(&entity).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrOrgNotFound
+		}
+		return nil, fmt.Errorf("failed to get organization by external ID: %w", err)
+	}
+
+	// Convert entity to domain model
+	return &domain.Organization{
+		ID:            entity.ID,
+		Name:          entity.Name,
+		DisplayName:   entity.DisplayName,
+		ExternalOrgID: getStringValue(entity.ExternalOrgID),
+		CreatedBy:     entity.CreatedBy,
+		CreatedAt:     entity.CreatedAt,
+		UpdatedAt:     entity.UpdatedAt,
 	}, nil
 }
 
@@ -124,12 +177,13 @@ func (r *orgRepository) List(ctx context.Context) ([]*domain.Organization, error
 	orgs := make([]*domain.Organization, len(entities))
 	for i, entity := range entities {
 		orgs[i] = &domain.Organization{
-			ID:          entity.ID,
-			Name:        entity.Name,
-			DisplayName: entity.DisplayName,
-			CreatedBy:   entity.CreatedBy,
-			CreatedAt:   entity.CreatedAt,
-			UpdatedAt:   entity.UpdatedAt,
+			ID:            entity.ID,
+			Name:          entity.Name,
+			DisplayName:   entity.DisplayName,
+			ExternalOrgID: getStringValue(entity.ExternalOrgID),
+			CreatedBy:     entity.CreatedBy,
+			CreatedAt:     entity.CreatedAt,
+			UpdatedAt:     entity.UpdatedAt,
 		}
 	}
 
