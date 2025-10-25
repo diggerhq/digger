@@ -3,11 +3,14 @@ CREATE TABLE `organizations` (
   `id` varchar NULL,
   `name` varchar NOT NULL,
   `display_name` varchar NOT NULL,
+  `external_org_id` varchar NULL,
   `created_by` varchar NOT NULL,
   `created_at` datetime NULL,
   `updated_at` datetime NULL,
   PRIMARY KEY (`id`)
 );
+-- Create index "idx_organizations_external_org_id" to table: "organizations"
+CREATE UNIQUE INDEX `idx_organizations_external_org_id` ON `organizations` (`external_org_id`);
 -- Create index "idx_organizations_name" to table: "organizations"
 CREATE UNIQUE INDEX `idx_organizations_name` ON `organizations` (`name`);
 -- Create "users" table

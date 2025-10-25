@@ -52,10 +52,12 @@ CREATE TABLE `organizations` (
   `id` varchar(36) NOT NULL,
   `name` varchar(255) NOT NULL,
   `display_name` varchar(255) NOT NULL,
+  `external_org_id` varchar(500) NULL,
   `created_by` varchar(255) NOT NULL,
   `created_at` datetime NULL,
   `updated_at` datetime NULL,
   PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_organizations_external_org_id` (`external_org_id`),
   UNIQUE INDEX `idx_organizations_name` (`name`)
 ) CHARSET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 -- Create "units" table

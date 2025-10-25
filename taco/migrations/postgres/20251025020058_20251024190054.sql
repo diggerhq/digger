@@ -62,11 +62,14 @@ CREATE TABLE "public"."organizations" (
   "id" character varying(36) NOT NULL,
   "name" character varying(255) NOT NULL,
   "display_name" character varying(255) NOT NULL,
+  "external_org_id" character varying(500) NULL,
   "created_by" character varying(255) NOT NULL,
   "created_at" timestamptz NULL,
   "updated_at" timestamptz NULL,
   PRIMARY KEY ("id")
 );
+-- Create index "idx_organizations_external_org_id" to table: "organizations"
+CREATE UNIQUE INDEX "idx_organizations_external_org_id" ON "public"."organizations" ("external_org_id");
 -- Create index "idx_organizations_name" to table: "organizations"
 CREATE UNIQUE INDEX "idx_organizations_name" ON "public"."organizations" ("name");
 -- Create "units" table
