@@ -80,7 +80,7 @@ jobs:
       - name: Test statesman starts successfully
         working-directory: taco
         env:
-          OPENTACO_BACKEND: postgres
+          OPENTACO_QUERY_BACKEND: postgres
           OPENTACO_POSTGRES_HOST: localhost
           OPENTACO_POSTGRES_PORT: 5432
           OPENTACO_POSTGRES_USER: postgres
@@ -88,7 +88,6 @@ jobs:
           OPENTACO_POSTGRES_DATABASE: opentaco_test
           OPENTACO_POSTGRES_SSLMODE: disable
           OPENTACO_AUTH_DISABLE: true
-          OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
           # Run binary and capture output
           echo "Starting statesman binary..."
@@ -173,7 +172,7 @@ jobs:
       - name: Test statesman starts successfully
         working-directory: taco
         env:
-          OPENTACO_BACKEND: mysql
+          OPENTACO_QUERY_BACKEND: mysql
           OPENTACO_MYSQL_HOST: localhost
           OPENTACO_MYSQL_PORT: 3306
           OPENTACO_MYSQL_USER: mysql
@@ -247,10 +246,9 @@ jobs:
       - name: Test statesman starts successfully
         working-directory: taco
         env:
-          OPENTACO_BACKEND: sqlite
+          OPENTACO_QUERY_BACKEND: sqlite
           OPENTACO_SQLITE_PATH: ./test.db
           OPENTACO_AUTH_DISABLE: true
-          OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
           # Run binary and capture output
           echo "Starting statesman binary..."
