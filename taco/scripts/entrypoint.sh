@@ -2,7 +2,7 @@
 set -e
 
 # Determine which database backend is being used
-BACKEND=${OPENTACO_BACKEND:-sqlite}
+BACKEND=${OPENTACO_QUERY_BACKEND:-sqlite}
 
 echo "Starting OpenTaco Statesman with backend: $BACKEND"
 

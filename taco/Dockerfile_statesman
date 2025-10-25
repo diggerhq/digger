@@ -59,7 +59,7 @@ EXPOSE 8080
 # Set environment variables with defaults
 ENV OPENTACO_PORT=8080
 ENV OPENTACO_STORAGE=memory
-ENV OPENTACO_BACKEND=sqlite
+ENV OPENTACO_QUERY_BACKEND=sqlite
 ENV OPENTACO_SQLITE_PATH=/app/data/taco.db
 
 # Health check

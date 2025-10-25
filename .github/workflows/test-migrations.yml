@@ -28,7 +28,7 @@ jobs:
       postgres:
         image: postgres:16.1
         env:
-          POSTGRES_DB: opentaco_test
+          POSTGRES_DB: taco
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
@@ -65,7 +65,7 @@ jobs:
       - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
         env:
-          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/opentaco_test?sslmode=disable
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/taco?sslmode=disable
         run: |
           echo "Applying PostgreSQL migrations..."
           atlas migrate apply \
@@ -85,7 +85,7 @@ jobs:
           OPENTACO_POSTGRES_PORT: 5432
           OPENTACO_POSTGRES_USER: postgres
           OPENTACO_POSTGRES_PASSWORD: postgres
-          OPENTACO_POSTGRES_DATABASE: opentaco_test
+          OPENTACO_POSTGRES_DATABASE: taco
           OPENTACO_POSTGRES_SSLMODE: disable
           OPENTACO_AUTH_DISABLE: true
         run: |
@@ -120,7 +120,7 @@ jobs:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: opentaco_test
+          MYSQL_DATABASE: taco
           MYSQL_USER: mysql
           MYSQL_PASSWORD: mysql
         ports:
@@ -157,7 +157,7 @@ jobs:
       - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
         env:
-          MYSQL_URL: mysql://mysql:mysql@localhost:3306/opentaco_test
+          MYSQL_URL: mysql://mysql:mysql@localhost:3306/taco
         run: |
           echo "Applying MySQL migrations..."
           atlas migrate apply \
@@ -177,7 +177,7 @@ jobs:
           OPENTACO_MYSQL_PORT: 3306
           OPENTACO_MYSQL_USER: mysql
           OPENTACO_MYSQL_PASSWORD: mysql
-          OPENTACO_MYSQL_DATABASE: opentaco_test
+          OPENTACO_MYSQL_DATABASE: taco
           OPENTACO_AUTH_DISABLE: true
           OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
