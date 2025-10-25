@@ -75,7 +75,7 @@ jobs:
       - name: Build statesman binary
         working-directory: taco
         run: |
-          go build -o statesman ./cmd/statesman
+          CGO_ENABLED=1 go build -o statesman ./cmd/statesman
 
       - name: Test statesman starts successfully
         working-directory: taco
@@ -103,7 +103,7 @@ jobs:
         working-directory: taco
         run: |
           # Check if statesman started successfully
-          if grep -i "server listening\|starting.*server" statesman.log; then
+          if grep -i "server started\|server listening\|starting.*server" statesman.log; then
             echo "✅ Postgres: Statesman started successfully after migrations"
           else
             echo "❌ Statesman did not start successfully"
@@ -167,7 +167,7 @@ jobs:
       - name: Build statesman binary
         working-directory: taco
         run: |
-          go build -o statesman ./cmd/statesman
+          CGO_ENABLED=1 go build -o statesman ./cmd/statesman
 
       - name: Test statesman starts successfully
         working-directory: taco
@@ -195,7 +195,7 @@ jobs:
         working-directory: taco
         run: |
           # Check if statesman started successfully
-          if grep -i "server listening\|starting.*server" statesman.log; then
+          if grep -i "server started\|server listening\|starting.*server" statesman.log; then
             echo "✅ MySQL: Statesman started successfully after migrations"
           else
             echo "❌ Statesman did not start successfully"
@@ -241,7 +241,7 @@ jobs:
       - name: Build statesman binary
         working-directory: taco
         run: |
-          go build -o statesman ./cmd/statesman
+          CGO_ENABLED=1 go build -o statesman ./cmd/statesman
 
       - name: Test statesman starts successfully
         working-directory: taco
@@ -264,7 +264,7 @@ jobs:
         working-directory: taco
         run: |
           # Check if statesman started successfully
-          if grep -i "server listening\|starting.*server" statesman.log; then
+          if grep -i "server started\|server listening\|starting.*server" statesman.log; then
             echo "✅ SQLite: Statesman started successfully after migrations"
           else
             echo "❌ Statesman did not start successfully"
