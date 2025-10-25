@@ -53,7 +53,7 @@ jobs:
         if: steps.check_models.outputs.models_changed == 'true'
         run: |
           # Check if migration files changed in this PR
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "taco/internal/query/migration/atlas/migrations/"; then
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "taco/migrations/"; then
             echo "migrations_changed=true" >> $GITHUB_OUTPUT
             echo "✅ Migration files were updated"
           else
@@ -72,7 +72,7 @@ jobs:
         if: steps.check_models.outputs.models_changed == 'true'
         working-directory: taco
         run: |
-          if ! git diff --exit-code internal/query/migration/atlas/migrations/; then
+          if ! git diff --exit-code migrations/; then
             echo ""
             echo "❌ ERROR: Model changes detected but migrations were not generated!"
             echo ""

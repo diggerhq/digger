@@ -56,17 +56,22 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
-      - name: Download Atlas binary for embedding
+      - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
+        env:
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/opentaco_test?sslmode=disable
         run: |
-          make atlas-download-binary
+          echo "Applying PostgreSQL migrations..."
+          atlas migrate apply \
+            --url "$POSTGRES_URL" \
+            --dir "file://migrations/postgres"
 
-      - name: Build statesman binary (with embedded Atlas)
+      - name: Build statesman binary
         working-directory: taco
         run: |
           go build -o statesman ./cmd/statesman
 
-      - name: Test migrations with binary
+      - name: Test statesman starts successfully
         working-directory: taco
         env:
           OPENTACO_BACKEND: postgres
@@ -79,11 +84,6 @@ jobs:
           OPENTACO_AUTH_DISABLE: true
           OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
-          # Check Atlas is available
-          echo "Checking for Atlas CLI..."
-          which atlas || echo "Atlas not in PATH!"
-          atlas version || echo "Atlas command failed!"
-          
           # Run binary and capture output
           echo "Starting statesman binary..."
           timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
@@ -91,17 +91,17 @@ jobs:
           echo "Binary output:"
           cat statesman.log
           
-          # Give it time to apply migrations
+          # Give it time to start
           sleep 5
 
-      - name: Verify migrations applied
+      - name: Verify statesman started successfully
         working-directory: taco
         run: |
-          # Check if migrations applied successfully from binary output
-          if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
-            echo "✅ Postgres migrations verified from binary output"
+          # Check if statesman started successfully
+          if grep -i "server listening\|starting.*server" statesman.log; then
+            echo "✅ Postgres: Statesman started successfully after migrations"
           else
-            echo "❌ Migration success message not found in binary output"
+            echo "❌ Statesman did not start successfully"
             cat statesman.log
             exit 1
           fi
@@ -143,17 +143,22 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
-      - name: Download Atlas binary for embedding
+      - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
+        env:
+          MYSQL_URL: mysql://mysql:mysql@localhost:3306/opentaco_test
         run: |
-          make atlas-download-binary
+          echo "Applying MySQL migrations..."
+          atlas migrate apply \
+            --url "$MYSQL_URL" \
+            --dir "file://migrations/mysql"
 
-      - name: Build statesman binary (with embedded Atlas)
+      - name: Build statesman binary
         working-directory: taco
         run: |
           go build -o statesman ./cmd/statesman
 
-      - name: Test migrations with binary
+      - name: Test statesman starts successfully
         working-directory: taco
         env:
           OPENTACO_BACKEND: mysql
@@ -165,11 +170,6 @@ jobs:
           OPENTACO_AUTH_DISABLE: true
           OPENTACO_JWT_SECRET: test-secret-key-for-ci
         run: |
-          # Check Atlas is available
-          echo "Checking for Atlas CLI..."
-          which atlas || echo "Atlas not in PATH!"
-          atlas version || echo "Atlas command failed!"
-          
           # Run binary and capture output
           echo "Starting statesman binary..."
           timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
@@ -177,17 +177,17 @@ jobs:
           echo "Binary output:"
           cat statesman.log
           
-          # Give it time to apply migrations
+          # Give it time to start
           sleep 5
 
-      - name: Verify migrations applied
+      - name: Verify statesman started successfully
         working-directory: taco
         run: |
-          # Check if migrations applied successfully from binary output
-          if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
-            echo "✅ MySQL migrations verified from binary output"
+          # Check if statesman started successfully
+          if grep -i "server listening\|starting.*server" statesman.log; then
+            echo "✅ MySQL: Statesman started successfully after migrations"
           else
-            echo "❌ Migration success message not found in binary output"
+            echo "❌ Statesman did not start successfully"
             cat statesman.log
             exit 1
           fi
@@ -213,17 +213,20 @@ jobs:
           curl -sSf https://atlasgo.sh | sh
           atlas version
 
-      - name: Download Atlas binary for embedding
+      - name: Apply migrations manually (simulating entrypoint.sh)
         working-directory: taco
         run: |
-          make atlas-download-binary
+          echo "Applying SQLite migrations..."
+          atlas migrate apply \
+            --url "sqlite://test.db" \
+            --dir "file://migrations/sqlite"
 
-      - name: Build statesman binary (with embedded Atlas)
+      - name: Build statesman binary
         working-directory: taco
         run: |
           go build -o statesman ./cmd/statesman
 
-      - name: Test migrations with binary
+      - name: Test statesman starts successfully
         working-directory: taco
         env:
           OPENTACO_BACKEND: sqlite
@@ -238,17 +241,17 @@ jobs:
           echo "Binary output:"
           cat statesman.log
           
-          # Give it time to apply migrations
+          # Give it time to start
           sleep 5
 
-      - name: Verify migrations applied
+      - name: Verify statesman started successfully
         working-directory: taco
         run: |
-          # Check if migrations applied successfully from binary output
-          if grep -i "migrations applied successfully\|migrations already up to date" statesman.log; then
-            echo "✅ SQLite migrations verified from binary output"
+          # Check if statesman started successfully
+          if grep -i "server listening\|starting.*server" statesman.log; then
+            echo "✅ SQLite: Statesman started successfully after migrations"
           else
-            echo "❌ Migration success message not found in binary output"
+            echo "❌ Statesman did not start successfully"
             cat statesman.log
             exit 1
           fi
