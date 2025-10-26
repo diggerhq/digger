@@ -92,6 +92,8 @@ func main() {
 	r.POST("/_internal/process_notifications", middleware.WebhookAuth(), controller.ProcessAllNotifications)
 	r.POST("/_internal/send_slack_notification_for_org", middleware.WebhookAuth(), controller.SendRealSlackNotificationForOrg)
 	r.POST("/_internal/send_test_slack_notification_for_url", middleware.WebhookAuth(), controller.SendTestSlackNotificationForUrl)
+	r.POST("/_internal/send_teams_notification_for_org", middleware.WebhookAuth(), controller.SendRealTeamsNotificationForOrg)
+	r.POST("/_internal/send_test_teams_notification_for_url", middleware.WebhookAuth(), controller.SendTestTeamsNotificationForUrl)
 
 	r.POST("/_internal/process_drift", middleware.WebhookAuth(), controller.ProcessAllDrift)
 	r.POST("/_internal/process_drift_for_org", middleware.WebhookAuth(), controller.ProcessDriftForOrg)
