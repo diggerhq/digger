@@ -95,7 +95,7 @@ help: ## Show this help
 # Migration name variable (use with: make atlas-diff-all name=add_new_feature)
 NAME ?= $(shell date +%Y%m%d%H%M%S)
 
-.PHONY: atlas-install atlas-diff-all atlas-apply-all atlas-lint-all atlas-hash-all
+.PHONY: atlas-install atlas-diff-all atlas-plan atlas-apply-all atlas-lint-all atlas-hash-all
 
 # Install Atlas CLI and GORM provider
 atlas-install: ## Install Atlas CLI and GORM provider
@@ -103,6 +103,20 @@ atlas-install: ## Install Atlas CLI and GORM provider
 	@go install ariga.io/atlas/cmd/atlas@latest
 	@go install ariga.io/atlas-provider-gorm@latest
 	@echo "✅ Atlas tools installed successfully"
+
+# Preview migration changes without generating files
+atlas-plan: ## Preview what migrations would be generated (use: make atlas-plan name=my_change)
+	@echo "Previewing migration changes for all databases..."
+	@if [ -z "$(filter-out $(NAME),$(shell date +%Y%m%d%H%M%S))" ]; then \
+		echo "⚠️  Using auto-generated name: $(NAME)"; \
+		echo "💡 Tip: Use 'make atlas-plan name=descriptive_name' for better naming"; \
+	fi
+	@echo "\n🔐 Generating checksums for existing migrations..."
+	@$(MAKE) atlas-hash-all
+	@echo "\n📊 PostgreSQL (dry-run)..." && atlas migrate diff $(NAME) --env postgres --dry-run || true
+	@echo "\n📊 MySQL (dry-run)..." && atlas migrate diff $(NAME) --env mysql --dry-run || true
+	@echo "\n📊 SQLite (dry-run)..." && atlas migrate diff $(NAME) --env sqlite --dry-run || true
+	@echo "\n✅ Preview complete (no files generated)"
 
 # Generate migrations for all database dialects (Postgres, MySQL, SQLite)
 atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-all name=my_change)
