@@ -20,9 +20,15 @@ variable "SQLITE_MIGRATIONS_DIR" {
 
 data "external_schema" "gorm_postgres" {
   program = [
-    "sh",
-    "-c",
-    "cd internal && go run ./atlas_loader.go postgres",
+    "go",
+    "run",
+    "-mod=mod",
+    "ariga.io/atlas-provider-gorm",
+    "load",
+    "--path",
+    "./internal/query/types",
+    "--dialect",
+    "postgres",
   ]
 }
 
@@ -55,9 +61,15 @@ env "postgres" {
 # MySQL configuration
 data "external_schema" "gorm_mysql" {
   program = [
-    "sh",
-    "-c",
-    "cd internal && go run ./atlas_loader.go mysql",
+    "go",
+    "run",
+    "-mod=mod",
+    "ariga.io/atlas-provider-gorm",
+    "load",
+    "--path",
+    "./internal/query/types",
+    "--dialect",
+    "mysql",
   ]
 }
 
@@ -85,9 +97,15 @@ env "mysql" {
 # SQLite configuration
 data "external_schema" "gorm_sqlite" {
   program = [
-    "sh",
-    "-c",
-    "cd internal && go run ./atlas_loader.go sqlite",
+    "go",
+    "run",
+    "-mod=mod",
+    "ariga.io/atlas-provider-gorm",
+    "load",
+    "--path",
+    "./internal/query/types",
+    "--dialect",
+    "sqlite",
   ]
 }
 
