@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 	utils2 "github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/utils"
+    "github.com/diggerhq/digger/drift/utils"
 	"github.com/diggerhq/digger/libs/spec"
 	"os"
 )

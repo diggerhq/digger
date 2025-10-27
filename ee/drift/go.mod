@@ -1,6 +1,8 @@
 module github.com/diggerhq/digger/ee/drift
 
 replace github.com/diggerhq/digger/libs => ../../libs
+replace github.com/diggerhq/digger/backend => ../../backend
+replace github.com/diggerhq/digger/drift => ../../drift
 
 go 1.24.0
 

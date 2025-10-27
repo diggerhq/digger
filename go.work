@@ -3,6 +3,7 @@ go 1.24.0
 use (
 	./backend
 	./background/projects-refresh-service
+	./drift
 	./cli
 	./cli_e2e
 	./dgctl
