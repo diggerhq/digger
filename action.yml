@@ -91,7 +91,7 @@ inputs:
   terragrunt-version:
     description: Terragrunt version
     required: false
-    default: v0.90.0
+    default: v0.73.7
   opentofu-version:
     description: OpenTofu version
     required: false
