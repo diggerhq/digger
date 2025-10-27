@@ -66,6 +66,21 @@
       ]
     },
     {
+      "group": "Drift",
+      "pages": [
+        "ce/drift/overview",
+        "ce/drift/how-it-works",
+        "ce/drift/quickstart-github-actions",
+        "ce/drift/scoping-projects",
+        "ce/drift/notifications",
+        "ce/drift/github-issues",
+        "ce/drift/remediation",
+        "ce/drift/scheduling",
+        "ce/drift/self-host",
+        "ce/drift/troubleshooting"
+      ]
+    },
+    {
       "group": "Features",
       "pages": [
         "ce/features/plan-preview",
@@ -75,7 +90,6 @@
         "ce/features/layering",
         "ce/features/pr-level-locks",
         "ce/features/private-runners",
-        "ce/features/drift-detection",
         "ce/features/rbac",
         "ce/features/multi-github",
         "ce/features/fips-140",
@@ -100,7 +114,6 @@
         "ce/howto/disable-auto-checkout",
         "ce/howto/disable-telemetry",
         "ce/howto/generate-projects",
-        "ce/howto/scope-drift-detection",
         "ce/howto/include-exclude-patterns",
         "ce/howto/masking-sensitive-values",
         "ce/howto/multiacc-aws",

@@ -1,0 +1,32 @@
+---
+title: "How It Works"
+---
+
+Digger supports two ways to run drift detection.
+
+## Backendless mode (GitHub Actions only)
+
+- You schedule a workflow that runs the Digger action with `mode: drift-detection`.
+- The action fetches your `digger.yml`, enumerates projects, runs plan-only checks, and reports results.
+- Projects are checked sequentially (slower)
+- Optional: send Slack webhooks or create [GitHub Issues](/ce/drift/github-issues) from the workflow.
+
+## Backend service with cron
+
+- A separate drift service runs on your infrastructure or in Digger Cloud.
+- It uses an org-level crontab (`drift_cron_tab`) to decide when to scan.
+- Internally it triggers plan runs per enabled project and updates project status in the backend.
+- Projects can run in parallel (faster)
+- You can configure a Slack Incoming Webhook at the org level to receive rollup notifications.
+
+## Notes for operators
+
+- The service exposes internal endpoints to process drift and send Slack notifications; protect them with the webhook secret.
+- SQL helpers for periodic invocations are under `drift/scripts/cron/`.
+
+## Related
+
+- Quickstart (GitHub Actions): see [/ce/drift/quickstart-github-actions](/ce/drift/quickstart-github-actions)
+- Scheduling options: see [/ce/drift/scheduling](/ce/drift/scheduling)
+- Self-hosting: see [/ce/drift/self-host](/ce/drift/self-host)
+- Notifications: see [/ce/drift/notifications](/ce/drift/notifications)

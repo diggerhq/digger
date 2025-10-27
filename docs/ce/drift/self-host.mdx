@@ -1,0 +1,33 @@
+---
+title: "Self-host"
+---
+
+Run the drift service yourself if you prefer central scheduling and Slack rollups without relying on GitHub Actions for orchestration.
+
+## Requirements
+
+- Build/run the drift service (see `Dockerfile_drift`).
+- Backend database accessible to the service.
+- Webhook secret configured and used to protect internal endpoints.
+
+## Key environment variables
+
+- `DIGGER_HOSTNAME`: Base URL of your backend, used to call internal endpoints.
+- `DIGGER_WEBHOOK_SECRET`: Shared secret to authenticate internal requests.
+- `DIGGER_APP_URL`: Base URL for links in notifications.
+- `DIGGER_DRIFT_REPORTER_HOSTNAME`: Hostname for the reporter in CI job specs.
+
+## Scheduling and notifications
+
+- Set the org-level `drift_cron_tab` for when to scan.
+- Slack rollups use an org-level webhook URL when configured.
+- SQL helper snippets for periodic invocation live in `drift/scripts/cron/`.
+
+## Security
+
+- Expose internal endpoints only behind your network boundary and verify the webhook secret on requests.
+
+## Related
+
+- How it works: see [/ce/drift/how-it-works](/ce/drift/how-it-works)
+- Scheduling: see [/ce/drift/scheduling](/ce/drift/scheduling)

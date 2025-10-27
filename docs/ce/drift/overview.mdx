@@ -1,0 +1,23 @@
+---
+title: "Drift Overview"
+---
+
+Drift is any difference between your real-world cloud resources and the desired state in code. Digger detects drift by running non-destructive plans on a schedule and reporting results.
+
+## What it covers
+
+- Detection: Scheduled plans on your default branch for every enabled project.
+- Modes: Run via GitHub Actions only (backendless mode) or via the Digger backend service.
+- Outcomes: No changes vs changes detected. Follow up via notifications and remediation.
+
+## When to use which mode
+
+- Backendless mode: Fastest to adopt, everything runs fully in GitHub Actions.
+- Backend service: Centralized scheduling, org-level settings, and Slack rollups.
+
+## Next steps
+
+- Understand the architecture: see [How It Works](/ce/drift/how-it-works).
+- Set up with GitHub Actions: see [Quickstart](/ce/drift/quickstart-github-actions).
+- Choose notifications: see [Notifications](/ce/drift/notifications) and [GitHub Issues](/ce/drift/github-issues).
+- Remediate detected drift: see [Remediation](/ce/drift/remediation).

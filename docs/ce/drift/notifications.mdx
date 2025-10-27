@@ -1,0 +1,23 @@
+---
+title: "Notifications"
+---
+
+## Slack rollup notifications
+
+- Configure an org-level Slack Incoming Webhook to receive a rollup of project drift statuses.
+- In backendless mode, pass the webhook URL to the action input `drift-detection-slack-notification-url`.
+- In backend mode, set the webhook URL in org settings; the service sends messages on schedule.
+
+## Testing and common issues
+
+- Verify the webhook URL works by sending a test message from your environment.
+- If messages are missing around the expected time, check the configured schedule (Actions cron or org-level crontab).
+
+## GitHub Issues
+
+- To create issues for drift instead of (or in addition to) Slack messages, see [GitHub Issues](/ce/drift/github-issues).
+
+## Related
+
+- Scheduling: see [/ce/drift/scheduling](/ce/drift/scheduling)
+- Self-host Slack via org settings: see [/ce/drift/self-host](/ce/drift/self-host)

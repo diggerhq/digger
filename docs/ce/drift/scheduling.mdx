@@ -1,0 +1,24 @@
+---
+title: "Scheduling"
+---
+
+## GitHub Actions cron (backendless mode)
+
+- Use the `on.schedule` cron in your workflow to control when drift runs.
+- Example: `- cron: '0 0 * * *'` runs daily at midnight UTC.
+
+## Backend scheduling (backend service)
+
+- Configure the org-level `drift_cron_tab` to decide when scans occur.
+- The drift service batches scans per org and triggers plan runs for enabled projects.
+- SQL helpers to invoke the internal endpoints on a schedule are provided under `drift/scripts/cron/`.
+
+## Choosing a schedule
+
+- Start daily for most teams; increase frequency for fast-moving environments or decrease for large estates.
+
+## Related
+
+- How it works: see [/ce/drift/how-it-works](/ce/drift/how-it-works)
+- Quickstart (Actions): see [/ce/drift/quickstart-github-actions](/ce/drift/quickstart-github-actions)
+- Self-hosting: see [/ce/drift/self-host](/ce/drift/self-host)
