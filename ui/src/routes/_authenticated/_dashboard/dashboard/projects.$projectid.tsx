@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createFileRoute, useLoaderData, Link } from '@tanstack/react-router'
 import { AlertTriangle, CheckCircle, Clock, FolderOpen, GitBranch, Calendar, ArrowLeft } from 'lucide-react'
-import { getProjectFn } from '@/api/server_functions'
+import { getProjectFn } from '@/api/orchestrator_serverFunctions'
 import { Button } from '@/components/ui/button'
 
 const getDriftStatusBadge = (status: string) => {

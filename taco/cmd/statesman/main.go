@@ -111,8 +111,21 @@ func main() {
 
 	// create repository
 	// repository coordinates blob storage with query index internally
-	repo := repositories.NewUnitRepository(blobStore, queryStore)
-	log.Println("Repository initialized (coordinates blob + query)")
+	// Get the underlying *gorm.DB from the query store
+	db := repositories.GetDBFromQueryStore(queryStore)
+	if db == nil {
+		log.Fatalf("Query store does not provide GetDB method")
+	}
+	
+	// Ensure default organization exists
+	defaultOrgUUID, err := repositories.EnsureDefaultOrganization(context.Background(), db)
+	if err != nil {
+		log.Fatalf("Failed to ensure default organization: %v", err)
+	}
+	log.Printf("Default organization ensured: %s", defaultOrgUUID)
+	
+	repo := repositories.NewUnitRepository(db, blobStore)
+	log.Println("Repository initialized (database-first with blob storage backend)")
 	
 	// Create RBAC Manager
 	rbacManager, err := rbac.NewRBACManagerFromQueryStore(queryStore)
@@ -128,8 +141,12 @@ func main() {
 	if !*authDisable {
 		log.Println("Authorization is ENABLED. Wrapping repository with RBAC.")
 		
+		// Create bootstrap context with default org for RBAC check
+		// During startup, we need org context to check RBAC status
+		bootstrapCtx := domain.ContextWithOrg(context.Background(), defaultOrgUUID)
+		
 		// Verify RBAC manager was created successfully (fail closed for security)
-		canInit, err := rbacManager.IsEnabled(context.Background())
+		canInit, err := rbacManager.IsEnabled(bootstrapCtx)
 		if err != nil {
 			log.Fatalf("Failed to verify RBAC manager: %v", err)
 		}
@@ -144,8 +161,8 @@ func main() {
 	}
 
 	// Initialize analytics with system ID management (always create system ID)
-	// Analytics uses the full repository for storage operations
-	analytics.InitGlobalWithSystemID("production", fullRepo)
+	// Analytics uses the blob store for storage operations
+	analytics.InitGlobalWithSystemID("production", blobStore)
 	// Initialize system ID synchronously during startup
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -184,7 +201,8 @@ func main() {
 
 	// Register routes with interface-based dependencies
 	api.RegisterRoutes(e, api.Dependencies{
-		Repository:  fullRepo,      // Coordinated unit operations
+		Repository:  fullRepo,      // RBAC-wrapped repository (used by all routes)
+		BlobStore:   blobStore,     // Direct blob access (for legacy components)
 		QueryStore:  queryStore,    // Direct query access
 		RBACManager: rbacManager,   // RBAC management
 		Signer:      signer,        // JWT signing

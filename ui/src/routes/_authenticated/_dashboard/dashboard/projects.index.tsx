@@ -1,12 +1,9 @@
 import { createFileRoute, Link, useLoaderData } from '@tanstack/react-router'
-import { getProjectsFn } from '@/api/server_functions'
-import { updateProjectFn } from '@/api/server_functions'
-import { trackProjectDriftToggled } from '@/lib/analytics'
+import { getProjectsFn } from '@/api/orchestrator_serverFunctions'
+import { updateProjectFn } from '@/api/orchestrator_serverFunctions'
 import { useToast } from "@/hooks/use-toast"
-import { fetchBillingInfo } from '@/api/api'
 import { useState } from 'react'
-import { Project } from '@/api/types'
-import { Dialog } from '@/components/ui/dialog'
+import { Project } from '@/api/orchestrator_types'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -36,7 +33,7 @@ function RouteComponent() {
     const [projectList, setProjectList] = useState<Project[]>(projects)
 
     const handleDriftToggle = async (project: Project) => {
-        trackProjectDriftToggled(user, organisationId, project.id.toString(), !project.drift_enabled ? 'enabled' : 'disabled')
+        // trackProjectDriftToggled(user, organisationId, project.id.toString(), !project.drift_enabled ? 'enabled' : 'disabled')
 
         try {
             // Optimistically update UI

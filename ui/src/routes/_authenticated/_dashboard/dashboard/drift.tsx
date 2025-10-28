@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, AlertCircle, Save, TestTube, Clock, ArrowLeft, Slack } from 'lucide-react'
-import { OrgSettings } from '@/api/types'
+import { OrgSettings } from '@/api/orchestrator_types'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
-import { getOrgSettingsFn, updateOrgSettingsFn, testSlackWebhookFn } from '@/api/server_functions'
+import { getOrgSettingsFn, updateOrgSettingsFn } from '@/api/orchestrator_serverFunctions'
+import { testSlackWebhookFn } from '@/api/drift_serverFunctions'
 import { ToastAction } from '@/components/ui/toast'
 
 

@@ -47,3 +47,6 @@ taco/data/
 # Helm values with actual infrastructure config (team-specific)
 helm-charts/opentaco/values-production.yaml
 helm-charts/opentaco/values-test.yaml
+
+# Atlas migration checksums (auto-generated)
+**/migrations/**/atlas.sum

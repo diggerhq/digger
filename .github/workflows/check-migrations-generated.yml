@@ -1,0 +1,134 @@
+name: Check Migrations Generated
+
+on:
+  pull_request:
+    paths:
+      - 'taco/internal/query/types/**'
+      - 'taco/atlas.hcl'
+      - 'taco/internal/atlas_loader.go'
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  check-migrations:
+    name: Verify Migrations Were Generated
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to check file changes
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Install Atlas GORM Provider
+        run: go install ariga.io/atlas-provider-gorm@latest
+
+      - name: Check if model files changed
+        id: check_models
+        run: |
+          # Check if any GORM model files changed in this PR
+          git fetch origin ${{ github.base_ref }}
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "taco/internal/query/types/"; then
+            echo "models_changed=true" >> $GITHUB_OUTPUT
+            echo "✋ GORM models were modified"
+          else
+            echo "models_changed=false" >> $GITHUB_OUTPUT
+            echo "✅ No GORM model changes detected"
+          fi
+
+      - name: Check if migrations changed
+        id: check_migrations
+        if: steps.check_models.outputs.models_changed == 'true'
+        run: |
+          # Check if migration files changed in this PR
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "taco/migrations/"; then
+            echo "migrations_changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Migration files were updated"
+          else
+            echo "migrations_changed=false" >> $GITHUB_OUTPUT
+            echo "❌ No migration files were updated"
+          fi
+
+      - name: Verify migrations were committed with model changes
+        if: steps.check_models.outputs.models_changed == 'true'
+        run: |
+          if [ "${{ steps.check_migrations.outputs.migrations_changed }}" != "true" ]; then
+            echo ""
+            echo "❌ ERROR: Model changes detected but no migrations were committed!"
+            echo ""
+            echo "📝 You modified GORM models in taco/internal/query/types/"
+            echo "   but didn't generate and commit corresponding migrations."
+            echo ""
+            echo "To fix this:"
+            echo "  1. cd taco"
+            echo "  2. make atlas-diff-all name=descriptive_name"
+            echo "  3. git add migrations/"
+            echo "  4. git commit"
+            echo ""
+            echo "Example:"
+            echo "  make atlas-diff-all name=add_user_email_field"
+            echo ""
+            exit 1
+          else
+            echo "✅ Model changes have corresponding migration files committed"
+          fi
+
+      - name: Validate migration files
+        if: steps.check_migrations.outputs.migrations_changed == 'true'
+        working-directory: taco
+        run: |
+          echo "Ensuring migration checksums are up to date..."
+          make atlas-hash-all
+          
+          echo "Validating migration file format..."
+          # Just check that .sql files exist and are non-empty
+          for db in postgres mysql sqlite; do
+            if [ -d "migrations/$db" ]; then
+              sql_files=$(find migrations/$db -name "*.sql" -type f)
+              if [ -z "$sql_files" ]; then
+                echo "❌ No .sql files found in migrations/$db"
+                exit 1
+              fi
+              echo "✅ Found migration files in migrations/$db"
+            fi
+          done
+          
+          echo "✅ All migration files validated"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Migration Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check_models.outputs.models_changed }}" = "true" ]; then
+            echo "- 🔄 GORM models were modified" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ steps.check_migrations.outputs.migrations_changed }}" = "true" ]; then
+              echo "- ✅ Migration files were updated" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ℹ️ No migration files changed (no schema impact)" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- ℹ️ No GORM model changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### How to generate migrations" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "cd taco" >> $GITHUB_STEP_SUMMARY
+          echo "make atlas-diff-all name=descriptive_name" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+

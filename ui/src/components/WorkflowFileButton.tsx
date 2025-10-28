@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { CheckCircle2 } from "lucide-react"
-import { trackWorkflowFileAdded } from "@/lib/analytics"
 
 interface WorkflowFileButtonProps {
   onClick: () => void

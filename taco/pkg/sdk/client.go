@@ -63,7 +63,7 @@ type Version struct {
 
 // CreateUnitRequest represents a request to create a unit
 type CreateUnitRequest struct {
-    ID string `json:"id"`
+    Name string `json:"name"`
 }
 
 // CreateUnitResponse represents the response from creating a unit
@@ -125,7 +125,7 @@ type Summary struct {
 
 // CreateUnit creates a new unit
 func (c *Client) CreateUnit(ctx context.Context, unitID string) (*CreateUnitResponse, error) {
-    req := CreateUnitRequest{ID: unitID}
+    req := CreateUnitRequest{Name: unitID}
     
     resp, err := c.doJSON(ctx, "POST", "/v1/units", req)
     if err != nil {
