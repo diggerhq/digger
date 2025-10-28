@@ -18,26 +18,23 @@ const (
 )
 
 // SQLStore provides a generic, GORM-based implementation of the Store interface.
-// It can be used with any GORM-compatible database dialect (SQLite, Postgres, etc.).
 type SQLStore struct {
 	db *gorm.DB
 }
 
-// NewSQLStore is a constructor for our common store. It takes a pre-configured
-// GORM DB object and handles the common setup tasks like migration and view creation.
+// NewSQLStore creates a new SQLStore.
+// Note: Schema migrations are now handled by Atlas in queryfactory.NewQueryStore()
 func NewSQLStore(db *gorm.DB) (*SQLStore, error) {
 	store := &SQLStore{db: db}
-
-	if err := store.migrate(); err != nil {
-		return nil, fmt.Errorf("failed to migrate common sql schema: %w", err)
-	}
 	
+	// Create org-scoped indexes (not handled by Atlas migrations)
 	if err := CreateOrgScopedIndexes(db); err != nil {
 		return nil, fmt.Errorf("failed to create org-scoped indexes: %w", err)
 	}
 	
+	// Create database views (not handled by Atlas migrations)
 	if err := store.createViews(); err != nil {
-		return nil, fmt.Errorf("failed to create common sql views: %w", err)
+		return nil, fmt.Errorf("failed to create views: %w", err)
 	}
 
 	return store, nil
@@ -47,10 +44,6 @@ func NewSQLStore(db *gorm.DB) (*SQLStore, error) {
 // This is used by components that need direct DB access (e.g., RBAC querystore)
 func (s *SQLStore) GetDB() *gorm.DB {
 	return s.db
-}
-
-func (s *SQLStore) migrate() error {
-	return s.db.AutoMigrate(types.DefaultModels...)
 }
 
 // createViews now introspects the database dialect to use the correct SQL syntax.

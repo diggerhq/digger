@@ -9,13 +9,17 @@ WORKDIR /go/src/github.com/diggerhq/digger/taco
 COPY cmd/statesman/ ./cmd/statesman/
 COPY internal/ ./internal/
 COPY pkg/sdk/ ./pkg/sdk/
+COPY migrations/ ./migrations/
+COPY scripts/ ./scripts/
+COPY atlas.hcl ./atlas.hcl
 
 # Download dependencies and build
+# Note: CGO is required for SQLite support
 RUN cd cmd/statesman && \
     go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build \
+    CGO_ENABLED=1 GOOS=linux go build \
     -ldflags="-X 'main.Version=${COMMIT_SHA}' -s -w" \
-    -a -installsuffix cgo \
+    -a \
     -o statesman .
 
 # Multi-stage build - use a minimal image for runtime
@@ -23,19 +27,31 @@ FROM ubuntu:24.04 AS runner
 ARG COMMIT_SHA
 WORKDIR /app
 
-# Install ca-certificates for HTTPS requests
+# Install ca-certificates, curl for HTTPS requests
 RUN apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install -y ca-certificates curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "commit sha: ${COMMIT_SHA}"
 
+# Install Atlas CLI for migrations
+RUN curl -sSf https://atlasgo.sh | sh
+
 # Copy the binary from builder stage
 COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/statesman/statesman /app/statesman
 
-# Make the binary executable
-RUN chmod +x /app/statesman
+# Copy migration files
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/migrations /app/migrations
+
+# Copy entrypoint script
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/scripts/entrypoint.sh /app/entrypoint.sh
+
+# Copy atlas.hcl for reference
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/atlas.hcl /app/atlas.hcl
+
+# Make scripts executable
+RUN chmod +x /app/statesman /app/entrypoint.sh
 
 # Expose the port that statesman runs on
 EXPOSE 8080
@@ -43,10 +59,12 @@ EXPOSE 8080
 # Set environment variables with defaults
 ENV OPENTACO_PORT=8080
 ENV OPENTACO_STORAGE=memory
+ENV OPENTACO_QUERY_BACKEND=sqlite
+ENV OPENTACO_SQLITE_DB_PATH=/app/data/taco.db
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/healthz || exit 1
 
-# Run the statesman binary
-ENTRYPOINT ["/app/statesman"]
+# Run via entrypoint script (applies migrations then starts statesman)
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]

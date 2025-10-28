@@ -10,10 +10,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// NewMySQLStore creates a new MySQL-backed query store.
-// Its only job is to establish the DB connection and pass it to the common SQLStore.
-func NewMySQLStore(cfg query.MySQLConfig) (query.Store, error) {
-	// DSN format: user:pass@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
+// Connect establishes a MySQL connection
+func Connect(cfg query.MySQLConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.Charset)
 
@@ -24,6 +22,11 @@ func NewMySQLStore(cfg query.MySQLConfig) (query.Store, error) {
 		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
 	}
 
-	// Hand off to the common, dialect-aware SQLStore engine.
+	return db, nil
+}
+
+// NewMySQLStore creates a new MySQL-backed query store.
+// Assumes migrations have already been applied.
+func NewMySQLStore(db *gorm.DB) (query.Store, error) {
 	return common.NewSQLStore(db)
 }

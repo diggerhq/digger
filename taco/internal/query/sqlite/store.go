@@ -13,8 +13,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// NewSQLiteQueryStore creates a new SQLite-backed query store.
-func NewSQLiteQueryStore(cfg query.SQLiteConfig) (query.Store, error) {
+// Connect establishes a SQLite connection
+func Connect(cfg query.SQLiteConfig) (*gorm.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(cfg.Path), 0755); err != nil {
 		return nil, fmt.Errorf("create db dir: %v", err)
 	}
@@ -46,7 +46,12 @@ func NewSQLiteQueryStore(cfg query.SQLiteConfig) (query.Store, error) {
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 
-	// Create the common SQLStore with our configured DB object, breaking the cycle.
+	return db, nil
+}
+
+// NewSQLiteQueryStore creates a new SQLite-backed query store.
+// Assumes migrations have already been applied.
+func NewSQLiteQueryStore(db *gorm.DB) (query.Store, error) {
 	return common.NewSQLStore(db)
 }
 
