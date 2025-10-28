@@ -25,10 +25,11 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from '@/hooks/use-toast'
-import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn } from '@/api/statesman_serverFunctions'
+import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn, downloadLatestStateFn, restoreUnitStateVersionFn } from '@/api/statesman_serverFunctions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getPublicServerConfig } from '@/lib/env.server'
 import type { Env } from '@/lib/env.server'
+import { downloadJson } from '@/lib/io'
 
 import { 
   AlertDialog,
@@ -41,6 +42,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import UnitStateForceUploadDialog from '@/components/UnitStateForceUploadDialog'
 
 function CopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false)
@@ -66,6 +68,7 @@ function CopyButton({ content }: { content: string }) {
     </Button>
   )
 }
+
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/$unitId',
@@ -208,7 +211,61 @@ function RouteComponent() {
     }
     setTimeout(() => router.navigate({ to: '/dashboard/units' }), 500)
   }
+
+  const handleDownloadLatestState = async () => {
+    try {
+      const state : any = await downloadLatestStateFn({
+        data: {
+          userId: user?.id || '',
+          organisationId: organisationId || '',
+          email: user?.email || '',
+          unitId: unit.id,
+        },
+      })
+      downloadJson(state, `${unit.name}-latest-state.json`)
+    } catch (error) {
+      console.error('Failed to download latest state', error)
+      toast({
+        title: 'Failed to download latest state',
+        description: `Failed to download latest state for unit ${unit.name}.`,
+        duration: 5000,
+        variant: "destructive"
+      })
+      return
+    } 
+  }
   
+  const handleRestoreStateVersion = async (timestamp: string, lockId: string) => {
+    try {
+      await restoreUnitStateVersionFn({
+        data: {
+          userId: user?.id || '',
+          organisationId: organisationId || '',
+          email: user?.email || '',
+          unitId: unit.id,
+          timestamp: timestamp,
+          lockId: lockId,
+        },
+      })
+      toast({
+        title: 'State version restored',
+        description: `State version ${timestamp} was restored successfully.`,
+        duration: 1000,
+        variant: "default"
+      })
+      router.invalidate()
+    } catch (error) {
+      console.error('Failed to restore state version', error)
+      toast({
+        title: 'Failed to restore state version',
+        description: `Failed to restore state version ${timestamp}.`,
+        duration: 5000,
+        variant: "destructive"
+      })
+      return
+    }
+  }
+
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
@@ -235,8 +292,8 @@ function RouteComponent() {
         </div>
         
         <div className="flex items-center gap-2">
-        <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
+        <Button variant="outline" className="gap-2" onClick={handleDownloadLatestState}>
+            <Download className="h-4 w-4"  />
             Download Latest State
           </Button>
           {unit.locked && <Button variant="outline" className="gap-2" onClick={handleUnlock}>
@@ -398,15 +455,11 @@ function RouteComponent() {
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
                                 {!version.isLatest && (
-                                  <Button variant="outline" size="sm">
+                                  <Button variant="outline" size="sm" onClick={() => handleRestoreStateVersion(version.timestamp, version.lockId)}>
                                     <History className="mr-2 h-4 w-4" />
                                     Restore
                                   </Button>
                                 )}
-                                <Button variant="outline" size="sm">
-                                  <Download className="mr-2 h-4 w-4" />
-                                  Download
-                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -435,10 +488,7 @@ function RouteComponent() {
                       This will overwrite the remote state with your local state, ignoring any locks or version history.
                       Only use this if you are absolutely sure your local state is correct.
                     </p>
-                    <Button variant="destructive" className="gap-2">
-                      <Upload className="h-4 w-4" />
-                      Force Push State
-                    </Button>
+                    <UnitStateForceUploadDialog userId={user?.id || ''} organisationId={organisationId || ''} userEmail={user?.email || ''} unitId={unit.id} isDisabled={unit.locked} />
                   </div>
 
                   <div className="pt-4 border-t">
