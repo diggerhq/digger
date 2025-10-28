@@ -34,7 +34,7 @@ const getDriftIcon = (status: string) => {
 }
 
 export const Route = createFileRoute(
-  '/_authenticated/_dashboard/dashboard/projects/$projectId',
+  '/_authenticated/_dashboard/dashboard/projects/$projectid',
 )({
   component: RouteComponent,
   loader: async ({ context, params: {projectId} }) => {
