@@ -59,7 +59,7 @@ ui:
     #          STATESMAN_BACKEND_URL, STATESMAN_BACKEND_WEBHOOK_SECRET
     backends:
       # Orchestrator (Digger Backend)
-      orchestratorUrl: ""           # ORCHESTRATOR_BACKEND_URL (e.g., http://opentaco-digger-managed-web:3000) -> the orchestrator is the taco-orchestrator service
+      orchestratorUrl: ""           # ORCHESTRATOR_BACKEND_URL (e.g., http://opentaco-taco-orchestrator-web:3000)
       orchestratorSecret: ""        # ORCHESTRATOR_BACKEND_SECRET
       
       # Drift Reporting

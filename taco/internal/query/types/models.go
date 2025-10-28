@@ -197,8 +197,8 @@ func (RolePermission) TableName() string { return "role_permissions" }
 
 type Token struct {
 	ID         string    `gorm:"type:varchar(36);primaryKey"`
-	UserID     string    `gorm:"type:varchar(36);index;not null"`
-	OrgID      string    `gorm:"type:varchar(36);index;not null"`
+	UserID     string    `gorm:"type:varchar(255);index;not null"` // Flexible for external user IDs
+	OrgID      string    `gorm:"type:varchar(255);index;not null"` // Flexible for external org IDs
 	Token      string    `gorm:"type:varchar(255);uniqueIndex;not null"`
 	Name       string    `gorm:"type:varchar(255)"`
 	Status     string    `gorm:"type:varchar(20);default:active"`

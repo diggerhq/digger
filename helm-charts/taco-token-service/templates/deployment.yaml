@@ -14,6 +14,9 @@ spec:
       labels:
         {{- include "taco-token-service.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled }}
+      serviceAccountName: {{ .Values.tokenService.cloudSql.serviceAccount | default "default" }}
+      {{- end }}
       containers:
         - name: token-service
           image: "{{ .Values.tokenService.image.repository }}:{{ .Values.tokenService.image.tag | default .Chart.AppVersion }}"
@@ -121,10 +124,37 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
       
-      {{- if and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled }}
+      {{- if and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled }}
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.11.0
+          args:
+            - "--structured-logs"
+            - "--port=5432"
+            - "{{ .Values.tokenService.cloudSql.instanceConnectionName }}"
+          securityContext:
+            runAsNonRoot: true
+          {{- if .Values.tokenService.cloudSql.credentialsSecret }}
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/cloudsql/credentials.json
+          volumeMounts:
+            - name: cloudsql-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+          {{- end }}
+      {{- end }}
+      
+      {{- if or (and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled) (and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled) }}
       volumes:
+        {{- if and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "taco-token-service.fullname" . }}-data
+        {{- end }}
+        {{- if and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled .Values.tokenService.cloudSql.credentialsSecret }}
+        - name: cloudsql-credentials
+          secret:
+            secretName: {{ .Values.tokenService.cloudSql.credentialsSecret }}
+        {{- end }}
       {{- end }}
 

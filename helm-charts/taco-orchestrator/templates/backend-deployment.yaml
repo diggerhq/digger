@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "digger-managed.fullname" . }}-web
+  name: {{ include "taco-orchestrator.fullname" . }}-web
   labels:
-    {{- include "digger-managed.labels" . | nindent 4 }}
+    {{- include "taco-orchestrator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.digger.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "digger-managed.name" . }}-web
+      app: {{ include "taco-orchestrator.name" . }}-web
   template:
     metadata:
       labels:
-        app: {{ include "digger-managed.name" . }}-web
-        {{- include "digger-managed.selectorLabels" . | nindent 8 }}
+        app: {{ include "taco-orchestrator.name" . }}-web
+        {{- include "taco-orchestrator.selectorLabels" . | nindent 8 }}
     spec:
       {{- if .Values.global }}
       {{- with .Values.global.imagePullSecrets }}
@@ -34,7 +34,7 @@ spec:
             {{- if .Values.digger.secret.useExistingSecret }}
             name: {{ .Values.digger.secret.existingSecretName }}
             {{- else }}
-            name: {{ include "digger-managed.fullname" . }}-secret
+            name: {{ include "taco-orchestrator.fullname" . }}-secret
             {{- end }}
         env:
         {{- if .Values.digger.postgres.existingSecretName }}

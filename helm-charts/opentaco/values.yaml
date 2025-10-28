@@ -4,6 +4,7 @@
 #   - Database (PostgreSQL or Cloud SQL)
 #   - Digger Managed
 #   - Taco Statesman
+#   - Token Service
 #   - Drift Detection
 #   - Taco UI
 
@@ -59,9 +60,9 @@ cloudSql:
   serviceAccount: "cloudsql-sa"
 
 # ============================================================================
-# Digger Managed Configuration
+# Taco Orchestrator Configuration
 # ============================================================================
-digger-managed:
+taco-orchestrator:
   enabled: true
   
   digger:
@@ -140,9 +141,83 @@ taco-statesman:
     # see helm-charts/taco-statesman/values.yaml or use existingSecret above
 
 # ============================================================================
+# Token Service Configuration
+# ============================================================================
+taco-token-service:
+  enabled: true
+  
+  tokenService:
+    image:
+      repository: ghcr.io/diggerhq/digger/taco-token-service
+      tag: "v0.1.0"
+      pullPolicy: "IfNotPresent"
+    
+    replicaCount: 1
+    
+    # Database configuration - Using Cloud SQL (same as other services)
+    database:
+      backend: postgres  # Use postgres with Cloud SQL
+      
+      # SQLite (default - good for development)
+      sqlite:
+        path: "/app/data/tokens.db"
+      
+      # PostgreSQL (recommended for production)
+      postgres:
+        host: "127.0.0.1"  # Cloud SQL proxy provides local access
+        port: 5432
+        user: "postgres"  # Match your Cloud SQL user
+        dbname: "taco"  # Match your Cloud SQL database
+        sslmode: "disable"  # Proxy handles SSL
+        secretName: "postgres-credentials"  # Must contain 'password' key
+      
+      # MySQL
+      mysql:
+        host: ""
+        port: 3306
+        user: "root"
+        dbname: "opentaco"
+        secretName: ""
+      
+      # MSSQL
+      mssql:
+        host: ""
+        port: 1433
+        user: ""
+        dbname: "opentaco"
+        secretName: ""
+    
+    # Persistence (disabled - using Cloud SQL)
+    persistence:
+      enabled: false  # Not needed with Cloud SQL
+    
+    # Cloud SQL configuration (enabled - same as statesman)
+    cloudSql:
+      enabled: true  # Enable Cloud SQL proxy
+      instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"  # Match your Cloud SQL instance
+      credentialsSecret: "cloudsql-credentials"  # Match existing secret
+      serviceAccount: "cloudsql-sa"  # Match existing SA
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 8081
+    
+    # For detailed configuration, see helm-charts/taco-token-service/values.yaml
+
+# ============================================================================
 # Drift Detection Configuration
 # ============================================================================
-drift:
+taco-drift:
   enabled: true
   
   drift:
@@ -201,8 +276,8 @@ taco-ui:
       
       # Backend service URLs (for server-side API calls)
       backends:
-        orchestratorUrl: "http://digger-managed:3000"
-        driftReportingUrl: "http://drift:3004"
+        orchestratorUrl: "http://taco-orchestrator:3000"
+        driftReportingUrl: "http://taco-drift:3004"
         statesmanUrl: "http://taco-statesman:8080"
     
     ingress:

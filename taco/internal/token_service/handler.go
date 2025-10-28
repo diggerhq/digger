@@ -64,9 +64,9 @@ func (h *Handler) CreateToken(c echo.Context) error {
 	if req.ExpiresIn != nil && *req.ExpiresIn != "" {
 		duration, err := time.ParseDuration(*req.ExpiresIn)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid expires_in format. Use duration format like '24h', '7d'"})
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid expires_in format. Use duration like '24h' (hours), '30m' (minutes), '168h' (7 days)."})
 		}
-		exp := time.Now().Add(duration)
+		exp := time.Now().UTC().Add(duration) // Always use UTC
 		expiresAt = &exp
 	}
 
@@ -92,7 +92,7 @@ func (h *Handler) ListTokens(c echo.Context) error {
 
 	responses := make([]TokenResponse, len(tokens))
 	for i, token := range tokens {
-		responses[i] = toTokenResponse(token)
+		responses[i] = toTokenResponseHidden(token) // Hide token hash
 	}
 
 	return c.JSON(http.StatusOK, responses)
@@ -131,7 +131,7 @@ func (h *Handler) VerifyToken(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"valid": true,
-		"token": toTokenResponse(token),
+		"token": toTokenResponseHidden(token), // Hide token hash in verification response
 	})
 }
 
@@ -148,7 +148,7 @@ func (h *Handler) GetToken(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, toTokenResponse(token))
+	return c.JSON(http.StatusOK, toTokenResponseHidden(token)) // Hide token hash
 }
 
 // HealthCheck returns the health status of the service
@@ -157,12 +157,13 @@ func (h *Handler) HealthCheck(c echo.Context) error {
 }
 
 // toTokenResponse converts a token model to a response
+// Note: Token field will be empty for list/get operations (only shown on creation)
 func toTokenResponse(token *types.Token) TokenResponse {
 	return TokenResponse{
 		ID:         token.ID,
 		UserID:     token.UserID,
 		OrgID:      token.OrgID,
-		Token:      token.Token,
+		Token:      token.Token, // Will be plaintext only on creation, hash on list/get
 		Name:       token.Name,
 		Status:     token.Status,
 		CreatedAt:  token.CreatedAt,
@@ -170,5 +171,20 @@ func toTokenResponse(token *types.Token) TokenResponse {
 		LastUsedAt: token.LastUsedAt,
 		ExpiresAt:  token.ExpiresAt,
 	}
+}
+
+// toTokenResponseHidden converts a token model to a response without showing the token
+// Shows last 5 chars of hash for identification (e.g., "abc12")
+func toTokenResponseHidden(token *types.Token) TokenResponse {
+	resp := toTokenResponse(token)
+	
+	// Show last 5 chars of hash for identification
+	if len(token.Token) > 5 {
+		resp.Token = token.Token[len(token.Token)-5:]
+	} else {
+		resp.Token = "" // Empty if hash is too short (shouldn't happen)
+	}
+	
+	return resp
 }
 

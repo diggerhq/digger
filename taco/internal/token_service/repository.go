@@ -3,7 +3,9 @@ package token_service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -35,11 +37,14 @@ func (r *TokenRepository) CreateToken(ctx context.Context, userID, orgID, name s
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	now := time.Now()
+	// Hash the token for storage (only hash is stored in DB)
+	tokenHash := hashToken(tokenValue)
+
+	now := time.Now().UTC() // Always use UTC for consistency
 	token := &types.Token{
 		UserID:    userID,
 		OrgID:     orgID,
-		Token:     tokenValue,
+		Token:     tokenHash, // Store hash, not plaintext
 		Name:      name,
 		Status:    "active",
 		CreatedAt: now,
@@ -51,6 +56,9 @@ func (r *TokenRepository) CreateToken(ctx context.Context, userID, orgID, name s
 		return nil, fmt.Errorf("failed to create token: %w", err)
 	}
 
+	// Return the token with plaintext value (only time user sees it)
+	// This is safe because the DB stores only the hash
+	token.Token = tokenValue
 	return token, nil
 }
 
@@ -90,8 +98,11 @@ func (r *TokenRepository) DeleteToken(ctx context.Context, tokenID string) error
 
 // VerifyToken verifies a token by token value, userID, and orgID
 func (r *TokenRepository) VerifyToken(ctx context.Context, tokenValue, userID, orgID string) (*types.Token, error) {
+	// Hash the provided token to compare with stored hash
+	tokenHash := hashToken(tokenValue)
+	
 	var token types.Token
-	query := r.db.WithContext(ctx).Where("token = ?", tokenValue)
+	query := r.db.WithContext(ctx).Where("token = ?", tokenHash)
 
 	if userID != "" {
 		query = query.Where("user_id = ?", userID)
@@ -114,13 +125,13 @@ func (r *TokenRepository) VerifyToken(ctx context.Context, tokenValue, userID, o
 	}
 
 	// Check if token has expired
-	if token.ExpiresAt != nil && time.Now().After(*token.ExpiresAt) {
+	if token.ExpiresAt != nil && time.Now().UTC().After(*token.ExpiresAt) {
 		return nil, errors.New("token has expired")
 	}
 
 	// Update last used time asynchronously
 	go func() {
-		now := time.Now()
+		now := time.Now().UTC()
 		_ = r.db.Model(&types.Token{}).Where(queryTokenByID, token.ID).Update("last_used_at", now).Error
 	}()
 
@@ -146,5 +157,12 @@ func generateSecureToken() (string, error) {
 		return "", err
 	}
 	return "otc_tok_" + base64.URLEncoding.EncodeToString(b), nil
+}
+
+// hashToken hashes a token using SHA-256
+// This is a one-way hash - tokens cannot be retrieved from the hash
+func hashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }
 

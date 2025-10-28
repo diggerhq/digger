@@ -18,9 +18,9 @@ cloudSql:
   serviceAccount: "cloudsql-sa"
 
 # ============================================================================
-# Digger Managed
+# Taco Orchestrator
 # ============================================================================
-digger-managed:
+taco-orchestrator:
   enabled: true
   digger:
     replicaCount: 2
@@ -39,7 +39,7 @@ digger-managed:
       host: "api.opentaco.example.com"  # CHANGE THIS
       path: /
       tls:
-        secretName: digger-managed-tls
+        secretName: taco-orchestrator-tls
 
 # ============================================================================
 # Taco Statesman
@@ -64,7 +64,7 @@ taco-statesman:
 # ============================================================================
 # Drift Detection
 # ============================================================================
-drift:
+taco-drift:
   enabled: true
   drift:
     replicaCount: 2

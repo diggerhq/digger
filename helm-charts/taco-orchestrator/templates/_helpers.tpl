@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "digger-managed.name" -}}
+{{- define "taco-orchestrator.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "digger-managed.fullname" -}}
+{{- define "taco-orchestrator.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "digger-managed.chart" -}}
+{{- define "taco-orchestrator.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "digger-managed.labels" -}}
-helm.sh/chart: {{ include "digger-managed.chart" . }}
-{{ include "digger-managed.selectorLabels" . }}
+{{- define "taco-orchestrator.labels" -}}
+helm.sh/chart: {{ include "taco-orchestrator.chart" . }}
+{{ include "taco-orchestrator.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,7 +45,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "digger-managed.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "digger-managed.name" . }}
+{{- define "taco-orchestrator.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "taco-orchestrator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
