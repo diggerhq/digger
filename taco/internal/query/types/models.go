@@ -195,6 +195,28 @@ type RolePermission struct {
 }
 func (RolePermission) TableName() string { return "role_permissions" }
 
+type Token struct {
+	ID         string    `gorm:"type:varchar(36);primaryKey"`
+	UserID     string    `gorm:"type:varchar(36);index;not null"`
+	OrgID      string    `gorm:"type:varchar(36);index;not null"`
+	Token      string    `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Name       string    `gorm:"type:varchar(255)"`
+	Status     string    `gorm:"type:varchar(20);default:active"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	LastUsedAt *time.Time
+	ExpiresAt  *time.Time
+}
+
+func (t *Token) BeforeCreate(tx *gorm.DB) error {
+	if t.ID == "" {
+		t.ID = uuid.New().String()
+	}
+	return nil
+}
+
+func (Token) TableName() string { return "tokens" }
+
 var DefaultModels = []any{
 	&Organization{},
 	&User{},
@@ -209,4 +231,5 @@ var DefaultModels = []any{
 	&Unit{},
 	&Tag{},
 	&UnitTag{},
+	&Token{},
 }
