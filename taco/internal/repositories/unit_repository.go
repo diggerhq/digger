@@ -7,7 +7,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"gorm.io/gorm"

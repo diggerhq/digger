@@ -33,7 +33,7 @@ docker info
 
 ### Modifying schema
 
-1. Edit GORM models in `internal/query/types/models.go`
+1. Edit GORM models in `taco/models/models.go`
 2. Preview changes: `make atlas-plan name=add_user_field`
 3. Generate migrations: `make atlas-diff-all name=add_user_field`
 4. Review generated SQL in `migrations/{postgres,mysql,sqlite}/`

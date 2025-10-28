@@ -1,4 +1,4 @@
-package types
+package models
 
 import (
 	"time"
@@ -195,7 +195,7 @@ type RolePermission struct {
 }
 func (RolePermission) TableName() string { return "role_permissions" }
 
-var DefaultModels = []any{
+var Models = []any{
 	&Organization{},
 	&User{},
 	&Role{},

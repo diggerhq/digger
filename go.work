@@ -16,6 +16,7 @@ use (
 	./taco/cmd/statesman
 	./taco/cmd/taco
 	./taco/internal
+	./taco/models
 	./taco/pkg/sdk
 	./taco/providers/terraform/opentaco
 
