@@ -110,6 +110,7 @@ func adaptSQL(sql, dialect string) string {
 		sql = strings.ReplaceAll(sql, "integer", "int")
 		// Fix DEFAULT clause - PostgreSQL uses single quotes for string literals
 		sql = strings.ReplaceAll(sql, "DEFAULT \"allow\"", "DEFAULT 'allow'")
+		sql = strings.ReplaceAll(sql, "DEFAULT \"active\"", "DEFAULT 'active'")
 		sql = strings.ReplaceAll(sql, "DEFAULT \"\"", "DEFAULT ''")
 	case "mysql":
 		// MySQL uses backticks (already correct from SQLite)
