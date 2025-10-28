@@ -18,20 +18,22 @@ variable "SQLITE_MIGRATIONS_DIR" {
   default = "file://migrations/sqlite"
 }
 
-# Postgres configuration
 data "external_schema" "gorm_postgres" {
   program = [
-    "go",
-    "run",
-    "./models/loader",
-    "postgres",
+    "sh",
+    "-c",
+    "cd internal && go run ./atlas_loader.go postgres",
   ]
 }
 
 env "postgres" {
   src = data.external_schema.gorm_postgres.url
   url = var.DB_URL
-  dev = "docker://postgres/16?search_path=public&timeout=5m"
+
+  # IMPORTANT: no env=… params here; keep 5m timeout.
+  # If your build wants fully-qualified, use docker://docker.io/library/postgres/16
+  dev = "docker://postgres/16?timeout=5m"
+
   schemas = ["public"]
 
   migration {
@@ -40,9 +42,7 @@ env "postgres" {
   }
 
   lint {
-    destructive {
-      error = true
-    }
+    destructive { error = true }
   }
 
   format {
@@ -55,28 +55,26 @@ env "postgres" {
 # MySQL configuration
 data "external_schema" "gorm_mysql" {
   program = [
-    "go",
-    "run",
-    "./models/loader",
-    "mysql",
+    "sh",
+    "-c",
+    "cd internal && go run ./atlas_loader.go mysql",
   ]
 }
 
 env "mysql" {
   src = data.external_schema.gorm_mysql.url
+  
   dev = "docker://mysql/8/devdb?timeout=5m"
-
+  
   migration {
     dir    = var.MYSQL_MIGRATIONS_DIR
     format = "atlas"
   }
-
+  
   lint {
-    destructive {
-      error = true
-    }
+    destructive { error = true }
   }
-
+  
   format {
     migrate {
       diff = "{{ sql . \"  \" }}"
@@ -87,28 +85,27 @@ env "mysql" {
 # SQLite configuration
 data "external_schema" "gorm_sqlite" {
   program = [
-    "go",
-    "run",
-    "./models/loader",
-    "sqlite",
+    "sh",
+    "-c",
+    "cd internal && go run ./atlas_loader.go sqlite",
   ]
 }
 
 env "sqlite" {
   src = data.external_schema.gorm_sqlite.url
+  
+  # SQLite uses in-memory dev database, no Docker needed
   dev = "sqlite://file?mode=memory"
-
+  
   migration {
     dir    = var.SQLITE_MIGRATIONS_DIR
     format = "atlas"
   }
-
+  
   lint {
-    destructive {
-      error = true
-    }
+    destructive { error = true }
   }
-
+  
   format {
     migrate {
       diff = "{{ sql . \"  \" }}"

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"gorm.io/gorm"
 )
