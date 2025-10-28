@@ -13,13 +13,13 @@ apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
 metadata:
-  name: {{ include "digger-managed.fullname" . }}
+  name: {{ include "taco-orchestrator.fullname" . }}
   annotations:
   {{- range $key, $value := .Values.digger.ingress.annotations }}
     {{ $key }}: {{ $value | quote }}
   {{- end }}
   labels:
-    {{- include "digger-managed.labels" . | nindent 4 }}
+    {{- include "taco-orchestrator.labels" . | nindent 4 }}
 spec:
   {{- if and .Values.digger.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
   ingressClassName: {{ .Values.digger.ingress.className }}
@@ -38,7 +38,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: {{ include "digger-managed.fullname" . }}-web
+            name: {{ include "taco-orchestrator.fullname" . }}-web
             port:
               number: {{ .Values.digger.service.port }}
 {{- end }}

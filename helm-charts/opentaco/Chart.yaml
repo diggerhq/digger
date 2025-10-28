@@ -10,6 +10,7 @@ appVersion: "0.1.0"
 #   - PostgreSQL database (optional - can use Cloud SQL instead)
 #   - Digger Managed (terraform orchestration backend)
 #   - Taco Statesman (IaC state management)
+#   - Token Service (API token management)
 #   - Drift Detection service
 #   - Taco UI (React frontend)
 
@@ -22,48 +23,42 @@ dependencies:
     tags:
       - database
 
-  # Digger Managed - terraform orchestration backend
+  # Taco Orchestrator - terraform orchestration backend
   - name: taco-orchestrator
     version: "0.1.0"
-    # For production: use OCI registry
     repository: "oci://ghcr.io/diggerhq/helm-charts"
-    # For local testing: use file reference
-    #repository: "file://../taco-orchestrator"
     condition: taco-orchestrator.enabled
     tags:
       - backend
 
   # Taco Statesman - IaC state management  
-  - name: statesman
-    alias: taco-statesman
+  - name: taco-statesman
     version: "0.1.0"
-    # For production: use OCI registry
     repository: "oci://ghcr.io/diggerhq/helm-charts"
-    # For local testing: use file reference
-    #repository: "file://../taco-statesman"
     condition: taco-statesman.enabled
     tags:
       - backend
 
-  # Drift Detection
-  - name: drift
+  # Token Service - API token management
+  - name: taco-token-service
     version: "0.1.0"
-    # For production: use OCI registry
     repository: "oci://ghcr.io/diggerhq/helm-charts"
-    # For local testing: use file reference
-    #repository: "file://../taco-drift"
-    condition: drift.enabled
+    condition: taco-token-service.enabled
+    tags:
+      - backend
+
+  # Drift Detection
+  - name: taco-drift
+    version: "0.1.0"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    condition: taco-drift.enabled
     tags:
       - backend
 
   # Taco UI - React frontend
-  - name: ui
-    alias: taco-ui
+  - name: taco-ui
     version: "0.1.0"
-    # For production: use OCI registry
     repository: "oci://ghcr.io/diggerhq/helm-charts"
-    # For local testing: use file reference
-    #repository: "file://../taco-ui"
     condition: taco-ui.enabled
     tags:
       - frontend

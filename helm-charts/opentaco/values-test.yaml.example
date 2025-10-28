@@ -26,7 +26,7 @@ cloudSql:
 # ============================================================================
 # Components - All enabled with defaults
 # ============================================================================
-digger-managed:
+taco-orchestrator:
   enabled: true
   # Note: imagePullSecrets not needed for public images
   # global:
@@ -38,7 +38,7 @@ digger-managed:
       useExistingSecret: true
       existingSecretName: "backend-secrets"
 
-statesman:
+taco-statesman:
   enabled: true
   # Note: imagePullSecrets not needed for public images
   # global:
@@ -54,7 +54,7 @@ statesman:
     storage:
       type: "s3" 
 
-drift:
+taco-drift:
   enabled: true
   # Note: imagePullSecrets not needed for public images
   # global:
@@ -64,7 +64,7 @@ drift:
     replicaCount: 1
     existingSecretName: "drift-secrets"
 
-ui:
+taco-ui:
   enabled: true
   # Note: imagePullSecrets not needed for public images
   # imagePullSecrets:

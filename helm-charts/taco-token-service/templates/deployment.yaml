@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taco-token-service.fullname" . }}
+  labels:
+    {{- include "taco-token-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.tokenService.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "taco-token-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "taco-token-service.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled }}
+      serviceAccountName: {{ .Values.tokenService.cloudSql.serviceAccount | default "default" }}
+      {{- end }}
+      containers:
+        - name: token-service
+          image: "{{ .Values.tokenService.image.repository }}:{{ .Values.tokenService.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.tokenService.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.tokenService.service.port }}
+              protocol: TCP
+          env:
+            - name: OPENTACO_PORT
+              value: "{{ .Values.tokenService.service.port }}"
+            - name: OPENTACO_QUERY_BACKEND
+              value: "{{ .Values.tokenService.database.backend }}"
+            
+            # SQLite configuration
+            {{- if eq .Values.tokenService.database.backend "sqlite" }}
+            - name: OPENTACO_SQLITE_DB_PATH
+              value: "{{ .Values.tokenService.database.sqlite.path }}"
+            {{- end }}
+            
+            # PostgreSQL configuration
+            {{- if eq .Values.tokenService.database.backend "postgres" }}
+            - name: OPENTACO_POSTGRES_HOST
+              value: "{{ .Values.tokenService.database.postgres.host }}"
+            - name: OPENTACO_POSTGRES_PORT
+              value: "{{ .Values.tokenService.database.postgres.port }}"
+            - name: OPENTACO_POSTGRES_USER
+              value: "{{ .Values.tokenService.database.postgres.user }}"
+            - name: OPENTACO_POSTGRES_DBNAME
+              value: "{{ .Values.tokenService.database.postgres.dbname }}"
+            - name: OPENTACO_POSTGRES_SSLMODE
+              value: "{{ .Values.tokenService.database.postgres.sslmode }}"
+            {{- if .Values.tokenService.database.postgres.secretName }}
+            - name: OPENTACO_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.tokenService.database.postgres.secretName }}
+                  key: password
+            {{- else if .Values.tokenService.database.postgres.password }}
+            - name: OPENTACO_POSTGRES_PASSWORD
+              value: "{{ .Values.tokenService.database.postgres.password }}"
+            {{- end }}
+            {{- end }}
+            
+            # MySQL configuration
+            {{- if eq .Values.tokenService.database.backend "mysql" }}
+            - name: OPENTACO_MYSQL_HOST
+              value: "{{ .Values.tokenService.database.mysql.host }}"
+            - name: OPENTACO_MYSQL_PORT
+              value: "{{ .Values.tokenService.database.mysql.port }}"
+            - name: OPENTACO_MYSQL_USER
+              value: "{{ .Values.tokenService.database.mysql.user }}"
+            - name: OPENTACO_MYSQL_DBNAME
+              value: "{{ .Values.tokenService.database.mysql.dbname }}"
+            {{- if .Values.tokenService.database.mysql.secretName }}
+            - name: OPENTACO_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.tokenService.database.mysql.secretName }}
+                  key: password
+            {{- else if .Values.tokenService.database.mysql.password }}
+            - name: OPENTACO_MYSQL_PASSWORD
+              value: "{{ .Values.tokenService.database.mysql.password }}"
+            {{- end }}
+            {{- end }}
+            
+            # MSSQL configuration
+            {{- if eq .Values.tokenService.database.backend "mssql" }}
+            - name: OPENTACO_MSSQL_HOST
+              value: "{{ .Values.tokenService.database.mssql.host }}"
+            - name: OPENTACO_MSSQL_PORT
+              value: "{{ .Values.tokenService.database.mssql.port }}"
+            - name: OPENTACO_MSSQL_USER
+              value: "{{ .Values.tokenService.database.mssql.user }}"
+            - name: OPENTACO_MSSQL_DBNAME
+              value: "{{ .Values.tokenService.database.mssql.dbname }}"
+            {{- if .Values.tokenService.database.mssql.secretName }}
+            - name: OPENTACO_MSSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.tokenService.database.mssql.secretName }}
+                  key: password
+            {{- else if .Values.tokenService.database.mssql.password }}
+            - name: OPENTACO_MSSQL_PASSWORD
+              value: "{{ .Values.tokenService.database.mssql.password }}"
+            {{- end }}
+            {{- end }}
+          
+          {{- if and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          {{- end }}
+          
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      
+      {{- if and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled }}
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.11.0
+          args:
+            - "--structured-logs"
+            - "--port=5432"
+            - "{{ .Values.tokenService.cloudSql.instanceConnectionName }}"
+          securityContext:
+            runAsNonRoot: true
+          {{- if .Values.tokenService.cloudSql.credentialsSecret }}
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/cloudsql/credentials.json
+          volumeMounts:
+            - name: cloudsql-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+          {{- end }}
+      {{- end }}
+      
+      {{- if or (and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled) (and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled) }}
+      volumes:
+        {{- if and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "taco-token-service.fullname" . }}-data
+        {{- end }}
+        {{- if and .Values.tokenService.cloudSql .Values.tokenService.cloudSql.enabled .Values.tokenService.cloudSql.credentialsSecret }}
+        - name: cloudsql-credentials
+          secret:
+            secretName: {{ .Values.tokenService.cloudSql.credentialsSecret }}
+        {{- end }}
+      {{- end }}
+

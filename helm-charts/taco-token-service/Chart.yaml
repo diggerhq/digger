@@ -1,7 +1,8 @@
 apiVersion: v2
-name: taco-statesman
-description: Taco Statesman - Infrastructure-as-Code state management and coordination service
+name: taco-token-service
+description: A Helm chart for Taco Token Service
 type: application
 version: 0.1.0
 appVersion: "v0.1.0"
 icon: https://raw.githubusercontent.com/diggerhq/digger/main/docs/logo/digger-logo.png
+

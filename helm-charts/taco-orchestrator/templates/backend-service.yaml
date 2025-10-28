@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "digger-managed.fullname" . }}-web
+  name: {{ include "taco-orchestrator.fullname" . }}-web
 spec:
   type: {{ .Values.digger.service.type }}
   ports:
   - port: {{ .Values.digger.service.port }}
     targetPort: 3000
   selector:
-    app: {{ include "digger-managed.name" . }}-web
+    app: {{ include "taco-orchestrator.name" . }}-web
