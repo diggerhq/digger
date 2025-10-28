@@ -1,0 +1,147 @@
+# Digger Managed - Terraform Orchestration Service
+#
+# This chart creates environment variables from these values.
+# You can either:
+#   1. Set values here (chart creates secrets automatically)
+#   2. Use secret.useExistingSecret=true and create your own secret
+#
+# See secrets-example/digger-backend.env for a complete example
+
+digger:
+  # Replica count
+  replicaCount: 1
+
+  # Image configuration
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/digger-backend-ee
+  image:
+    repository: digger-backend-ee
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # Custom environment variables
+  # Format:
+  # customEnv:
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+  customEnv: []
+
+  # Log level: DEBUG or INFO
+  # Creates: DIGGER_LOG_LEVEL
+  logLevel: "INFO"         # DIGGER_LOG_LEVEL
+
+  # Resource limits and requests
+  resources: {}
+  #  requests:
+  #    cpu: 100m
+  #    memory: 256Mi
+  #  limits:
+  #    cpu: 500m
+  #    memory: 512Mi
+
+  # Health check probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    periodSeconds: 20
+
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    failureThreshold: 30
+    periodSeconds: 10
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 3000
+
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    host: ""
+    path: /
+    tls:
+      secretName: "digger-backend-tls"
+
+  # PostgreSQL configuration
+  # Creates: DATABASE_URL (constructed), ALLOW_DIRTY
+  postgres:
+    # Use existingSecret to pull password from an existing secret
+    existingSecretName: ""
+    existingSecretKey: "postgres-password"
+    
+    # Database connection details
+    sslmode: "disable"        # Part of DATABASE_URL
+    user: "postgres"          # Part of DATABASE_URL
+    database: "digger"        # Part of DATABASE_URL
+    host: "postgresql.default.svc.cluster.local"  # Part of DATABASE_URL
+    password: ""              # Part of DATABASE_URL (from secret if existingSecretName set)
+    port: "5432"              # Part of DATABASE_URL
+    allowDirty: false         # ALLOW_DIRTY
+
+  # Digger configuration
+  # Creates: DIGGER_ENABLE_API_ENDPOINTS, DIGGER_ENABLE_INTERNAL_ENDPOINTS,
+  #          DIGGER_ENCRYPTION_SECRET, DIGGER_GENERATION_API_TOKEN, DIGGER_GENERATION_ENDPOINT,
+  #          DIGGER_INTERNAL_SECRET, DIGGER_LICENSE_KEY, DIGGER_LOAD_PROJECTS_ON_PUSH,
+  #          DIGGER_LOG_LEVEL, DIGGER_MAX_PROJECTS_PER_CHANGE, 
+  config:
+    enableApiEndpoints: true       # DIGGER_ENABLE_API_ENDPOINTS
+    enableInternalEndpoints: true  # DIGGER_ENABLE_INTERNAL_ENDPOINTS
+    encryptionSecret: ""           # DIGGER_ENCRYPTION_SECRET (32 chars)
+    generationApiToken: ""         # DIGGER_GENERATION_API_TOKEN
+    generationEndpoint: ""         # DIGGER_GENERATION_ENDPOINT
+    internalSecret: ""             # DIGGER_INTERNAL_SECRET (50 chars)
+    licenseKey: ""                 # DIGGER_LICENSE_KEY
+    loadProjectsOnPush: false      # DIGGER_LOAD_PROJECTS_ON_PUSH
+    maxProjectsPerChange: 100      # DIGGER_MAX_PROJECTS_PER_CHANGE
+
+
+  # GitHub App configuration (get from https://github.com/settings/apps)
+  # Creates: GITHUB_APP_CLIENT_ID, GITHUB_APP_CLIENT_SECRET, GITHUB_APP_ID,
+  #          GITHUB_APP_PRIVATE_KEY_BASE64, GITHUB_WEBHOOK_SECRET
+  github:
+    appClientId: ""           # GITHUB_APP_CLIENT_ID
+    appClientSecret: ""       # GITHUB_APP_CLIENT_SECRET
+    appId: ""                 # GITHUB_APP_ID
+    appPrivateKeyBase64: ""   # GITHUB_APP_PRIVATE_KEY_BASE64 (base64 encoded private key)
+    webhookSecret: ""         # GITHUB_WEBHOOK_SECRET
+
+  # Application URLs
+  # Creates: HOSTNAME, JWT_AUTH
+  hostname: ""                # HOSTNAME (e.g., https://app.yourdomain.com)
+  jwtAuth: true               # JWT_AUTH
+
+  # Optional: Analytics & Monitoring
+  # Creates: SEGMENT_API_KEY, SENTRY_DSN
+  segmentApiKey: ""           # SEGMENT_API_KEY (optional)
+  sentryDsn: ""               # SENTRY_DSN (optional)
+
+  # Go Configuration
+  # Creates: GODEBUG, GOFIPS140
+  godebug: "off"              # GODEBUG
+  gofips140: "off"            # GOFIPS140
+
+  # Secret configuration
+  # For production, create secret externally: kubectl create secret generic taco-orchestrator-secrets --from-env-file=.secrets/digger-backend.env
+  # For development, set useExistingSecret=false and fill secret fields below
+  secret:
+    useExistingSecret: true
+    existingSecretName: "taco-orchestrator-secrets"
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+# Global configuration (optional)
+global:
+  imagePullSecrets: []

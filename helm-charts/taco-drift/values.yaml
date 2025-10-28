@@ -1,0 +1,104 @@
+# values.yaml
+#
+# This chart creates environment variables from these values.
+# You can either:
+#   1. Set values here (chart creates secrets automatically)
+#   2. Use secret.useExistingSecret=true and create your own secret
+#
+# See secrets-example/drift.env for a complete example
+
+drift:
+  # Image configuration
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/drift
+  image:
+    repository: drift
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Custom environment variables
+  customEnv: []
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+
+  # Set the log level for the drift service
+  # Creates: DIGGER_LOG_LEVEL
+  # DEBUG will enable the debug logs, any other value will set it to INFO
+  logLevel: "INFO"         # DIGGER_LOG_LEVEL
+
+  # Service configuration
+  # Creates: DIGGER_PORT (set automatically from port)
+  service:
+    type: ClusterIP
+    port: 3004             # DIGGER_PORT
+
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+    host: "drift.example.com"
+    path: /
+    tls:
+      secretName: "taco-drift-tls"
+
+  # Liveness and startup probe settings
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3004
+    periodSeconds: 20
+
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 3004
+    failureThreshold: 30
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 3004
+    periodSeconds: 10
+
+  # Resource limits
+  resources: {}
+  #  requests:
+  #    cpu: 100m
+  #    memory: 256Mi
+  #  limits:
+  #    cpu: 500m
+  #    memory: 512Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+  # Secret configuration
+  # For production, create secret externally: kubectl create secret generic drift-secrets --from-env-file=.secrets/drift.env
+  # For development, set useExistingSecret=false and fill secret fields below
+  secret:
+    useExistingSecret: true
+    existingSecretName: "drift-secrets"
+    # Required secret fields (only used if useExistingSecret=false):
+    databaseUrl: ""                    # DATABASE_URL - PostgreSQL connection string
+    diggerAppUrl: ""                   # DIGGER_APP_URL
+    diggerDriftReporterHostname: ""    # DIGGER_DRIFT_REPORTER_HOSTNAME
+    diggerHostname: ""                 # DIGGER_HOSTNAME
+    diggerWebhookSecret: ""            # DIGGER_WEBHOOK_SECRET
+    githubAppPrivateKeyBase64: ""      # GITHUB_APP_PRIVATE_KEY_BASE64
+    sentryDsn: ""                      # SENTRY_DSN (optional)
+
+# Global configuration (optional)
+global:
+  imagePullSecrets: []

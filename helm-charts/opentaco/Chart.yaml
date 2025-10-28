@@ -1,0 +1,81 @@
+apiVersion: v2
+name: opentaco
+description: OpenTaco - Complete Infrastructure-as-Code platform deployment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+# Umbrella chart that deploys all OpenTaco components
+# This chart orchestrates:
+#   - PostgreSQL database (optional - can use Cloud SQL instead)
+#   - Digger Managed (terraform orchestration backend)
+#   - Taco Statesman (IaC state management)
+#   - Drift Detection service
+#   - Taco UI (React frontend)
+
+dependencies:
+  # Optional PostgreSQL - disable if using Cloud SQL
+  - name: cloudnative-pg
+    version: "~0.22.0"
+    repository: https://cloudnative-pg.github.io/charts
+    condition: postgresql.enabled
+    tags:
+      - database
+
+  # Digger Managed - terraform orchestration backend
+  - name: taco-orchestrator
+    version: "0.1.0"
+    # For production: use OCI registry
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    # For local testing: use file reference
+    #repository: "file://../taco-orchestrator"
+    condition: taco-orchestrator.enabled
+    tags:
+      - backend
+
+  # Taco Statesman - IaC state management  
+  - name: statesman
+    alias: taco-statesman
+    version: "0.1.0"
+    # For production: use OCI registry
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    # For local testing: use file reference
+    #repository: "file://../taco-statesman"
+    condition: taco-statesman.enabled
+    tags:
+      - backend
+
+  # Drift Detection
+  - name: drift
+    version: "0.1.0"
+    # For production: use OCI registry
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    # For local testing: use file reference
+    #repository: "file://../taco-drift"
+    condition: drift.enabled
+    tags:
+      - backend
+
+  # Taco UI - React frontend
+  - name: ui
+    alias: taco-ui
+    version: "0.1.0"
+    # For production: use OCI registry
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    # For local testing: use file reference
+    #repository: "file://../taco-ui"
+    condition: taco-ui.enabled
+    tags:
+      - frontend
+
+maintainers:
+  - name: OpenTaco Team
+    email: info@digger.dev
+
+keywords:
+  - infrastructure
+  - terraform
+  - iac
+  - opentaco
+  - digger
+

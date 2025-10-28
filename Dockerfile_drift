@@ -35,7 +35,7 @@ RUN curl -sSf https://atlasgo.sh | sh
 
 
 # Set gin to production
-#ENV GIN_MODE=release
+ENV GIN_MODE=release
 
 # Expose the running port
 EXPOSE 3000

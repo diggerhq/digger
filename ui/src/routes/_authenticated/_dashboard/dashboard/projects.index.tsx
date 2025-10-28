@@ -126,7 +126,7 @@ function RouteComponent() {
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" asChild size="sm">
-                        <Link to="/dashboard/projects/$projectId" params={{ projectId: String(project.id) }}>
+                        <Link to="/dashboard/projects/$projectid" params={{ projectid: String(project.id) }}>
                           View Details <ExternalLink className="ml-2 h-4 w-4" />
                         </Link>
                       </Button>

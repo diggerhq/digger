@@ -1,30 +1,147 @@
 # values.yaml
+# 
+# This chart creates environment variables from these values.
+# You can either:
+#   1. Set values here (chart creates secrets automatically)
+#   2. Use secret.useExistingSecret=true and create your own secret
+#
+# See secrets-example/statesman.env for a complete example
 
 taco:
   # Image configuration
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/taco-statesman
   image:
-    repository: ghcr.io/diggerhq/digger/taco-statesman
-    tag: "v0.1.0"
+    repository: taco-statesman
+    tag: "latest"
     pullPolicy: "IfNotPresent"
 
   # Number of replicas
   replicaCount: 1
 
   # Service configuration
+  # Creates: OPENTACO_PORT (set automatically from port)
   service:
     type: ClusterIP
-    port: 8080
+    port: 8080             # OPENTACO_PORT
 
-  # Storage type: "memory" or "s3"
+  # Storage configuration
+  # Creates: OPENTACO_STORAGE
   storage:
+    # Storage type: "memory" or "s3"
     type: "memory"
+    
     # S3 configuration (if using S3 storage)
+    # Creates: OPENTACO_S3_BUCKET, OPENTACO_S3_REGION, OPENTACO_S3_PREFIX
+    #          AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_ENDPOINT
     s3:
-      bucket: ""
-      region: "us-east-1"
-      # Use Kubernetes secrets for credentials
-      secretName: "taco-s3-credentials"
+      bucket: ""              # OPENTACO_S3_BUCKET
+      region: "us-east-1"     # OPENTACO_S3_REGION
+      prefix: ""              # OPENTACO_S3_PREFIX (optional)
+      endpoint: ""            # AWS_ENDPOINT (optional, for S3-compatible storage like Tigris)
+      # AWS credentials - can be overridden by existingSecretName
+      accessKeyId: ""         # AWS_ACCESS_KEY_ID
+      secretAccessKey: ""     # AWS_SECRET_ACCESS_KEY
+      awsRegion: "auto"       # AWS_REGION (for S3-compatible storage)
 
-  # Authentication
+  # Authentication configuration
+  # Creates: OPENTACO_AUTH_DISABLE, OPENTACO_AUTH_ISSUER, OPENTACO_AUTH_CLIENT_ID,
+  #          OPENTACO_AUTH_CLIENT_SECRET, OPENTACO_AUTH_AUTH_URL, OPENTACO_AUTH_TOKEN_URL
   auth:
     disable: false
+    # Auth0 configuration (get from https://manage.auth0.com/)
+    issuer: ""              # OPENTACO_AUTH_ISSUER (e.g., https://your-tenant.auth0.com/)
+    clientId: ""            # OPENTACO_AUTH_CLIENT_ID
+    clientSecret: ""        # OPENTACO_AUTH_CLIENT_SECRET
+    authUrl: ""             # OPENTACO_AUTH_AUTH_URL (e.g., https://your-tenant.auth0.com/authorize)
+    tokenUrl: ""            # OPENTACO_AUTH_TOKEN_URL (e.g., https://your-tenant.auth0.com/oauth/token)
+
+  # Internal API endpoints
+  # Creates: OPENTACO_ENABLE_INTERNAL_ENDPOINTS
+  # If set, enables internal endpoints with this secret (64 char secret)
+  internalSecret: ""        # OPENTACO_ENABLE_INTERNAL_ENDPOINTS
+  
+
+
+  # JWT Token Configuration
+  # Creates: OPENTACO_TOKENS_KID, OPENTACO_TOKENS_ACCESS_TTL, OPENTACO_TOKENS_REFRESH_TTL,
+  #          OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH
+  tokens:
+    kid: "k1"                    # OPENTACO_TOKENS_KID (Key ID for JWT signing)
+    accessTTL: "1h"              # OPENTACO_TOKENS_ACCESS_TTL (access token lifetime)
+    refreshTTL: "720h"           # OPENTACO_TOKENS_REFRESH_TTL (refresh token lifetime, 30 days)
+    privateKeyPemPath: ""        # OPENTACO_TOKENS_PRIVATE_KEY_PEM_PATH (optional, generates ephemeral key if empty)
+
+  # Public Base URL
+  # Creates: OPENTACO_PUBLIC_BASE_URL
+  # This is the public URL where OpenTaco is accessible (used as JWT issuer)
+  publicBaseUrl: "http://localhost:8080"  # OPENTACO_PUBLIC_BASE_URL
+
+  # OAuth Configuration
+  # Creates: OPENTACO_OAUTH_STATE_KEY
+  # IMPORTANT: Set this to a random 32-character string in production for security!
+  # Used to encrypt OAuth state parameters during PKCE flow
+  oauthStateKey: ""            # OPENTACO_OAUTH_STATE_KEY (32+ char random string, REQUIRED for production)
+
+  # Query Backend Configuration
+  # Creates: OPENTACO_QUERY_BACKEND
+  # Options: "postgres", "mssql", "sqlite", or other supported backends
+  queryBackend: "postgres"  # OPENTACO_QUERY_BACKEND
+
+  # PostgreSQL configuration (only used if queryBackend=postgres)
+  # Creates: OPENTACO_POSTGRES_HOST, OPENTACO_POSTGRES_PORT, OPENTACO_POSTGRES_USER,
+  #          OPENTACO_POSTGRES_PASSWORD, OPENTACO_POSTGRES_DBNAME, OPENTACO_POSTGRES_SSLMODE
+  postgres:
+    # Use existingSecret to pull password from an existing secret
+    existingSecretName: ""
+    existingSecretKey: "postgres-password"
+    
+    # Database connection details
+    # Note: For Cloud SQL, use "localhost" (proxy provides local access)
+    host: "localhost"       # OPENTACO_POSTGRES_HOST
+    port: "5432"           # OPENTACO_POSTGRES_PORT
+    user: "taco"           # OPENTACO_POSTGRES_USER
+    password: ""           # OPENTACO_POSTGRES_PASSWORD
+    database: "taco"       # OPENTACO_POSTGRES_DBNAME
+    sslmode: "disable"     # OPENTACO_POSTGRES_SSLMODE (disable, require, verify-ca, verify-full)
+
+  # Custom environment variables
+  customEnv: []
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+
+  # Secret configuration
+  # For production, create secret externally: kubectl create secret generic statesman-secrets --from-env-file=.secrets/statesman.env
+  # For development, set useExistingSecret=false and fill secret fields below
+  secret:
+    useExistingSecret: true
+    existingSecretName: "statesman-secrets"
+
+  # Resource limits
+  resources: {}
+  #  requests:
+  #    cpu: 100m
+  #    memory: 256Mi
+  #  limits:
+  #    cpu: 500m
+  #    memory: 512Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+  # Cloud SQL Proxy configuration (for GCP)
+  cloudSql:
+    enabled: false
+    instanceConnectionName: ""
+    serviceAccount: "default"
+    credentialsSecret: ""
+
+# Global configuration (optional)
+global:
+  imagePullSecrets: []
