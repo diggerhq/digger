@@ -16,7 +16,9 @@ atlas migrate hash --dir "file:///app/migrations/sqlite" 2>/dev/null || true
 case $BACKEND in
   postgres)
     echo "Applying PostgreSQL migrations..."
-    DB_URL="postgres://${OPENTACO_POSTGRES_USER}:${OPENTACO_POSTGRES_PASSWORD}@${OPENTACO_POSTGRES_HOST}:${OPENTACO_POSTGRES_PORT}/${OPENTACO_POSTGRES_DATABASE}?sslmode=${OPENTACO_POSTGRES_SSLMODE:-disable}"
+    # URL-encode the password to handle special characters
+    ENCODED_PASSWORD=$(printf '%s' "$OPENTACO_POSTGRES_PASSWORD" | jq -sRr @uri)
+    DB_URL="postgres://${OPENTACO_POSTGRES_USER}:${ENCODED_PASSWORD}@${OPENTACO_POSTGRES_HOST}:${OPENTACO_POSTGRES_PORT}/${OPENTACO_POSTGRES_DATABASE}?sslmode=${OPENTACO_POSTGRES_SSLMODE:-disable}"
     atlas migrate apply --url "$DB_URL" --dir "file:///app/migrations/postgres"
     ;;
   mysql)

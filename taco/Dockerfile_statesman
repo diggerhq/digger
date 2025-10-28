@@ -27,9 +27,9 @@ FROM ubuntu:24.04 AS runner
 ARG COMMIT_SHA
 WORKDIR /app
 
-# Install ca-certificates, curl for HTTPS requests
+# Install ca-certificates, curl, jq for HTTPS requests and URL encoding
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl && \
+    apt-get install -y ca-certificates curl jq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
