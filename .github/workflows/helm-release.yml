@@ -12,16 +12,18 @@ permissions:
   packages: write
 
 jobs:
-  release:
+  # First, release individual charts
+  release-charts:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         chart:
           - digger-backend
-          - taco-drift
+          - taco-orchestrator
           - taco-statesman
-          - taco-ui
-          - opentaco 
+          - taco-token-service
+          - taco-drift
+          - taco-ui 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,3 +40,29 @@ jobs:
           cd helm-charts/${{ matrix.chart }}
           helm package .
           helm push ${{ matrix.chart }}-*.tgz oci://ghcr.io/diggerhq/helm-charts
+  
+  # Then release umbrella chart after dependencies are available
+  release-umbrella:
+    needs: release-charts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build dependencies for opentaco
+        run: |
+          cd helm-charts/opentaco
+          helm dependency build
+
+      - name: Package and push opentaco
+        run: |
+          cd helm-charts/opentaco
+          helm package .
+          helm push opentaco-*.tgz oci://ghcr.io/diggerhq/helm-charts
