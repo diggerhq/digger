@@ -10,11 +10,12 @@ COPY cmd/token_service/ ./cmd/token_service/
 COPY internal/ ./internal/
 
 # Download dependencies and build
+# Note: CGO is required for SQLite support
 RUN cd cmd/token_service && \
     go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build \
+    CGO_ENABLED=1 GOOS=linux go build \
     -ldflags="-X 'main.Version=${COMMIT_SHA}' -s -w" \
-    -a -installsuffix cgo \
+    -a \
     -o token_service .
 
 # Multi-stage build - use a minimal image for runtime
