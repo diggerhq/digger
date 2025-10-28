@@ -300,8 +300,10 @@ func (h *Handler) UploadUnit(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to upload unit"})
 	}
+	// TODO: This graph update function does not currently work correctly,
+	// commenting out for now until this functionality is fixed
 	// Best-effort dependency graph update
-	go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
+	//go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
 	analytics.SendEssential("taco_unit_push_completed")
 	return c.JSON(http.StatusOK, map[string]string{"message": "Unit uploaded successfully"})
 }

@@ -6,6 +6,8 @@ import { getWorkOS } from './ssr/workos';
 import type { GetAuthURLOptions, NoUserInfo, UserInfo } from './ssr/interfaces';
 import { Organization } from '@workos-inc/node';
 import { WidgetScope } from 'node_modules/@workos-inc/node/lib/widgets/interfaces/get-token';
+import { syncOrgToBackend } from '@/api/orchestrator_orgs';
+import { syncOrgToStatesman } from '@/api/statesman_orgs';
 
 export const getAuthorizationUrl = createServerFn({ method: 'GET' })
   .inputValidator((options?: GetAuthURLOptions) => options)
@@ -29,8 +31,8 @@ export const getOrganisationDetails = createServerFn({method: 'GET'})
 
 
 export const createOrganization = createServerFn({method: 'POST'})
-  .inputValidator((data: {name: string, userId: string}) => data)
-  .handler(async ({data: {name, userId}}) : Promise<Organization> => {
+  .inputValidator((data: {name: string, userId: string, email: string}) => data)
+  .handler(async ({data: {name, userId, email}}) : Promise<Organization> => {
     try {
       const organization = await getWorkOS().organizations.createOrganization({ name: name });
 
@@ -39,6 +41,14 @@ export const createOrganization = createServerFn({method: 'POST'})
         userId: userId,
         roleSlug: "admin",
       });
+
+      try {
+        await syncOrgToBackend(organization.id, organization.name, email);
+        await syncOrgToStatesman(organization.id, organization.name, organization.name, userId, email);
+      } catch (error) {
+        console.error('Error syncing organization to backend:', error);
+        throw error;
+      }
 
       return organization;
     } catch (error) {

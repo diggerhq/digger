@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { getWidgetsAuthToken } from '@/authkit/serverFunctions';
-
+import { useToast } from '@/hooks/use-toast';
 import {
   OrganizationSwitcher,
   UserProfile,
@@ -13,6 +13,7 @@ import {
 import '@workos-inc/widgets/styles.css';
 import '@radix-ui/themes/styles.css';
 import CreateOrganizationBtn from './CreateOrganisationButtonWOS';
+
 
 type LoaderData = {
   organisationId: string;
@@ -26,14 +27,46 @@ type LoaderData = {
 
 type WorkosSettingsProps = {
   userId: string;
+  email: string;
   organisationId: string;
   role: 'admin' | 'member' | string;
 };
 
-export function WorkosSettings({ userId, organisationId, role }: WorkosSettingsProps) {
+export function WorkosSettings({ userId, email, organisationId, role }: WorkosSettingsProps) {
+  const router = useRouter()
+  const { toast } = useToast()
   const [authToken, setAuthToken] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const handleSwitchToOrganization = async (organizationId: string) => {
+
+      try {
+        const res = await fetch('/api/auth/workos/switch-org', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organizationId, pathname: '/dashboard/units' }),
+        })
+        const data = await res.json()
+        if (!data?.redirectUrl) return
+        const url: string = data.redirectUrl
+        const isInternal = url.startsWith('/')
+        if (isInternal) {
+          await router.navigate({ to: url })
+          router.invalidate()
+        } else {
+          console.log('Cannot redirect to external URL');
+          throw new Error('Cannot redirect to external URL');
+        }
+      } catch (e) {
+        toast({
+          title: 'Failed to switch organization',
+          description: e?.message ?? 'Failed to switch organization',
+          variant: 'destructive',
+        })
+        console.error('Failed to switch organization', e)
+      }
+
+  }
 
   React.useEffect(() => {
     (async () => {
@@ -59,13 +92,11 @@ export function WorkosSettings({ userId, organisationId, role }: WorkosSettingsP
         <OrganizationSwitcher
           authToken={authToken}
           organizationLabel="My Orgs"
-          switchToOrganization={async ({ organizationId }) => {
-            // Call your own server action if needed
-          }}
+          switchToOrganization={({ organizationId }) => handleSwitchToOrganization(organizationId)}
         />
         <div className="h-4" />
         {/* Add your org creation UI here */}
-        <CreateOrganizationBtn userId={userId} />
+        <CreateOrganizationBtn userId={userId} email={email} />
         <div className="h-4" />
         <UserProfile authToken={authToken} />
         <div className="h-4" />

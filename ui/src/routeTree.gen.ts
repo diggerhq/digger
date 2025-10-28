@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TfeSplatRouteImport } from './routes/tfe/$'
 import { Route as OrchestratorJob_artefactsRouteImport } from './routes/_orchestrator/job_artefacts'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/_dashboard'
 import { Route as OrchestratorGithubWebhookRouteImport } from './routes/orchestrator/github/webhook'
 import { Route as OrchestratorGithubCallbackRouteImport } from './routes/orchestrator/github/callback'
+import { Route as AppSettingsTokensRouteImport } from './routes/app/settings.tokens'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as ApiAuthWorkosWebhooksRouteImport } from './routes/api/auth/workos/webhooks'
 import { Route as ApiAuthWorkosSwitchOrgRouteImport } from './routes/api/auth/workos/switch-org'
@@ -32,6 +34,8 @@ import { Route as AuthenticatedDashboardDashboardUnitsIndexRouteImport } from '.
 import { Route as AuthenticatedDashboardDashboardReposIndexRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.index'
 import { Route as AuthenticatedDashboardDashboardProjectsIndexRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.index'
 import { Route as AuthenticatedDashboardDashboardUnitsUnitIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/units.$unitId'
+import { Route as AuthenticatedDashboardDashboardSettingsUserRouteImport } from './routes/_authenticated/_dashboard/dashboard/settings.user'
+import { Route as AuthenticatedDashboardDashboardSettingsTokensRouteImport } from './routes/_authenticated/_dashboard/dashboard/settings.tokens'
 import { Route as AuthenticatedDashboardDashboardReposConnectRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.connect'
 import { Route as AuthenticatedDashboardDashboardReposRepoIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.$repoId'
 import { Route as AuthenticatedDashboardDashboardProjectsProjectidRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.$projectid'
@@ -52,6 +56,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TfeSplatRoute = TfeSplatRouteImport.update({
+  id: '/tfe/$',
+  path: '/tfe/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrchestratorJob_artefactsRoute =
@@ -76,6 +85,11 @@ const OrchestratorGithubCallbackRoute =
     path: '/orchestrator/github/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AppSettingsTokensRoute = AppSettingsTokensRouteImport.update({
+  id: '/app/settings/tokens',
+  path: '/app/settings/tokens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
   id: '/api/auth/callback',
   path: '/api/auth/callback',
@@ -169,6 +183,18 @@ const AuthenticatedDashboardDashboardUnitsUnitIdRoute =
     path: '/dashboard/units/$unitId',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardDashboardSettingsUserRoute =
+  AuthenticatedDashboardDashboardSettingsUserRouteImport.update({
+    id: '/user',
+    path: '/user',
+    getParentRoute: () => AuthenticatedDashboardDashboardSettingsRoute,
+  } as any)
+const AuthenticatedDashboardDashboardSettingsTokensRoute =
+  AuthenticatedDashboardDashboardSettingsTokensRouteImport.update({
+    id: '/tokens',
+    path: '/tokens',
+    getParentRoute: () => AuthenticatedDashboardDashboardSettingsRoute,
+  } as any)
 const AuthenticatedDashboardDashboardReposConnectRoute =
   AuthenticatedDashboardDashboardReposConnectRouteImport.update({
     id: '/connect',
@@ -218,7 +244,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/app/settings/tokens': typeof AppSettingsTokensRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
@@ -226,7 +254,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   '/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
-  '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
+  '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRouteWithChildren
   '/orgs/$orgId/access_policy': typeof OrchestratorOrgsOrgIdAccess_policyRoute
   '/orgs/$orgId/plan_policy': typeof OrchestratorOrgsOrgIdPlan_policyRoute
   '/repos/$namespace/report-projects': typeof OrchestratorReposNamespaceReportProjectsRoute
@@ -236,6 +264,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
+  '/dashboard/settings/tokens': typeof AuthenticatedDashboardDashboardSettingsTokensRoute
+  '/dashboard/settings/user': typeof AuthenticatedDashboardDashboardSettingsUserRoute
   '/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
   '/dashboard/projects/': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
   '/dashboard/repos/': typeof AuthenticatedDashboardDashboardReposIndexRoute
@@ -248,13 +278,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/app/settings/tokens': typeof AppSettingsTokensRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
   '/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   '/dashboard/drift': typeof AuthenticatedDashboardDashboardDriftRoute
   '/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
-  '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
+  '/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRouteWithChildren
   '/orgs/$orgId/access_policy': typeof OrchestratorOrgsOrgIdAccess_policyRoute
   '/orgs/$orgId/plan_policy': typeof OrchestratorOrgsOrgIdPlan_policyRoute
   '/repos/$namespace/report-projects': typeof OrchestratorReposNamespaceReportProjectsRoute
@@ -264,6 +296,8 @@ export interface FileRoutesByTo {
   '/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
+  '/dashboard/settings/tokens': typeof AuthenticatedDashboardDashboardSettingsTokensRoute
+  '/dashboard/settings/user': typeof AuthenticatedDashboardDashboardSettingsUserRoute
   '/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
   '/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
   '/dashboard/repos': typeof AuthenticatedDashboardDashboardReposIndexRoute
@@ -279,7 +313,9 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_orchestrator/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/app/settings/tokens': typeof AppSettingsTokensRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
   '/_authenticated/_dashboard/dashboard/connections': typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
@@ -287,7 +323,7 @@ export interface FileRoutesById {
   '/_authenticated/_dashboard/dashboard/onboarding': typeof AuthenticatedDashboardDashboardOnboardingRoute
   '/_authenticated/_dashboard/dashboard/projects': typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   '/_authenticated/_dashboard/dashboard/repos': typeof AuthenticatedDashboardDashboardReposRouteWithChildren
-  '/_authenticated/_dashboard/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRoute
+  '/_authenticated/_dashboard/dashboard/settings': typeof AuthenticatedDashboardDashboardSettingsRouteWithChildren
   '/_orchestrator/orgs/$orgId/access_policy': typeof OrchestratorOrgsOrgIdAccess_policyRoute
   '/_orchestrator/orgs/$orgId/plan_policy': typeof OrchestratorOrgsOrgIdPlan_policyRoute
   '/_orchestrator/repos/$namespace/report-projects': typeof OrchestratorReposNamespaceReportProjectsRoute
@@ -297,6 +333,8 @@ export interface FileRoutesById {
   '/_authenticated/_dashboard/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   '/_authenticated/_dashboard/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/_authenticated/_dashboard/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
+  '/_authenticated/_dashboard/dashboard/settings/tokens': typeof AuthenticatedDashboardDashboardSettingsTokensRoute
+  '/_authenticated/_dashboard/dashboard/settings/user': typeof AuthenticatedDashboardDashboardSettingsUserRoute
   '/_authenticated/_dashboard/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
   '/_authenticated/_dashboard/dashboard/projects/': typeof AuthenticatedDashboardDashboardProjectsIndexRoute
   '/_authenticated/_dashboard/dashboard/repos/': typeof AuthenticatedDashboardDashboardReposIndexRoute
@@ -311,7 +349,9 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/job_artefacts'
+    | '/tfe/$'
     | '/api/auth/callback'
+    | '/app/settings/tokens'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
     | '/dashboard/connections'
@@ -329,6 +369,8 @@ export interface FileRouteTypes {
     | '/dashboard/projects/$projectid'
     | '/dashboard/repos/$repoId'
     | '/dashboard/repos/connect'
+    | '/dashboard/settings/tokens'
+    | '/dashboard/settings/user'
     | '/dashboard/units/$unitId'
     | '/dashboard/projects/'
     | '/dashboard/repos/'
@@ -341,7 +383,9 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/job_artefacts'
+    | '/tfe/$'
     | '/api/auth/callback'
+    | '/app/settings/tokens'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
     | '/dashboard/connections'
@@ -357,6 +401,8 @@ export interface FileRouteTypes {
     | '/dashboard/projects/$projectid'
     | '/dashboard/repos/$repoId'
     | '/dashboard/repos/connect'
+    | '/dashboard/settings/tokens'
+    | '/dashboard/settings/user'
     | '/dashboard/units/$unitId'
     | '/dashboard/projects'
     | '/dashboard/repos'
@@ -371,7 +417,9 @@ export interface FileRouteTypes {
     | '/logout'
     | '/_authenticated/_dashboard'
     | '/_orchestrator/job_artefacts'
+    | '/tfe/$'
     | '/api/auth/callback'
+    | '/app/settings/tokens'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
     | '/_authenticated/_dashboard/dashboard/connections'
@@ -389,6 +437,8 @@ export interface FileRouteTypes {
     | '/_authenticated/_dashboard/dashboard/projects/$projectid'
     | '/_authenticated/_dashboard/dashboard/repos/$repoId'
     | '/_authenticated/_dashboard/dashboard/repos/connect'
+    | '/_authenticated/_dashboard/dashboard/settings/tokens'
+    | '/_authenticated/_dashboard/dashboard/settings/user'
     | '/_authenticated/_dashboard/dashboard/units/$unitId'
     | '/_authenticated/_dashboard/dashboard/projects/'
     | '/_authenticated/_dashboard/dashboard/repos/'
@@ -403,7 +453,9 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LogoutRoute: typeof LogoutRoute
   OrchestratorJob_artefactsRoute: typeof OrchestratorJob_artefactsRoute
+  TfeSplatRoute: typeof TfeSplatRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
+  AppSettingsTokensRoute: typeof AppSettingsTokensRoute
   OrchestratorGithubCallbackRoute: typeof OrchestratorGithubCallbackRoute
   OrchestratorGithubWebhookRoute: typeof OrchestratorGithubWebhookRoute
   OrchestratorOrgsOrgIdAccess_policyRoute: typeof OrchestratorOrgsOrgIdAccess_policyRoute
@@ -439,6 +491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tfe/$': {
+      id: '/tfe/$'
+      path: '/tfe/$'
+      fullPath: '/tfe/$'
+      preLoaderRoute: typeof TfeSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_orchestrator/job_artefacts': {
       id: '/_orchestrator/job_artefacts'
       path: '/job_artefacts'
@@ -465,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/orchestrator/github/callback'
       fullPath: '/orchestrator/github/callback'
       preLoaderRoute: typeof OrchestratorGithubCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/settings/tokens': {
+      id: '/app/settings/tokens'
+      path: '/app/settings/tokens'
+      fullPath: '/app/settings/tokens'
+      preLoaderRoute: typeof AppSettingsTokensRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/callback': {
@@ -579,6 +645,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardDashboardUnitsUnitIdRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/_dashboard/dashboard/settings/user': {
+      id: '/_authenticated/_dashboard/dashboard/settings/user'
+      path: '/user'
+      fullPath: '/dashboard/settings/user'
+      preLoaderRoute: typeof AuthenticatedDashboardDashboardSettingsUserRouteImport
+      parentRoute: typeof AuthenticatedDashboardDashboardSettingsRoute
+    }
+    '/_authenticated/_dashboard/dashboard/settings/tokens': {
+      id: '/_authenticated/_dashboard/dashboard/settings/tokens'
+      path: '/tokens'
+      fullPath: '/dashboard/settings/tokens'
+      preLoaderRoute: typeof AuthenticatedDashboardDashboardSettingsTokensRouteImport
+      parentRoute: typeof AuthenticatedDashboardDashboardSettingsRoute
+    }
     '/_authenticated/_dashboard/dashboard/repos/connect': {
       id: '/_authenticated/_dashboard/dashboard/repos/connect'
       path: '/connect'
@@ -685,13 +765,31 @@ const AuthenticatedDashboardDashboardReposRouteWithChildren =
     AuthenticatedDashboardDashboardReposRouteChildren,
   )
 
+interface AuthenticatedDashboardDashboardSettingsRouteChildren {
+  AuthenticatedDashboardDashboardSettingsTokensRoute: typeof AuthenticatedDashboardDashboardSettingsTokensRoute
+  AuthenticatedDashboardDashboardSettingsUserRoute: typeof AuthenticatedDashboardDashboardSettingsUserRoute
+}
+
+const AuthenticatedDashboardDashboardSettingsRouteChildren: AuthenticatedDashboardDashboardSettingsRouteChildren =
+  {
+    AuthenticatedDashboardDashboardSettingsTokensRoute:
+      AuthenticatedDashboardDashboardSettingsTokensRoute,
+    AuthenticatedDashboardDashboardSettingsUserRoute:
+      AuthenticatedDashboardDashboardSettingsUserRoute,
+  }
+
+const AuthenticatedDashboardDashboardSettingsRouteWithChildren =
+  AuthenticatedDashboardDashboardSettingsRoute._addFileChildren(
+    AuthenticatedDashboardDashboardSettingsRouteChildren,
+  )
+
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardDashboardConnectionsRoute: typeof AuthenticatedDashboardDashboardConnectionsRouteWithChildren
   AuthenticatedDashboardDashboardDriftRoute: typeof AuthenticatedDashboardDashboardDriftRoute
   AuthenticatedDashboardDashboardOnboardingRoute: typeof AuthenticatedDashboardDashboardOnboardingRoute
   AuthenticatedDashboardDashboardProjectsRoute: typeof AuthenticatedDashboardDashboardProjectsRouteWithChildren
   AuthenticatedDashboardDashboardReposRoute: typeof AuthenticatedDashboardDashboardReposRouteWithChildren
-  AuthenticatedDashboardDashboardSettingsRoute: typeof AuthenticatedDashboardDashboardSettingsRoute
+  AuthenticatedDashboardDashboardSettingsRoute: typeof AuthenticatedDashboardDashboardSettingsRouteWithChildren
   AuthenticatedDashboardDashboardUnitsUnitIdRoute: typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
   AuthenticatedDashboardDashboardUnitsIndexRoute: typeof AuthenticatedDashboardDashboardUnitsIndexRoute
 }
@@ -709,7 +807,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardDashboardReposRoute:
       AuthenticatedDashboardDashboardReposRouteWithChildren,
     AuthenticatedDashboardDashboardSettingsRoute:
-      AuthenticatedDashboardDashboardSettingsRoute,
+      AuthenticatedDashboardDashboardSettingsRouteWithChildren,
     AuthenticatedDashboardDashboardUnitsUnitIdRoute:
       AuthenticatedDashboardDashboardUnitsUnitIdRoute,
     AuthenticatedDashboardDashboardUnitsIndexRoute:
@@ -738,7 +836,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LogoutRoute: LogoutRoute,
   OrchestratorJob_artefactsRoute: OrchestratorJob_artefactsRoute,
+  TfeSplatRoute: TfeSplatRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
+  AppSettingsTokensRoute: AppSettingsTokensRoute,
   OrchestratorGithubCallbackRoute: OrchestratorGithubCallbackRoute,
   OrchestratorGithubWebhookRoute: OrchestratorGithubWebhookRoute,
   OrchestratorOrgsOrgIdAccess_policyRoute:
