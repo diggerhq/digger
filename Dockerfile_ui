@@ -7,15 +7,14 @@ WORKDIR /app
 COPY ui/package.json ./
 
 # Install dependencies first
-# Explicitly tell npm to install for linux/amd64 platform (for cloud deployment)
-# This ensures correct optional dependencies like @rollup/rollup-linux-x64-musl
-RUN npm install --cpu=x64 --os=linux --libc=musl && \
+# npm will automatically install correct platform-specific binaries (amd64 or arm64)
+RUN npm install && \
     npm cache clean --force
 
 # Copy source code (node_modules excluded via .dockerignore)
 COPY ui/ ./
 
-# Build the application for linux/amd64 (with node adapter)
+# Build the application (with node adapter)
 RUN npm run build
 
 # Production stage
@@ -26,8 +25,9 @@ WORKDIR /app
 # Copy package file
 COPY ui/package.json ./
 
-# Install production dependencies only for linux/amd64
-RUN npm install --omit=dev --cpu=x64 --os=linux --libc=musl && \
+# Install production dependencies only
+# npm will automatically install correct platform-specific binaries (amd64 or arm64)
+RUN npm install --omit=dev && \
     npm cache clean --force
 
 # Copy built application and server entry from builder
