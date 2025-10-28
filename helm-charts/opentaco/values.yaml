@@ -260,7 +260,7 @@ taco-ui:
   ui:
     image:
       repository: taco-ui
-      tag: "latest"
+      tag: "v0.1.0"
     
     replicaCount: 1
     
