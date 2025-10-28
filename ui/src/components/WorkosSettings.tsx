@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { getWidgetsAuthToken } from '@/authkit/serverFunctions';
-
+import { useToast } from '@/hooks/use-toast';
 import {
   OrganizationSwitcher,
   UserProfile,
@@ -34,6 +34,7 @@ type WorkosSettingsProps = {
 
 export function WorkosSettings({ userId, email, organisationId, role }: WorkosSettingsProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [authToken, setAuthToken] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);

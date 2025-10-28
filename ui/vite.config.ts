@@ -28,7 +28,6 @@ export default defineConfig(({ mode }) => {
       }),
       tanstackStart(),
       viteReact(),
-      netlify(),
       // cloudflare({ viteEnvironment: { name: 'ssr' } }),
     ],
   };
