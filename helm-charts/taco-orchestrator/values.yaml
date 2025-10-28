@@ -127,11 +127,11 @@ digger:
   gofips140: "off"            # GOFIPS140
 
   # Secret configuration
-  # For production, create secret externally: kubectl create secret generic digger-managed-secrets --from-env-file=.secrets/digger-backend.env
+  # For production, create secret externally: kubectl create secret generic taco-orchestrator-secrets --from-env-file=.secrets/digger-backend.env
   # For development, set useExistingSecret=false and fill secret fields below
   secret:
     useExistingSecret: true
-    existingSecretName: "digger-managed-secrets"
+    existingSecretName: "taco-orchestrator-secrets"
 
   # Node selector
   nodeSelector: {}

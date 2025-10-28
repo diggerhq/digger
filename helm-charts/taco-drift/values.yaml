@@ -44,7 +44,7 @@ drift:
     host: "drift.example.com"
     path: /
     tls:
-      secretName: "digger-drift-tls"
+      secretName: "taco-drift-tls"
 
   # Liveness and startup probe settings
   livenessProbe:

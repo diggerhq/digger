@@ -18,7 +18,7 @@ jobs:
       matrix:
         chart:
           - digger-backend
-          - digger-drift
+          - taco-drift
           - taco-statesman
           - taco-ui
           - opentaco 

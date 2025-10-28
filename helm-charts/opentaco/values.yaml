@@ -74,7 +74,7 @@ digger-managed:
     # Secret management
     secret:
       useExistingSecret: true
-      existingSecretName: "digger-managed-secrets"
+      existingSecretName: "taco-orchestrator-secrets"
     
     # Resource limits (IMPORTANT: set for production)
     resources: {}
@@ -93,7 +93,7 @@ digger-managed:
       path: /
     
     # For detailed configuration (database, GitHub App, secrets, etc.),
-    # see helm-charts/digger-managed/values.yaml or use existingSecret above
+    # see helm-charts/taco-orchestrator/values.yaml or use existingSecret above
 
 # ============================================================================
 # Taco Statesman Configuration
@@ -174,7 +174,7 @@ drift:
       path: /
     
     # For detailed configuration (GitHub App, database, webhook secrets, etc.),
-    # see helm-charts/digger-drift/values.yaml or use existingSecret above
+    # see helm-charts/taco-drift/values.yaml or use existingSecret above
 
 # ============================================================================
 # Taco UI Configuration

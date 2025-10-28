@@ -23,13 +23,13 @@ dependencies:
       - database
 
   # Digger Managed - terraform orchestration backend
-  - name: digger-managed
+  - name: taco-orchestrator
     version: "0.1.0"
     # For production: use OCI registry
     repository: "oci://ghcr.io/diggerhq/helm-charts"
     # For local testing: use file reference
-    #repository: "file://../digger-managed"
-    condition: digger-managed.enabled
+    #repository: "file://../taco-orchestrator"
+    condition: taco-orchestrator.enabled
     tags:
       - backend
 
@@ -51,7 +51,7 @@ dependencies:
     # For production: use OCI registry
     repository: "oci://ghcr.io/diggerhq/helm-charts"
     # For local testing: use file reference
-    #repository: "file://../digger-drift"
+    #repository: "file://../taco-drift"
     condition: drift.enabled
     tags:
       - backend

@@ -20,7 +20,7 @@ DEPLOYMENT STATUS:
   Please enable postgresql or cloudSql in values.yaml
 {{- end }}
 
-{{- if index .Values "digger-managed" "enabled" }}
+{{- if index .Values "taco-orchestrator" "enabled" }}
 ✓ Digger Managed: Enabled
   Service: digger-managed:3000
 {{- end }}
