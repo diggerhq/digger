@@ -53,9 +53,15 @@ export function WorkosSettings({ userId, email, organisationId, role }: WorkosSe
           await router.navigate({ to: url })
           router.invalidate()
         } else {
-          window.location.href = url
+          console.log('Cannot redirect to external URL');
+          throw new Error('Cannot redirect to external URL');
         }
       } catch (e) {
+        toast({
+          title: 'Failed to switch organization',
+          description: e?.message ?? 'Failed to switch organization',
+          variant: 'destructive',
+        })
         console.error('Failed to switch organization', e)
       }
 
