@@ -1,6 +1,6 @@
 import { createRouter } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
-import { terraformRoute } from '@/routes/manual/terraformWellknown';
+import { terraformRoute } from '@/routes/manual/terraformWellKnown';
 
 
 const existingChildren = (routeTree as any).children ?? [] // internal but fine

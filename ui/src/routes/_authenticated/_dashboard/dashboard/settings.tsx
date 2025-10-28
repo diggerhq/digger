@@ -9,15 +9,14 @@ export const Route = createFileRoute(
     const { user, organisationId, role } = context
     return { user, organisationId, role }
   },
-  beforeLoad: ({ location, search }) => {
+  beforeLoad: (({ location, search }) => {
     if (location.pathname === '/dashboard/settings') {
       throw redirect({
         to: '.',
         search
       })
     }
-    return {}
-  }
+  }) as any
 })
 
 function RouteComponent() {
