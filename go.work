@@ -6,6 +6,7 @@ use (
 	./cli
 	./cli_e2e
 	./dgctl
+	./drift
 
 	./ee/backend
 	./ee/cli
@@ -18,5 +19,4 @@ use (
 	./taco/internal
 	./taco/pkg/sdk
 	./taco/providers/terraform/opentaco
-
 )

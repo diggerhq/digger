@@ -34,12 +34,12 @@ const getDriftIcon = (status: string) => {
 }
 
 export const Route = createFileRoute(
-  '/_authenticated/_dashboard/dashboard/projects/$projectId',
+  '/_authenticated/_dashboard/dashboard/projects/$projectid',
 )({
   component: RouteComponent,
-  loader: async ({ context, params: {projectId} }) => {
+  loader: async ({ context, params: {projectid} }) => {
     const { user, organisationId } = context;
-    const project = await getProjectFn({data: {projectId, organisationId, userId: user?.id || ''}})
+    const project = await getProjectFn({data: {projectId: projectid, organisationId, userId: user?.id || ''}})
     return { project }
   }
 })

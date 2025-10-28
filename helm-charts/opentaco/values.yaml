@@ -1,0 +1,246 @@
+# OpenTaco Umbrella Chart - Default Values
+# 
+# This chart deploys the complete OpenTaco platform:
+#   - Database (PostgreSQL or Cloud SQL)
+#   - Digger Managed
+#   - Taco Statesman
+#   - Drift Detection
+#   - Taco UI
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+global:
+  # Image registry for all custom images
+  imageRegistry: ghcr.io/diggerhq/digger
+  
+  # Image pull policy
+  imagePullPolicy: IfNotPresent
+  
+  # Shared secrets (create these before deploying)
+  secrets:
+    # WorkOS authentication (required for UI)
+    workosSecretName: "workos-secrets"
+
+# ============================================================================
+# Database Configuration
+# ============================================================================
+
+# Option 1: Use in-cluster PostgreSQL (bitnami chart)
+# Set postgresql.enabled=true for development/testing
+postgresql:
+  enabled: false  # Set to true to deploy PostgreSQL in cluster
+  auth:
+    username: opentaco
+    password: changeme  # CHANGE THIS or use existingSecret
+    database: opentaco
+    existingSecret: ""  # Reference existing secret for password
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+
+# Option 2: Use Cloud SQL (recommended for production)
+# See helm-charts/scripts/setup-cloud-sql.sh to create Cloud SQL instance
+cloudSql:
+  enabled: true # Set to true to use Cloud SQL
+  # Connection details
+  instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
+  # Database credentials (create secret first)
+  credentialsSecret: "cloudsql-credentials"
+  # Service account for Workload Identity
+  serviceAccount: "cloudsql-sa"
+
+# ============================================================================
+# Digger Managed Configuration
+# ============================================================================
+digger-managed:
+  enabled: true
+  
+  digger:
+    image:
+      repository: digger-backend-ee
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "taco-orchestrator-secrets"
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 512Mi
+    #    cpu: 500m
+    #  limits:
+    #    memory: 2Gi
+    #    cpu: 2000m
+    
+    # Ingress configuration
+    ingress:
+      enabled: false
+      className: "nginx"
+      host: "api.opentaco.example.com"
+      path: /
+    
+    # For detailed configuration (database, GitHub App, secrets, etc.),
+    # see helm-charts/taco-orchestrator/values.yaml or use existingSecret above
+
+# ============================================================================
+# Taco Statesman Configuration
+# ============================================================================
+taco-statesman:
+  enabled: true
+  
+  taco:
+    image:
+      repository: taco-statesman
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "statesman-secrets"
+    
+    # Storage configuration (critical: choose memory or s3)
+    storage:
+      type: "memory"  # "memory" for dev, "s3" for production
+      s3:
+        bucket: ""    # S3 bucket name (required if type=s3)
+        region: "us-east-1"
+    
+    # Cloud SQL configuration (for GCP)
+    cloudSql:
+      enabled: false
+      instanceConnectionName: ""
+      serviceAccount: "default"
+      credentialsSecret: ""
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # For detailed configuration (auth, JWT, postgres, OAuth, etc.),
+    # see helm-charts/taco-statesman/values.yaml or use existingSecret above
+
+# ============================================================================
+# Drift Detection Configuration
+# ============================================================================
+drift:
+  enabled: true
+  
+  drift:
+    image:
+      repository: drift
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "drift-secrets"
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # Ingress configuration
+    ingress:
+      enabled: false
+      className: "nginx"
+      host: "drift.opentaco.example.com"
+      path: /
+    
+    # For detailed configuration (GitHub App, database, webhook secrets, etc.),
+    # see helm-charts/taco-drift/values.yaml or use existingSecret above
+
+# ============================================================================
+# Taco UI Configuration
+# ============================================================================
+taco-ui:
+  enabled: true
+  
+  ui:
+    image:
+      repository: taco-ui
+      tag: "latest"
+    
+    replicaCount: 1
+    
+    # Secret management
+    secret:
+      useExistingSecret: true
+      existingSecretName: "ui-secrets"
+    
+    # Environment configuration (cross-service URLs)
+    env:
+      # Allowed hosts (customize for your domain)
+      allowedHosts: ""
+      
+      # Backend service URLs (for server-side API calls)
+      backends:
+        orchestratorUrl: "http://digger-managed:3000"
+        driftReportingUrl: "http://drift:3004"
+        statesmanUrl: "http://taco-statesman:8080"
+    
+    ingress:
+      enabled: false
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - host: app.opentaco.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: opentaco-ui-tls
+          hosts:
+            - app.opentaco.example.com
+    
+    # Resource limits (IMPORTANT: set for production)
+    resources: {}
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 250m
+    #  limits:
+    #    memory: 1Gi
+    #    cpu: 1000m
+    
+    # For detailed configuration (WorkOS, PostHog, webhook secrets, etc.),
+    # see helm-charts/taco-ui/values.yaml or use existingSecret above
+
+# ============================================================================
+# Additional Configuration
+# ============================================================================
+
+# Create NetworkPolicies (optional)
+networkPolicies:
+  enabled: false
+
+# Service Monitor for Prometheus (optional)
+serviceMonitor:
+  enabled: false
+

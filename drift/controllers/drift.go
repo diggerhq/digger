@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
-	services2 "github.com/diggerhq/digger/ee/drift/services"
-	"github.com/diggerhq/digger/ee/drift/utils"
+    services2 "github.com/diggerhq/digger/drift/services"
+    "github.com/diggerhq/digger/drift/utils"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"

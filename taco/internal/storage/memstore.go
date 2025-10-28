@@ -133,7 +133,18 @@ func (m *memStore) Upload(ctx context.Context, id string, data []byte, lockID st
 	
     state, exists := m.units[id]
 	if !exists {
-		return ErrNotFound
+		// Auto-create the unit if it doesn't exist (matches S3 behavior)
+		state = &unitData{
+			metadata: &UnitMetadata{
+				ID:      id,
+				Size:    0,
+				Updated: time.Now(),
+				Locked:  false,
+			},
+			content:  []byte{},
+			versions: nil,
+		}
+		m.units[id] = state
 	}
 	
 	// Check lock if provided

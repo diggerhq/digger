@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/ee/drift/middleware"
-	"github.com/gin-gonic/gin"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 func GithubAppConnections(c *gin.Context) {

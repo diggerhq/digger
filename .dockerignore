@@ -61,3 +61,8 @@ libs/digger_config/**/.idea
 
 # flyctl launch added from libs/orchestrator/.gitignore
 libs/orchestrator/**/.idea
+
+# Don't copy node_modules - we install fresh in the container
+ui/node_modules
+ui/dist
+ui/.next

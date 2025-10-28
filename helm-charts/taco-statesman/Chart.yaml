@@ -1,6 +1,6 @@
 apiVersion: v2
-name: taco-statesman
-description: A minimalist Helm chart for Taco Statesman service
+name: statesman
+description: Taco Statesman - Infrastructure-as-Code state management and coordination service
 type: application
 version: 0.1.0
 appVersion: "v0.1.0"

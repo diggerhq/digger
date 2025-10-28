@@ -10,9 +10,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// NewPostgresStore creates a new PostgreSQL-backed query store.
-// Its only job is to establish the DB connection and pass it to the common SQLStore.
-func NewPostgresStore(cfg query.PostgresConfig) (query.Store, error) {
+// Connect establishes a PostgreSQL connection
+func Connect(cfg query.PostgresConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
 		cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
 
@@ -23,6 +22,11 @@ func NewPostgresStore(cfg query.PostgresConfig) (query.Store, error) {
 		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 
-	// Call the constructor from the 'common' package, breaking the cycle.
+	return db, nil
+}
+
+// NewPostgresStore creates a new PostgreSQL-backed query store.
+// Assumes migrations have already been applied.
+func NewPostgresStore(db *gorm.DB) (query.Store, error) {
 	return common.NewSQLStore(db)
 }

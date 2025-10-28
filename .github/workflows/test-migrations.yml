@@ -1,0 +1,293 @@
+name: Test Database Migrations
+
+on:
+  pull_request:
+    paths:
+      - 'taco/internal/query/types/**'
+      - 'taco/internal/query/migration/**'
+      - 'taco/internal/queryfactory/**'
+      - 'taco/atlas.hcl'
+      - 'taco/internal/atlas_loader.go'
+      - '.github/workflows/test-migrations.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'taco/internal/query/types/**'
+      - 'taco/internal/query/migration/**'
+      - 'taco/internal/queryfactory/**'
+      - 'taco/atlas.hcl'
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  test-postgres:
+    name: Test PostgreSQL Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16.1
+        env:
+          POSTGRES_DB: taco
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Generate migration checksums for PostgreSQL
+        working-directory: taco
+        run: |
+          echo "Generating checksums for PostgreSQL migrations..."
+          atlas migrate hash --dir "file://migrations/postgres"
+
+      - name: Apply migrations manually (simulating entrypoint.sh)
+        working-directory: taco
+        env:
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/taco?sslmode=disable
+        run: |
+          echo "Applying PostgreSQL migrations..."
+          atlas migrate apply \
+            --url "$POSTGRES_URL" \
+            --dir "file://migrations/postgres"
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          CGO_ENABLED=1 go build -o statesman ./cmd/statesman
+
+      - name: Test statesman starts successfully
+        working-directory: taco
+        env:
+          OPENTACO_QUERY_BACKEND: postgres
+          OPENTACO_POSTGRES_HOST: localhost
+          OPENTACO_POSTGRES_PORT: 5432
+          OPENTACO_POSTGRES_USER: postgres
+          OPENTACO_POSTGRES_PASSWORD: postgres
+          OPENTACO_POSTGRES_DATABASE: taco
+          OPENTACO_POSTGRES_SSLMODE: disable
+          OPENTACO_AUTH_DISABLE: true
+        run: |
+          # Run binary and capture output
+          echo "Starting statesman binary..."
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
+          
+          echo "Binary output:"
+          cat statesman.log
+          
+          # Give it time to start
+          sleep 5
+
+      - name: Verify statesman started successfully
+        working-directory: taco
+        run: |
+          # Check if statesman started successfully
+          if grep -i "server started\|server listening\|starting.*server" statesman.log; then
+            echo "✅ Postgres: Statesman started successfully after migrations"
+          else
+            echo "❌ Statesman did not start successfully"
+            cat statesman.log
+            exit 1
+          fi
+
+  test-mysql:
+    name: Test MySQL Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: taco
+          MYSQL_USER: mysql
+          MYSQL_PASSWORD: mysql
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Generate migration checksums for MySQL
+        working-directory: taco
+        run: |
+          echo "Generating checksums for MySQL migrations..."
+          atlas migrate hash --dir "file://migrations/mysql"
+
+      - name: Apply migrations manually (simulating entrypoint.sh)
+        working-directory: taco
+        env:
+          MYSQL_URL: mysql://mysql:mysql@localhost:3306/taco
+        run: |
+          echo "Applying MySQL migrations..."
+          atlas migrate apply \
+            --url "$MYSQL_URL" \
+            --dir "file://migrations/mysql"
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          CGO_ENABLED=1 go build -o statesman ./cmd/statesman
+
+      - name: Test statesman starts successfully
+        working-directory: taco
+        env:
+          OPENTACO_QUERY_BACKEND: mysql
+          OPENTACO_MYSQL_HOST: localhost
+          OPENTACO_MYSQL_PORT: 3306
+          OPENTACO_MYSQL_USER: mysql
+          OPENTACO_MYSQL_PASSWORD: mysql
+          OPENTACO_MYSQL_DATABASE: taco
+          OPENTACO_AUTH_DISABLE: true
+          OPENTACO_JWT_SECRET: test-secret-key-for-ci
+        run: |
+          # Run binary and capture output
+          echo "Starting statesman binary..."
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
+          
+          echo "Binary output:"
+          cat statesman.log
+          
+          # Give it time to start
+          sleep 5
+
+      - name: Verify statesman started successfully
+        working-directory: taco
+        run: |
+          # Check if statesman started successfully
+          if grep -i "server started\|server listening\|starting.*server" statesman.log; then
+            echo "✅ MySQL: Statesman started successfully after migrations"
+          else
+            echo "❌ Statesman did not start successfully"
+            cat statesman.log
+            exit 1
+          fi
+
+  test-sqlite:
+    name: Test SQLite Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: |
+            taco/go.sum
+            go.work.sum
+
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://atlasgo.sh | sh
+          atlas version
+
+      - name: Create SQLite database directory
+        working-directory: taco
+        run: |
+          mkdir -p .data
+          echo "Created .data directory for SQLite database"
+
+      - name: Generate migration checksums for SQLite
+        working-directory: taco
+        run: |
+          echo "Generating checksums for SQLite migrations..."
+          atlas migrate hash --dir "file://migrations/sqlite"
+
+      - name: Apply migrations manually (simulating entrypoint.sh)
+        working-directory: taco
+        run: |
+          echo "Applying SQLite migrations to ${{ github.workspace }}/taco/.data/test.db"
+          atlas migrate apply \
+            --url "sqlite://${{ github.workspace }}/taco/.data/test.db" \
+            --dir "file://migrations/sqlite"
+          
+          # Verify database file was created
+          ls -lh .data/test.db
+          echo "✅ Migrations applied successfully"
+
+      - name: Build statesman binary
+        working-directory: taco
+        run: |
+          CGO_ENABLED=1 go build -o statesman ./cmd/statesman
+
+      - name: Test statesman starts successfully
+        working-directory: taco
+        env:
+          OPENTACO_QUERY_BACKEND: sqlite
+          OPENTACO_SQLITE_DB_PATH: ${{ github.workspace }}/taco/.data/test.db
+          OPENTACO_AUTH_DISABLE: true
+        run: |
+          # Run binary and capture output
+          echo "Starting statesman binary..."
+          timeout 30s ./statesman --port 8080 --auth-disable --storage memory > statesman.log 2>&1 || true
+          
+          echo "Binary output:"
+          cat statesman.log
+          
+          # Give it time to start
+          sleep 5
+
+      - name: Verify statesman started successfully
+        working-directory: taco
+        run: |
+          # Check if statesman started successfully
+          if grep -i "server started\|server listening\|starting.*server" statesman.log; then
+            echo "✅ SQLite: Statesman started successfully after migrations"
+          else
+            echo "❌ Statesman did not start successfully"
+            cat statesman.log
+            exit 1
+          fi
+
+  # Summary job that requires all database tests to pass
+  all-migrations-passed:
+    name: All Migrations Passed
+    runs-on: ubuntu-latest
+    needs: [test-postgres, test-mysql, test-sqlite]
+    steps:
+      - name: All tests passed
+        run: echo "✅ All database migrations tested successfully!"
+

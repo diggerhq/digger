@@ -34,7 +34,7 @@ import { Route as AuthenticatedDashboardDashboardProjectsIndexRouteImport } from
 import { Route as AuthenticatedDashboardDashboardUnitsUnitIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/units.$unitId'
 import { Route as AuthenticatedDashboardDashboardReposConnectRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.connect'
 import { Route as AuthenticatedDashboardDashboardReposRepoIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/repos.$repoId'
-import { Route as AuthenticatedDashboardDashboardProjectsProjectIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.$projectId'
+import { Route as AuthenticatedDashboardDashboardProjectsProjectidRouteImport } from './routes/_authenticated/_dashboard/dashboard/projects.$projectid'
 import { Route as AuthenticatedDashboardDashboardConnectionsConnectionIdRouteImport } from './routes/_authenticated/_dashboard/dashboard/connections.$connectionId'
 import { Route as OrchestratorReposNamespaceProjectsProjectNamePlan_policyRouteImport } from './routes/_orchestrator/repos/$namespace/projects/$projectName/plan_policy'
 import { Route as OrchestratorReposNamespaceProjectsProjectNameAccess_policyRouteImport } from './routes/_orchestrator/repos/$namespace/projects/$projectName/access_policy'
@@ -181,10 +181,10 @@ const AuthenticatedDashboardDashboardReposRepoIdRoute =
     path: '/$repoId',
     getParentRoute: () => AuthenticatedDashboardDashboardReposRoute,
   } as any)
-const AuthenticatedDashboardDashboardProjectsProjectIdRoute =
-  AuthenticatedDashboardDashboardProjectsProjectIdRouteImport.update({
-    id: '/$projectId',
-    path: '/$projectId',
+const AuthenticatedDashboardDashboardProjectsProjectidRoute =
+  AuthenticatedDashboardDashboardProjectsProjectidRouteImport.update({
+    id: '/$projectid',
+    path: '/$projectid',
     getParentRoute: () => AuthenticatedDashboardDashboardProjectsRoute,
   } as any)
 const AuthenticatedDashboardDashboardConnectionsConnectionIdRoute =
@@ -233,7 +233,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/workos/switch-org': typeof ApiAuthWorkosSwitchOrgRoute
   '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
-  '/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
+  '/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
   '/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
@@ -261,7 +261,7 @@ export interface FileRoutesByTo {
   '/api/auth/workos/switch-org': typeof ApiAuthWorkosSwitchOrgRoute
   '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
-  '/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
+  '/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   '/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
   '/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
@@ -294,7 +294,7 @@ export interface FileRoutesById {
   '/api/auth/workos/switch-org': typeof ApiAuthWorkosSwitchOrgRoute
   '/api/auth/workos/webhooks': typeof ApiAuthWorkosWebhooksRoute
   '/_authenticated/_dashboard/dashboard/connections/$connectionId': typeof AuthenticatedDashboardDashboardConnectionsConnectionIdRoute
-  '/_authenticated/_dashboard/dashboard/projects/$projectId': typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
+  '/_authenticated/_dashboard/dashboard/projects/$projectid': typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   '/_authenticated/_dashboard/dashboard/repos/$repoId': typeof AuthenticatedDashboardDashboardReposRepoIdRoute
   '/_authenticated/_dashboard/dashboard/repos/connect': typeof AuthenticatedDashboardDashboardReposConnectRoute
   '/_authenticated/_dashboard/dashboard/units/$unitId': typeof AuthenticatedDashboardDashboardUnitsUnitIdRoute
@@ -326,7 +326,7 @@ export interface FileRouteTypes {
     | '/api/auth/workos/switch-org'
     | '/api/auth/workos/webhooks'
     | '/dashboard/connections/$connectionId'
-    | '/dashboard/projects/$projectId'
+    | '/dashboard/projects/$projectid'
     | '/dashboard/repos/$repoId'
     | '/dashboard/repos/connect'
     | '/dashboard/units/$unitId'
@@ -354,7 +354,7 @@ export interface FileRouteTypes {
     | '/api/auth/workos/switch-org'
     | '/api/auth/workos/webhooks'
     | '/dashboard/connections/$connectionId'
-    | '/dashboard/projects/$projectId'
+    | '/dashboard/projects/$projectid'
     | '/dashboard/repos/$repoId'
     | '/dashboard/repos/connect'
     | '/dashboard/units/$unitId'
@@ -386,7 +386,7 @@ export interface FileRouteTypes {
     | '/api/auth/workos/switch-org'
     | '/api/auth/workos/webhooks'
     | '/_authenticated/_dashboard/dashboard/connections/$connectionId'
-    | '/_authenticated/_dashboard/dashboard/projects/$projectId'
+    | '/_authenticated/_dashboard/dashboard/projects/$projectid'
     | '/_authenticated/_dashboard/dashboard/repos/$repoId'
     | '/_authenticated/_dashboard/dashboard/repos/connect'
     | '/_authenticated/_dashboard/dashboard/units/$unitId'
@@ -593,11 +593,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardDashboardReposRepoIdRouteImport
       parentRoute: typeof AuthenticatedDashboardDashboardReposRoute
     }
-    '/_authenticated/_dashboard/dashboard/projects/$projectId': {
-      id: '/_authenticated/_dashboard/dashboard/projects/$projectId'
-      path: '/$projectId'
-      fullPath: '/dashboard/projects/$projectId'
-      preLoaderRoute: typeof AuthenticatedDashboardDashboardProjectsProjectIdRouteImport
+    '/_authenticated/_dashboard/dashboard/projects/$projectid': {
+      id: '/_authenticated/_dashboard/dashboard/projects/$projectid'
+      path: '/$projectid'
+      fullPath: '/dashboard/projects/$projectid'
+      preLoaderRoute: typeof AuthenticatedDashboardDashboardProjectsProjectidRouteImport
       parentRoute: typeof AuthenticatedDashboardDashboardProjectsRoute
     }
     '/_authenticated/_dashboard/dashboard/connections/$connectionId': {
@@ -647,14 +647,14 @@ const AuthenticatedDashboardDashboardConnectionsRouteWithChildren =
   )
 
 interface AuthenticatedDashboardDashboardProjectsRouteChildren {
-  AuthenticatedDashboardDashboardProjectsProjectIdRoute: typeof AuthenticatedDashboardDashboardProjectsProjectIdRoute
+  AuthenticatedDashboardDashboardProjectsProjectidRoute: typeof AuthenticatedDashboardDashboardProjectsProjectidRoute
   AuthenticatedDashboardDashboardProjectsIndexRoute: typeof AuthenticatedDashboardDashboardProjectsIndexRoute
 }
 
 const AuthenticatedDashboardDashboardProjectsRouteChildren: AuthenticatedDashboardDashboardProjectsRouteChildren =
   {
-    AuthenticatedDashboardDashboardProjectsProjectIdRoute:
-      AuthenticatedDashboardDashboardProjectsProjectIdRoute,
+    AuthenticatedDashboardDashboardProjectsProjectidRoute:
+      AuthenticatedDashboardDashboardProjectsProjectidRoute,
     AuthenticatedDashboardDashboardProjectsIndexRoute:
       AuthenticatedDashboardDashboardProjectsIndexRoute,
   }

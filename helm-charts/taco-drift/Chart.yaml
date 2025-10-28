@@ -1,0 +1,8 @@
+apiVersion: v2
+name: drift
+description: Digger Drift - Automated infrastructure drift detection and reporting service
+type: application
+version: 0.1.0
+appVersion: "v0.1.0"
+icon: https://raw.githubusercontent.com/diggerhq/digger/main/docs/logo/digger-logo.png
+

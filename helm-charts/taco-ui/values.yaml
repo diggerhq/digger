@@ -1,0 +1,122 @@
+# values.yaml
+#
+# This chart creates environment variables from these values.
+# You can either:
+#   1. Set values here (chart creates secrets automatically)
+#   2. Use secret.useExistingSecret=true and create your own secret
+#
+# See secrets-example/ui.env for a complete example
+
+ui:
+  # Image configuration
+  # This is a standalone Node.js + TanStack Start SSR app
+  # The image includes:
+  #   - Production-optimized Node.js server with static asset serving
+  #   - Built for linux/amd64 platform (GCP/GKE compatible)
+  #
+  # Note: Full registry path comes from global.imageRegistry
+  # Public image: ghcr.io/diggerhq/digger/taco-ui
+  image:
+    repository: taco-ui
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Service configuration
+  # Creates: PORT (set automatically from port)
+  service:
+    type: ClusterIP
+    port: 3030             # PORT - taco-ui Node.js server listens on port 3030
+
+  # Environment configuration
+  # Creates environment variables for the UI service
+  env:
+    # Allowed hosts (comma-separated)
+    # Creates: ALLOWED_HOSTS
+    allowedHosts: ""  # ALLOWED_HOSTS
+    
+    # WorkOS configuration (get from https://dashboard.workos.com/)
+    # Creates: WORKOS_REDIRECT_URI, WORKOS_API_KEY, WORKOS_CLIENT_ID,
+    #          WORKOS_COOKIE_PASSWORD, WORKOS_WEBHOOK_SECRET
+    workos:
+      redirectUri: ""         # WORKOS_REDIRECT_URI (e.g., https://your-domain.com/api/auth/callback)
+      apiKey: ""             # WORKOS_API_KEY
+      clientId: ""           # WORKOS_CLIENT_ID
+      cookiePassword: ""     # WORKOS_COOKIE_PASSWORD (32 char random string)
+      webhookSecret: ""      # WORKOS_WEBHOOK_SECRET
+    
+    # PostHog configuration (optional)
+    # Creates: VITE_POSTHOG_KEY, VITE_POSTHOG_HOST
+    posthog:
+      key: ""                # VITE_POSTHOG_KEY
+      host: ""               # VITE_POSTHOG_HOST
+    
+    # Backend service URLs (for in-cluster communication)
+    # Creates: ORCHESTRATOR_BACKEND_URL, ORCHESTRATOR_BACKEND_SECRET,
+    #          DRIFT_REPORTING_BACKEND_URL, DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET,
+    #          STATESMAN_BACKEND_URL, STATESMAN_BACKEND_WEBHOOK_SECRET
+    backends:
+      # Orchestrator (Digger Backend)
+      orchestratorUrl: ""           # ORCHESTRATOR_BACKEND_URL (e.g., http://opentaco-digger-managed-web:3000) -> the orchestrator is the taco-orchestrator service
+      orchestratorSecret: ""        # ORCHESTRATOR_BACKEND_SECRET
+      
+      # Drift Reporting
+      driftReportingUrl: ""         # DRIFT_REPORTING_BACKEND_URL (e.g., http://opentaco-drift:3004) -> the drift service 
+      driftReportingWebhookSecret: ""  # DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET
+      
+      # Statesman
+      statesmanUrl: ""              # STATESMAN_BACKEND_URL (e.g., http://opentaco-statesman:8080) -> the statesman service
+      statesmanWebhookSecret: ""    # STATESMAN_BACKEND_WEBHOOK_SECRET
+
+  # Custom environment variables
+  customEnv: []
+  #   - name: MY_CUSTOM_ENV
+  #     value: "my-value"
+
+  # Secret configuration
+  # For production, create secret externally: kubectl create secret generic ui-secrets --from-env-file=.secrets/ui.env
+  # For development, set useExistingSecret=false and fill secret fields below
+  secret:
+    useExistingSecret: true
+    existingSecretName: "ui-secrets"
+
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations: {}
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: taco.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: taco-ui-tls
+    #    hosts:
+    #      - taco.example.com
+
+  # Resource limits
+  resources: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 250m
+    #   memory: 256Mi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+# Global configuration (optional)
+global:
+  imagePullSecrets: []

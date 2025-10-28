@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/ee/drift/utils"
+    "github.com/diggerhq/digger/drift/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"log"

@@ -1,0 +1,83 @@
+# Minimal Test Configuration for OpenTaco
+# This file has the minimum changes needed for a working test deployment
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+global:
+  imageRegistry: ghcr.io/diggerhq/digger
+  imagePullPolicy: IfNotPresent
+  # Note: imagePullSecrets not needed for public GHCR images
+  # imagePullSecrets:
+  #   - name: gcr-json-key
+
+# ============================================================================
+# Database - Use Cloud SQL
+# ============================================================================
+postgresql:
+  enabled: false  # Not using in-cluster PostgreSQL
+
+cloudSql:
+  enabled: false  # Only statesman uses Cloud SQL, configured per-service below
+  instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
+  credentialsSecret: "cloudsql-credentials"
+  serviceAccount: "cloudsql-sa"
+
+# ============================================================================
+# Components - All enabled with defaults
+# ============================================================================
+digger-managed:
+  enabled: true
+  # Note: imagePullSecrets not needed for public images
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
+  digger:
+    replicaCount: 1
+    secret:
+      useExistingSecret: true
+      existingSecretName: "backend-secrets"
+
+statesman:
+  enabled: true
+  # Note: imagePullSecrets not needed for public images
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
+  taco:
+    replicaCount: 1
+    existingSecretName: "statesman-secrets"
+    cloudSql:
+      enabled: true  # Only statesman uses Cloud SQL
+      instanceConnectionName: "YOUR-PROJECT-ID:YOUR-REGION:YOUR-INSTANCE"
+      credentialsSecret: "cloudsql-credentials"
+    storage:
+      type: "s3" 
+
+drift:
+  enabled: true
+  # Note: imagePullSecrets not needed for public images
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
+  drift:
+    replicaCount: 1
+    existingSecretName: "drift-secrets"
+
+ui:
+  enabled: true
+  # Note: imagePullSecrets not needed for public images
+  # imagePullSecrets:
+  #   - name: gcr-json-key
+  # global:
+  #   imagePullSecrets:
+  #     - name: gcr-json-key
+  ui:
+    replicaCount: 1
+    existingSecretName: "ui-secrets"
+    env:
+      # Backend URLs point to in-cluster services (default is good)
+      allowedHosts: "localhost" 
+    ingress:
+      enabled: false  # Using port-forward for testing
+

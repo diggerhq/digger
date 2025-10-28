@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/ee/drift/middleware"
+    "github.com/diggerhq/digger/drift/middleware"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 	"log"
 	"log/slog"
