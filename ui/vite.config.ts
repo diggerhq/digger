@@ -26,10 +26,10 @@ export default defineConfig(({ mode }) => {
       tsConfigPaths({
         projects: ['./tsconfig.json'],
       }),
-      netlify(),
-      // cloudflare({ viteEnvironment: { name: 'ssr' } }),
       tanstackStart(),
       viteReact(),
+      netlify(),
+      // cloudflare({ viteEnvironment: { name: 'ssr' } }),
     ],
   };
 });

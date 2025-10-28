@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { getWidgetsAuthToken } from '@/authkit/serverFunctions';
 
 import {
@@ -13,6 +13,7 @@ import {
 import '@workos-inc/widgets/styles.css';
 import '@radix-ui/themes/styles.css';
 import CreateOrganizationBtn from './CreateOrganisationButtonWOS';
+
 
 type LoaderData = {
   organisationId: string;
@@ -32,9 +33,33 @@ type WorkosSettingsProps = {
 };
 
 export function WorkosSettings({ userId, email, organisationId, role }: WorkosSettingsProps) {
+  const router = useRouter()
   const [authToken, setAuthToken] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const handleSwitchToOrganization = async (organizationId: string) => {
+
+      try {
+        const res = await fetch('/api/auth/workos/switch-org', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organizationId, pathname: '/dashboard/units' }),
+        })
+        const data = await res.json()
+        if (!data?.redirectUrl) return
+        const url: string = data.redirectUrl
+        const isInternal = url.startsWith('/')
+        if (isInternal) {
+          await router.navigate({ to: url })
+          router.invalidate()
+        } else {
+          window.location.href = url
+        }
+      } catch (e) {
+        console.error('Failed to switch organization', e)
+      }
+
+  }
 
   React.useEffect(() => {
     (async () => {
@@ -60,9 +85,7 @@ export function WorkosSettings({ userId, email, organisationId, role }: WorkosSe
         <OrganizationSwitcher
           authToken={authToken}
           organizationLabel="My Orgs"
-          switchToOrganization={async ({ organizationId }) => {
-            // Call your own server action if needed
-          }}
+          switchToOrganization={({ organizationId }) => handleSwitchToOrganization(organizationId)}
         />
         <div className="h-4" />
         {/* Add your org creation UI here */}
