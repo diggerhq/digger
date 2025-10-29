@@ -14,12 +14,11 @@ export async function syncOrgToStatesman(orgId: string, orgName: string, display
             "external_org_id": orgId,
             "name": orgName,
             "display_name": displayName,
-            "created_by": adminEmail,
         })
     })  
 
     if (response.status === 409) {
-        console.log("User already exists in statesman")
+        console.log("Org already exists in statesman")
         return response.json();
     }
 
