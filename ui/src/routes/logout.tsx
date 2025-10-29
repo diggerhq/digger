@@ -4,6 +4,6 @@ import { signOut } from '../authkit/serverFunctions';
 export const Route = createFileRoute('/logout')({
   preload: false,
   loader: async () => {
-    await signOut();
+    await signOut({ data: "/" });
   },
 });
