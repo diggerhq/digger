@@ -7,7 +7,6 @@ async function handler({ request }) {
   try {
     const token = request.headers.get('authorization')?.split(' ')[1]
     const tokenValidation = await verifyTokenFn({data: { token: token}})
-    console.log('tokenValidation', tokenValidation)
     if (!tokenValidation.valid) {
       return new Response('Unauthorized', { status: 401 })
     }
