@@ -74,9 +74,10 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
             }
       
             if (userInvitations.length > 0) {
-                const orgDetails = await getOrganisationDetails(orgId);
-                let orgName = orgDetails.name;
                 for (const invitation of userInvitations) {
+                  const orgDetails = await getOrganisationDetails(invitation.organizationId!);
+                  let orgName = orgDetails.name;
+                  console.log(`Syncing organization ${orgName} to backend and statesman`);
                   try {
                       await syncOrgToBackend(invitation.organizationId!, orgName, null);
                       await syncOrgToStatesman(invitation.organizationId!, orgName, personalOrgDisplayName, invitation.userId!, invitation.userEmail!);
