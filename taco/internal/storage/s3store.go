@@ -34,14 +34,18 @@ type s3Store struct {
 
 // NewS3Store creates a new S3-backed unit store.
 // Region can be empty to use the default AWS config chain.
+// Supports custom endpoints via AWS_ENDPOINT environment variable (for Tigris, MinIO, etc.)
 func NewS3Store(ctx context.Context, bucket, prefix, region string) (UnitStore, error) {
     if bucket == "" {
         return nil, fmt.Errorf("s3 bucket is required")
     }
+    
     var (
         cfg aws.Config
         err error
     )
+    
+    // Load default config with region
     if region != "" {
         cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion(region))
     } else {
@@ -50,7 +54,25 @@ func NewS3Store(ctx context.Context, bucket, prefix, region string) (UnitStore, 
     if err != nil {
         return nil, err
     }
-    cli := s3.NewFromConfig(cfg)
+    
+    // Check for custom endpoint (for S3-compatible storage like Tigris, MinIO, etc.)
+    endpoint := os.Getenv("AWS_ENDPOINT")
+    var cli *s3.Client
+    
+    if endpoint != "" {
+        // Use custom endpoint for S3-compatible storage
+        cli = s3.NewFromConfig(cfg, func(o *s3.Options) {
+            o.BaseEndpoint = aws.String(endpoint)
+            // Force path-style addressing for S3-compatible storage
+            o.UsePathStyle = true
+        })
+        fmt.Printf("S3Store: Using custom endpoint: %s (path-style)\n", endpoint)
+    } else {
+        // Standard AWS S3
+        cli = s3.NewFromConfig(cfg)
+        fmt.Printf("S3Store: Using AWS S3 in region: %s\n", cfg.Region)
+    }
+    
     return &s3Store{client: cli, bucket: bucket, prefix: strings.Trim(prefix, "/")}, nil
 }
 
