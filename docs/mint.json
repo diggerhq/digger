@@ -70,7 +70,7 @@
       "pages": [
         "ce/drift/set-up-in-ui",
         "ce/drift/scoping-projects",
-        "ce/drift/slacknotifications",
+        "ce/drift/slack-notifications",
         "ce/drift/github-issues",
         "ce/drift/remediation",
         "ce/drift/self-host",
