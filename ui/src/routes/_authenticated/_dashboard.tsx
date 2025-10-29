@@ -25,7 +25,7 @@ function DashboardComponent() {
                 <div className="h-[1px] bg-border mb-2" />
                 <h3>
                   <Link 
-                    to="/dashboard/settings" 
+                    to="/dashboard/settings/user" 
                     className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
                   >
                     {organisationName}
