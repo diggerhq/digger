@@ -12,7 +12,7 @@ export const Route = createFileRoute(
   beforeLoad: (({ location, search }) => {
     if (location.pathname === '/dashboard/settings') {
       throw redirect({
-        to: '.',
+        to: '/dashboard/settings/user',
         search
       })
     }
