@@ -1,9 +1,10 @@
 package tfe
 
 import (
+	"os"
+
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/labstack/echo/v4"
-	"os"
 )
 
 const (
@@ -68,9 +69,19 @@ func (h *TfeHandler) AuthTokenExchange(c echo.Context) error {
 // Helper function to get base URL
 func getBaseURL(c echo.Context) string {
 	scheme := c.Scheme()
-	if fwd := c.Request().Header.Get("X-Forwarded-Proto"); fwd != "" {
-		scheme = fwd
+	allowForwardedFor := os.Getenv("OPENTACO_ALLOW_X_FORWARDED_FOR")
+	if allowForwardedFor == "true" {
+		if fwd := c.Request().Header.Get("X-Forwarded-Proto"); fwd != "" {
+			scheme = fwd
+		}
 	}
+
 	host := c.Request().Host
+	if allowForwardedFor == "true" {
+		if fwdHost := c.Request().Header.Get("X-Forwarded-Host"); fwdHost != "" {
+			host = fwdHost
+		}
+	}
+
 	return scheme + "://" + host
 }

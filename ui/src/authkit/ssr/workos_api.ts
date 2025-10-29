@@ -43,6 +43,18 @@ export async function getOrganisationDetails(orgId: string) {
   }
 }
 
+export async function getOranizationsForUser(userId: string) {
+  try {
+    const memberships = await getWorkOS().userManagement.listOrganizationMemberships({
+      userId: userId,
+    });
+    return memberships.data;
+  } catch (error) {
+    console.error('Error fetching user organizations:', error);
+    throw error;
+  }
+}
+
 export async function listUserOrganizationInvitations(email: string) {
   try {
     const invitations = await getWorkOS().userManagement.listInvitations({

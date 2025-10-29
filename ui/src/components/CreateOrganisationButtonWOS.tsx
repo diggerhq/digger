@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 
-export default function CreateOrganizationBtn({ userId }: { userId: string }) {
+export default function CreateOrganizationBtn({ userId, email }: { userId: string, email: string }) {
   const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -15,7 +15,7 @@ export default function CreateOrganizationBtn({ userId }: { userId: string }) {
     e.preventDefault();
     
       try {
-        const organization = await createOrganization({ data: { name: name, userId: userId } });
+        const organization = await createOrganization({ data: { name: name, userId: userId, email: email } });
         toast({
           title: "Organization created",
           description: "The page will now reload to refresh organisations list. To use this new organization, select it from the list.",

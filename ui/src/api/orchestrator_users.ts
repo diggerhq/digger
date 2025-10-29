@@ -15,6 +15,11 @@ export async function syncUserToBackend(userId: string, userEmail: string, orgId
         })
     })  
 
+    if (response.status === 409) {
+        console.log("User already exists in orchestrator")
+        return response.json();
+    }
+
     if (!response.ok) {
         throw new Error(`Failed to sync user: ${response.statusText}`);
     }

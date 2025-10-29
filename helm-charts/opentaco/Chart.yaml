@@ -1,0 +1,76 @@
+apiVersion: v2
+name: opentaco
+description: OpenTaco - Complete Infrastructure-as-Code platform deployment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+# Umbrella chart that deploys all OpenTaco components
+# This chart orchestrates:
+#   - PostgreSQL database (optional - can use Cloud SQL instead)
+#   - Digger Managed (terraform orchestration backend)
+#   - Taco Statesman (IaC state management)
+#   - Token Service (API token management)
+#   - Drift Detection service
+#   - Taco UI (React frontend)
+
+dependencies:
+  # Optional PostgreSQL - disable if using Cloud SQL
+  - name: cloudnative-pg
+    version: "~0.22.0"
+    repository: https://cloudnative-pg.github.io/charts
+    condition: postgresql.enabled
+    tags:
+      - database
+
+  # Taco Orchestrator - terraform orchestration backend
+  - name: taco-orchestrator
+    version: "0.1.0"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    condition: taco-orchestrator.enabled
+    tags:
+      - backend
+
+  # Taco Statesman - IaC state management  
+  - name: taco-statesman
+    version: "0.1.0"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    condition: taco-statesman.enabled
+    tags:
+      - backend
+
+  # Token Service - API token management
+  - name: taco-token-service
+    version: "0.1.0"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    condition: taco-token-service.enabled
+    tags:
+      - backend
+
+  # Drift Detection
+  - name: taco-drift
+    version: "0.1.0"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    condition: taco-drift.enabled
+    tags:
+      - backend
+
+  # Taco UI - React frontend
+  - name: taco-ui
+    version: "0.1.0"
+    repository: "oci://ghcr.io/diggerhq/helm-charts"
+    condition: taco-ui.enabled
+    tags:
+      - frontend
+
+maintainers:
+  - name: OpenTaco Team
+    email: info@digger.dev
+
+keywords:
+  - infrastructure
+  - terraform
+  - iac
+  - opentaco
+  - digger
+

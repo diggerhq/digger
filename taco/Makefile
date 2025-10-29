@@ -6,7 +6,7 @@
 # Build all components
 all: build ## Build all components
 
-build: build-svc build-cli build-prov ## Build service, CLI, and provider
+build: build-svc build-cli build-prov build-token ## Build service, CLI, provider, and token service
 
 build-svc: ## Build the OpenTaco service
 	@echo "Building OpenTaco service..."
@@ -20,7 +20,11 @@ build-prov: ## Build the Terraform provider
 	@echo "Building Terraform provider..."
 	cd providers/terraform/opentaco && GOWORK=off go build -o ../../../terraform-provider-opentaco .
 
-install: install-svc install-cli ## Install service and CLI
+build-token: ## Build the Token Service
+	@echo "Building Token Service..."
+	cd cmd/token_service && GOWORK=off go build -o ../../token_service .
+
+install: install-svc install-cli install-token ## Install service, CLI, and token service
 
 install-svc: ## Build the OpenTaco service
 	@echo "Installing OpenTaco service..."
@@ -30,6 +34,10 @@ install-cli: ## Build the taco CLI
 	@echo "Installing taco CLI..."
 	cd cmd/taco && GOWORK=off go install .
 
+install-token: ## Install the Token Service
+	@echo "Installing Token Service..."
+	cd cmd/token_service && GOWORK=off go install .
+
 # Run components
 svc: build-svc ## Run the OpenTaco service
 	@echo "Starting OpenTaco service on :8080..."
@@ -38,6 +46,10 @@ svc: build-svc ## Run the OpenTaco service
 cli: build-cli ## Build and show CLI help
 	@echo "Taco CLI built. Run ./taco --help for usage"
 	./taco --help
+
+token: build-token ## Run the Token Service
+	@echo "Starting Token Service on :8081..."
+	./token_service
 
 # Development
 test: ## Run tests
@@ -53,7 +65,7 @@ lint: ## Run linters
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
-	rm -f statesman taco terraform-provider-opentaco
+	rm -f statesman taco terraform-provider-opentaco token_service
 	rm -rf .devdata/*
 	find . -name "*.test" -delete
 	find . -name "*.out" -delete
@@ -79,11 +91,93 @@ docker-run-svc: ## Run statesman in Docker container
 		--name statesman-container \
 		statesman:latest
 
+docker-build-token: ## Build token service Docker image
+	@echo "Building token service Docker image..."
+	docker build -f Dockerfile_token_service -t token-service:latest --build-arg COMMIT_SHA=$(shell git rev-parse HEAD) .
+
+docker-run-token: ## Run token service in Docker container
+	@echo "Running token service in Docker container..."
+	docker run -p 8081:8081 \
+		-e OPENTACO_QUERY_BACKEND=sqlite \
+		-e OPENTACO_SQLITE_DB_PATH=/app/data/tokens.db \
+		--name token-service-container \
+		token-service:latest
+
 docker-clean: ## Clean Docker images and containers
 	@echo "Cleaning Docker artifacts..."
 	docker stop statesman-container 2>/dev/null || true
 	docker rm statesman-container 2>/dev/null || true
 	docker rmi statesman:latest 2>/dev/null || true
+	docker stop token-service-container 2>/dev/null || true
+	docker rm token-service-container 2>/dev/null || true
+	docker rmi token-service:latest 2>/dev/null || true
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+# ============================================================================
+# Atlas Migration Targets
+# ============================================================================
+
+# Migration name variable (use with: make atlas-diff-all name=add_new_feature)
+NAME ?= $(shell date +%Y%m%d%H%M%S)
+
+.PHONY: atlas-install atlas-diff-all atlas-plan atlas-apply-all atlas-lint-all atlas-hash-all
+
+# Install Atlas CLI and GORM provider
+atlas-install: ## Install Atlas CLI and GORM provider
+	@echo "Installing Atlas CLI and GORM provider..."
+	@go install ariga.io/atlas/cmd/atlas@latest
+	@go install ariga.io/atlas-provider-gorm@latest
+	@echo "✅ Atlas tools installed successfully"
+
+# Preview migration changes without generating files
+atlas-plan: ## Preview what migrations would be generated (use: make atlas-plan name=my_change)
+	@echo "Previewing migration changes for all databases..."
+	@if [ -z "$(filter-out $(NAME),$(shell date +%Y%m%d%H%M%S))" ]; then \
+		echo "⚠️  Using auto-generated name: $(NAME)"; \
+		echo "💡 Tip: Use 'make atlas-plan name=descriptive_name' for better naming"; \
+	fi
+	@echo "\n🔐 Generating checksums for existing migrations..."
+	@$(MAKE) atlas-hash-all
+	@echo "\n📊 PostgreSQL (dry-run)..." && atlas migrate diff $(NAME) --env postgres --dry-run || true
+	@echo "\n📊 MySQL (dry-run)..." && atlas migrate diff $(NAME) --env mysql --dry-run || true
+	@echo "\n📊 SQLite (dry-run)..." && atlas migrate diff $(NAME) --env sqlite --dry-run || true
+	@echo "\n✅ Preview complete (no files generated)"
+
+# Generate migrations for all database dialects (Postgres, MySQL, SQLite)
+atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-all name=my_change)
+	@echo "Generating migrations for all databases..."
+	@if [ -z "$(filter-out $(NAME),$(shell date +%Y%m%d%H%M%S))" ]; then \
+		echo "⚠️  Using auto-generated name: $(NAME)"; \
+		echo "💡 Tip: Use 'make atlas-diff-all name=descriptive_name' for better naming"; \
+	fi
+	@mkdir -p migrations/postgres migrations/mysql migrations/sqlite
+	@echo "\n🔐 Generating checksums for existing migrations..."
+	@$(MAKE) atlas-hash-all
+	@echo "\n📊 PostgreSQL..." && atlas migrate diff $(NAME) --env postgres
+	@echo "\n📊 MySQL..." && atlas migrate diff $(NAME) --env mysql
+	@echo "\n📊 SQLite..." && atlas migrate diff $(NAME) --env sqlite
+	@echo "\n✅ All migrations generated successfully!"
+
+atlas-apply-sqlite:
+	@echo "Applying SQLite migrations..."; \
+	SQLITE_PATH="$${OPENTACO_SQLITE_DB_PATH:-/app/data/taco.db}"; \
+	mkdir -p "$$(dirname "$$SQLITE_PATH")"; \
+	DB_URL="sqlite://$$SQLITE_PATH"; \
+	atlas migrate apply --url "$$DB_URL" --dir "file://migrations/sqlite"
+
+
+# Validate and lint all migrations
+atlas-lint-all: ## Validate and lint all migration files
+	@echo "Validating and linting migrations..."
+	@echo "PostgreSQL..." && atlas migrate validate --env postgres
+	@echo "MySQL..." && atlas migrate validate --env mysql
+	@echo "SQLite..." && atlas migrate validate --env sqlite
+	@echo "✅ All migrations validated successfully"
+
+# Update migration directory hashes (called automatically by atlas-diff-all)
+atlas-hash-all:
+	@atlas migrate hash --dir file://migrations/postgres 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/mysql 2>/dev/null || true
+	@atlas migrate hash --dir file://migrations/sqlite 2>/dev/null || true

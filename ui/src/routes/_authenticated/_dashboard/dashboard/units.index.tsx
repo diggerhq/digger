@@ -66,15 +66,13 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
     setIsLoading(true)
     setError(null)
 
-    const unitId = `org-${organisationId}/${unitName}`
-
     try {
       await createUnitFn({
         data: {
           userId: user?.id!,
           organisationId,
           email: user?.email || '',
-          unitId: unitId,
+          name: unitName,
         }
       })
       setOpen(false)
@@ -182,7 +180,7 @@ function RouteComponent() {
               <TableCell>
                 {unit.locked ? <Lock className="h-5 w-5 text-destructive" /> : <Unlock className="h-5 w-5 text-muted-foreground" />}
               </TableCell>
-              <TableCell className="font-medium">{unit.id}</TableCell>
+              <TableCell className="font-medium">{unit.name}</TableCell>
               <TableCell>{formatBytes(unit.size)}</TableCell>
               <TableCell>{formatDate(unit.updatedAt || new Date())}</TableCell>
               <TableCell className="text-right">

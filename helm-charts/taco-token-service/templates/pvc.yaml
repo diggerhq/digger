@@ -1,0 +1,18 @@
+{{- if and (eq .Values.tokenService.database.backend "sqlite") .Values.tokenService.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "taco-token-service.fullname" . }}-data
+  labels:
+    {{- include "taco-token-service.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.tokenService.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.tokenService.persistence.size }}
+  {{- if .Values.tokenService.persistence.storageClass }}
+  storageClassName: {{ .Values.tokenService.persistence.storageClass }}
+  {{- end }}
+{{- end }}
+

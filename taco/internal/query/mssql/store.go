@@ -10,9 +10,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// NewMSSQLStore creates a new MS SQL-backed query store.
-// Its only job is to establish the DB connection and pass it to the common SQLStore.
-func NewMSSQLStore(cfg query.MSSQLConfig) (query.Store, error) {
+// Connect establishes a MS SQL Server connection
+func Connect(cfg query.MSSQLConfig) (*gorm.DB, error) {
 	// DSN format: sqlserver://username:password@host:port?database=dbname
 	dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
@@ -24,6 +23,11 @@ func NewMSSQLStore(cfg query.MSSQLConfig) (query.Store, error) {
 		return nil, fmt.Errorf("failed to connect to mssql: %w", err)
 	}
 
-	// Hand off to the common, dialect-aware SQLStore engine.
+	return db, nil
+}
+
+// NewMSSQLStore creates a new MS SQL-backed query store.
+// Assumes migrations have already been applied.
+func NewMSSQLStore(db *gorm.DB) (query.Store, error) {
 	return common.NewSQLStore(db)
 }

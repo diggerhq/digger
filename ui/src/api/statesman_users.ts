@@ -16,7 +16,13 @@ export async function syncUserToStatesman(userId: string, userEmail: string, org
         })
     })
 
+    if (response.status === 409) {
+        console.log("User already exists in statesman")
+        return response.json();
+    }
+
     if (!response.ok) {
+        console.log(response.text())
         throw new Error(`Failed to sync user: ${response.statusText}`);
     }
 

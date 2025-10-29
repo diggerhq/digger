@@ -1,0 +1,34 @@
+{{- if .Values.drift.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "digger-drift.fullname" . }}
+  labels:
+    {{- include "digger-drift.labels" . | nindent 4 }}
+  {{- with .Values.drift.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.drift.ingress.className }}
+  ingressClassName: {{ .Values.drift.ingress.className }}
+  {{- end }}
+  {{- if .Values.drift.ingress.tls.secretName }}
+  tls:
+    - hosts:
+        - {{ .Values.drift.ingress.host }}
+      secretName: {{ .Values.drift.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.drift.ingress.host }}
+      http:
+        paths:
+          - path: {{ .Values.drift.ingress.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "digger-drift.fullname" . }}
+                port:
+                  name: http
+{{- end }}
+

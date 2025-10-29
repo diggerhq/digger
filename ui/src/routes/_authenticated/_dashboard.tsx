@@ -79,7 +79,7 @@ function DashboardComponent() {
 
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={location.pathname.startsWith('/dashboard/settings')}>
-                        <Link to="/dashboard/settings">
+                        <Link to="/dashboard/settings/user">
                           <Settings className="mr-2 h-4 w-4" />
                           <span>Settings</span>
                         </Link>

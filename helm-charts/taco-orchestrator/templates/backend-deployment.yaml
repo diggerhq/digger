@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taco-orchestrator.fullname" . }}-web
+  labels:
+    {{- include "taco-orchestrator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.digger.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "taco-orchestrator.name" . }}-web
+  template:
+    metadata:
+      labels:
+        app: {{ include "taco-orchestrator.name" . }}-web
+        {{- include "taco-orchestrator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.global }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: web
+        image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
+        imagePullPolicy: {{ .Values.digger.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            {{- if .Values.digger.secret.useExistingSecret }}
+            name: {{ .Values.digger.secret.existingSecretName }}
+            {{- else }}
+            name: {{ include "taco-orchestrator.fullname" . }}-secret
+            {{- end }}
+        env:
+        {{- if .Values.digger.postgres.existingSecretName }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.digger.postgres.existingSecretName }}
+              key: {{ .Values.digger.postgres.existingSecretKey }}
+        - name: DATABASE_URL
+          value: "postgres://{{ .Values.digger.postgres.user }}:$(POSTGRES_PASSWORD)@{{ .Values.digger.postgres.host }}:{{ .Values.digger.postgres.port }}/{{ .Values.digger.postgres.database }}?sslmode={{ .Values.digger.postgres.sslmode }}"
+        {{- end }}
+        - name: ALLOW_DIRTY
+          value: "{{ .Values.digger.postgres.allowDirty }}"
+        {{- with .Values.digger.customEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.digger.livenessProbe }}
+        livenessProbe:
+          {{- toYaml .Values.digger.livenessProbe | nindent 10 }}
+        {{- end }}
+        {{- if .Values.digger.startupProbe }}
+        startupProbe:
+          {{- toYaml .Values.digger.startupProbe | nindent 10 }}
+        {{- end }}
+        {{- with .Values.digger.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.digger.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.digger.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.digger.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

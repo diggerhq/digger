@@ -1,3 +1,4 @@
+.tanstack/
 .netlify/
 dist/
 node_modules/

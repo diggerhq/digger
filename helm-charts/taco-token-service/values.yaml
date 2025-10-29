@@ -1,0 +1,64 @@
+# values.yaml
+
+tokenService:
+  # Image configuration
+  image:
+    repository: ghcr.io/diggerhq/digger/taco-token-service
+    tag: "v0.1.0"
+    pullPolicy: "IfNotPresent"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8081
+
+  # Database configuration
+  database:
+    # Backend type: "sqlite", "postgres", "mysql", "mssql"
+    backend: "sqlite"
+    
+    # SQLite configuration (default)
+    sqlite:
+      path: "/app/data/tokens.db"
+    
+    # PostgreSQL configuration
+    postgres:
+      host: ""
+      port: 5432
+      user: "postgres"
+      password: ""
+      dbname: "taco"
+      sslmode: "disable"
+      # Use Kubernetes secrets for credentials
+      secretName: ""
+    
+    # MySQL configuration
+    mysql:
+      host: ""
+      port: 3306
+      user: "root"
+      password: ""
+      dbname: "taco"
+      # Use Kubernetes secrets for credentials
+      secretName: ""
+    
+    # MSSQL configuration
+    mssql:
+      host: ""
+      port: 1433
+      user: ""
+      password: ""
+      dbname: "taco"
+      # Use Kubernetes secrets for credentials
+      secretName: ""
+
+  # Persistence for SQLite
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+

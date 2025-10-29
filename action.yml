@@ -236,11 +236,11 @@ inputs:
     description: "Pre-compiled version of digger CLI to install. Must correspond to a valid release tag (vX.Y.Z). This value overrides the version derived from the github.action_ref."
     required: false
     default: ""
-  digger-os: 
+  digger-os:
     description: "OS variant of the digger CLI to install. Valid configurable values are: windows, linux, darwin, freebsd."
     required: false
     default: "Linux"
-  digger-arch: 
+  digger-arch:
     description: "Architecture of the digger CLI to install. Valid configurable values are: amd64, arm64, 386."
     required: false
     default: "X64"
