@@ -8,7 +8,7 @@ export async function syncUserToStatesman(userId: string, userEmail: string, org
             'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
-            'X-User-Email': userEmail,
+            'X-Email': userEmail,
         },
         body: JSON.stringify({
             subject: userId,
