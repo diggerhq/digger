@@ -25,10 +25,8 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
           
           if (event.event === "user.created") {
             console.log("Creating personal organization for the user", event.data.email)
-
-            const uuid = crypto.randomUUID();
             const personalOrgDisplayName = "Personal"
-            const personalOrgName = `${personalOrgDisplayName}_${uuid}`;
+
             const userOrganizations = await getOranizationsForUser(event.data.id);
             const personalOrg  = userOrganizations.filter(membership => 
               membership.organizationName === personalOrgDisplayName
@@ -37,6 +35,7 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
 
             let orgName, orgId;
             if (personalOrgExists) {
+              console.log(`User ${event.data.email} is already has a personal organization, using it`);
               orgName = personalOrg[0].organizationName;
               orgId = personalOrg[0].organizationId;
             } else {
@@ -49,7 +48,7 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
             try {
               console.log("Syncing organization to backend orgName", orgName, "orgId", orgId);
               await syncOrgToBackend(orgId, orgName, null);
-              await syncOrgToStatesman(orgId, personalOrgName, personalOrgDisplayName, event.data.id, event.data.email);
+              await syncOrgToStatesman(orgId, personalOrgDisplayName, personalOrgDisplayName, event.data.id, event.data.email);
             } catch (error) {
               console.error(`Error syncing organization to backend:`, error);
               throw error;
