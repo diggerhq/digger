@@ -1,0 +1,44 @@
+---
+title: "Slack"
+---
+
+Digger supports sending a summary of Drift notifications via Slack. Another way to get notified is [GitHub Issues](/ce/drift/github-issues)
+
+## Configuration in UI
+
+You can cofigure and test Slack webhooks in the Drift section of the dashboard:
+
+![Drift UI Slack](/images/drift-ui-slack.png)
+
+## Backendless mode
+
+Drift detection can also run in Backendless mode. In this case, it is a regular GitHub Action envoked on schedule - you just need to pass `drift-detection-slack-notification-url` action input:
+
+```
+name: Drift Detection
+
+on:
+  workflow_dispatch:
+  #schedule:
+  #  - cron: '0 0 * * *'  # 12am daily
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+    - name: digger drift detection
+      uses: diggerhq/digger@743844a930fd404882869ee036213cd1b24d20dd
+      with:
+        mode: drift-detection
+        drift-detection-slack-notification-url: SLACK_WEBHOOK_URL_HERE
+        setup-terraform: true
+        setup-aws: true
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        no-backend: true
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DIGGER_GITHUB_TOKEN: ${{ secrets.DIGGER_GITHUB_TOKEN }}
+        INPUT_DRIFT_GITHUB_ISSUES: 'true'
+    ```

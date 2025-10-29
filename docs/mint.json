@@ -68,14 +68,11 @@
     {
       "group": "Drift",
       "pages": [
-        "ce/drift/overview",
-        "ce/drift/how-it-works",
-        "ce/drift/quickstart-github-actions",
+        "ce/drift/set-up-in-ui",
         "ce/drift/scoping-projects",
-        "ce/drift/notifications",
+        "ce/drift/slacknotifications",
         "ce/drift/github-issues",
         "ce/drift/remediation",
-        "ce/drift/scheduling",
         "ce/drift/self-host",
         "ce/drift/troubleshooting"
       ]

@@ -1,8 +1,8 @@
 ---
-title: "Self-host"
+title: "Self-hosting"
 ---
 
-Run the drift service yourself if you prefer central scheduling and Slack rollups without relying on GitHub Actions for orchestration.
+Drift checks are triggered by a separate service, with its own Dockerfile
 
 ## Requirements
 
@@ -27,7 +27,3 @@ Run the drift service yourself if you prefer central scheduling and Slack rollup
 
 - Expose internal endpoints only behind your network boundary and verify the webhook secret on requests.
 
-## Related
-
-- How it works: see [/ce/drift/how-it-works](/ce/drift/how-it-works)
-- Scheduling: see [/ce/drift/scheduling](/ce/drift/scheduling)
