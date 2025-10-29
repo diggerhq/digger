@@ -13,15 +13,16 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	queryOrgByName = "name = ?"
-)
 
 // orgRepository implements OrganizationRepository using GORM
 // This is where the infrastructure concerns live - hidden from domain and handlers
 type orgRepository struct {
 	db *gorm.DB
 }
+
+const (
+	queryOrgByName = "name = ?"
+)
 
 // Helper function to safely get string value from pointer
 func getStringValue(ptr *string) string {
@@ -99,15 +100,14 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, displayName, ex
 		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
-	slog.Info("Organization created successfully",
-		"orgID", orgID,
+	slog.Info("Organization created",
+		"uuid", entity.ID,
 		"name", name,
 		"displayName", displayName,
 		"externalOrgID", externalOrgID,
 		"createdBy", createdBy,
 	)
 
-	// Convert entity to domain model
 	return &domain.Organization{
 		ID:            entity.ID,
 		Name:          entity.Name,
@@ -119,10 +119,10 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, displayName, ex
 	}, nil
 }
 
-// Get retrieves an organization by ID
-func (r *orgRepository) Get(ctx context.Context, orgID string) (*domain.Organization, error) {
+// Get retrieves an organization by UUID
+func (r *orgRepository) Get(ctx context.Context, orgUUID string) (*domain.Organization, error) {
 	var entity types.Organization
-	err := r.db.WithContext(ctx).Where(queryOrgByName, orgID).First(&entity).Error
+	err := r.db.WithContext(ctx).Where("id = ?", orgUUID).First(&entity).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrOrgNotFound
@@ -130,7 +130,6 @@ func (r *orgRepository) Get(ctx context.Context, orgID string) (*domain.Organiza
 		return nil, fmt.Errorf("failed to get organization: %w", err)
 	}
 
-	// Convert entity to domain model
 	return &domain.Organization{
 		ID:            entity.ID,
 		Name:          entity.Name,
@@ -173,7 +172,6 @@ func (r *orgRepository) List(ctx context.Context) ([]*domain.Organization, error
 		return nil, fmt.Errorf("failed to list organizations: %w", err)
 	}
 
-	// Convert entities to domain models
 	orgs := make([]*domain.Organization, len(entities))
 	for i, entity := range entities {
 		orgs[i] = &domain.Organization{
@@ -190,9 +188,9 @@ func (r *orgRepository) List(ctx context.Context) ([]*domain.Organization, error
 	return orgs, nil
 }
 
-// Delete deletes an organization
-func (r *orgRepository) Delete(ctx context.Context, orgID string) error {
-	result := r.db.WithContext(ctx).Where(queryOrgByName, orgID).Delete(&types.Organization{})
+// Delete deletes an organization by UUID
+func (r *orgRepository) Delete(ctx context.Context, orgUUID string) error {
+	result := r.db.WithContext(ctx).Where("id = ?", orgUUID).Delete(&types.Organization{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete organization: %w", result.Error)
 	}
@@ -200,7 +198,7 @@ func (r *orgRepository) Delete(ctx context.Context, orgID string) error {
 		return domain.ErrOrgNotFound
 	}
 
-	slog.Info("Organization deleted", "orgID", orgID)
+	slog.Info("Organization deleted", "uuid", orgUUID)
 	return nil
 }
 
@@ -212,3 +210,19 @@ func (r *orgRepository) WithTransaction(ctx context.Context, fn func(ctx context
     })
 }
 
+// EnsureSystemOrganization creates the system org if it doesn't exist (for auth-disabled mode)
+func EnsureSystemOrganization(ctx context.Context, db *gorm.DB, systemOrgID string) error {
+	now := time.Now()
+	org := types.Organization{
+		ID:          systemOrgID,
+		Name:        "system",
+		DisplayName: "System Organization",
+		CreatedBy:   "system",
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	
+	// Use FirstOrCreate to be idempotent
+	result := db.WithContext(ctx).Where(types.Organization{ID: systemOrgID}).FirstOrCreate(&org)
+	return result.Error
+}

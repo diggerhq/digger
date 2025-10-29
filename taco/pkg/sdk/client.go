@@ -40,6 +40,7 @@ func NewClientWithHTTPClient(baseURL string, httpClient *http.Client) *Client {
 // UnitMetadata represents unit metadata
 type UnitMetadata struct {
     ID       string    `json:"id"`
+    Name     string    `json:"name"`
     Size     int64     `json:"size"`
     Updated  time.Time `json:"updated"`
     Locked   bool      `json:"locked"`

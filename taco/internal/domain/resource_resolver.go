@@ -12,7 +12,10 @@ var (
 	ErrAmbiguousIdentifier = errors.New("identifier matches multiple resources")
 	
 	uuidPattern         = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-	absoluteNamePattern = regexp.MustCompile(`^org-([a-zA-Z0-9_-]+)/(.+)$`)
+	// Absolute name pattern: supports UUID, external org ID, or legacy name format
+	// Examples: "550e8400-e29b-41d4-a716-446655440000/unit-name", "auth0_org_123/unit-name", "org-acme/unit-name" (legacy)
+	absoluteNamePattern = regexp.MustCompile(`^([a-zA-Z0-9_-]+)/(.+)$`)
+	legacyOrgPattern    = regexp.MustCompile(`^org-([a-zA-Z0-9_-]+)$`)
 )
 
 type IdentifierType int
@@ -34,7 +37,9 @@ type ParsedIdentifier struct {
 // Supports three formats:
 //   - UUID: "a1b2c3d4-1234-5678-90ab-cdef12345678"
 //   - Simple name: "dev" (resolved within current org context)
-//   - Absolute name: "org-acme/dev" (explicitly specifies org)
+//   - Absolute name: "<org-uuid-or-external-id>/dev" (explicitly specifies org)
+//     Examples: "550e8400-e29b-41d4-a716-446655440000/dev", "auth0_org_123/dev"
+//     Legacy format "org-acme/dev" is also supported but deprecated (names are not unique)
 func ParseIdentifier(identifier string) (*ParsedIdentifier, error) {
 	if identifier == "" {
 		return nil, fmt.Errorf("%w: empty identifier", ErrInvalidIdentifier)
@@ -48,10 +53,18 @@ func ParseIdentifier(identifier string) (*ParsedIdentifier, error) {
 	}
 	
 	if matches := absoluteNamePattern.FindStringSubmatch(identifier); matches != nil {
+		orgIdentifier := matches[1]
+		resourceName := matches[2]
+		
+		// Strip "org-" prefix if present (legacy format)
+		if legacyMatches := legacyOrgPattern.FindStringSubmatch(orgIdentifier); legacyMatches != nil {
+			orgIdentifier = legacyMatches[1]
+		}
+		
 		return &ParsedIdentifier{
 			Type:    IdentifierTypeAbsoluteName,
-			OrgName: matches[1],
-			Name:    matches[2],
+			OrgName: orgIdentifier, // This is now UUID, external ID, or legacy name
+			Name:    resourceName,
 		}, nil
 	}
 	

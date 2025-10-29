@@ -23,6 +23,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
+	"gorm.io/gorm"
 	"github.com/labstack/echo/v4"
 )
 
@@ -87,6 +88,17 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	// Opaque API tokens for TFE surface (uses blob store for storage)
 	apiTokenMgr := authpkg.NewAPITokenManagerFromStore(deps.BlobStore)
 	authHandler.SetAPITokenManager(apiTokenMgr)
+	
+	// Inject DB and org repo for auto-creating user orgs
+	if deps.QueryStore != nil {
+		sqlStore, ok := deps.QueryStore.(interface{ GetDB() *gorm.DB })
+		orgRepo := repositories.NewOrgRepositoryFromQueryStore(deps.QueryStore)
+		if ok && orgRepo != nil {
+			authHandler.SetDB(sqlStore.GetDB())
+			authHandler.SetOrgRepo(orgRepo)
+			log.Println("Auth handler configured with DB and org repo for auto-org creation")
+		}
+	}
 
 	e.POST("/v1/auth/exchange", authHandler.Exchange)
 	e.POST("/v1/auth/token", authHandler.Token)
@@ -148,13 +160,13 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 		jwtVerifyFn := middleware.JWTOnlyVerifier(deps.Signer)
 		v1.Use(middleware.RequireAuth(jwtVerifyFn, deps.Signer))
 		
-		// Add JWT org resolution middleware (converts org name from JWT to UUID in domain context)
-		if identifierResolver != nil {
-			v1.Use(middleware.JWTOrgResolverMiddleware(identifierResolver))
-			log.Println("JWT org resolver middleware enabled for /v1 routes")
-		} else {
-			log.Println("WARNING: QueryStore does not implement GetDB() *gorm.DB - JWT org resolution disabled")
-		}
+		// Extract org UUID directly from JWT claims (no name resolution)
+		v1.Use(middleware.JWTOrgUUIDMiddleware())
+		log.Println("JWT org UUID middleware enabled for /v1 routes")
+	} else {
+		// When auth is disabled, inject system org UUID
+		v1.Use(middleware.SystemOrgMiddleware())
+		log.Printf("Auth disabled - using system organization (%s)", domain.SystemOrgUUID)
 	}
 
 	// Unit handlers (management API) - uses UnitManagement interface (11 methods)
@@ -253,6 +265,9 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	if deps.AuthEnabled {
 		opaqueVerifyFn := middleware.OpaqueOnlyVerifier(apiTokenMgr)
 		tfeGroup.Use(middleware.RequireAuth(opaqueVerifyFn, deps.Signer))
+	} else {
+		// When auth is disabled, inject system org UUID
+		tfeGroup.Use(middleware.SystemOrgMiddleware())
 	}
 
 	// Move TFE endpoints to protected group

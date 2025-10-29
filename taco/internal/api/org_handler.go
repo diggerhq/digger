@@ -355,6 +355,71 @@ func (h *OrgHandler) GetOrganization(c echo.Context) error {
 	})
 }
 
+// GetMyOrganizations handles GET /internal/orgs/user
+// Returns organizations for the current user (no org context required)
+// Requires: X-User-ID and X-Email headers with webhook secret authentication
+func (h *OrgHandler) GetMyOrganizations(c echo.Context) error {
+	ctx := c.Request().Context()
+	
+	// Get user context from webhook middleware
+	userID := c.Get("user_id")
+	if userID == nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "user context required",
+		})
+	}
+	
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "invalid user context",
+		})
+	}
+	
+	// Get all organizations
+	allOrgs, err := h.orgRepo.List(ctx)
+	if err != nil {
+		slog.Error("Failed to list organizations for user", "userID", userIDStr, "error", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "failed to list organizations",
+		})
+	}
+	
+	// Filter to orgs where user has roles (if RBAC is enabled)
+	var userOrgs []*domain.Organization
+	if h.rbacManager != nil {
+		for _, org := range allOrgs {
+			// Check if user has any roles in this org
+			orgCtx := domain.ContextWithOrg(ctx, org.ID)
+			hasAccess, _ := h.rbacManager.IsEnabled(orgCtx)
+			if hasAccess {
+				userOrgs = append(userOrgs, org)
+			}
+		}
+	} else {
+		// No RBAC - return all orgs
+		userOrgs = allOrgs
+	}
+	
+	// Convert to response format
+	response := make([]CreateOrgResponse, len(userOrgs))
+	for i, org := range userOrgs {
+		response[i] = CreateOrgResponse{
+			ID:            org.ID,
+			Name:          org.Name,
+			DisplayName:   org.DisplayName,
+			ExternalOrgID: org.ExternalOrgID,
+			CreatedBy:     org.CreatedBy,
+			CreatedAt:     org.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		}
+	}
+	
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"organizations": response,
+		"count":         len(response),
+	})
+}
+
 // ListOrganizations handles GET /internal/orgs
 func (h *OrgHandler) ListOrganizations(c echo.Context) error {
 	ctx := c.Request().Context()

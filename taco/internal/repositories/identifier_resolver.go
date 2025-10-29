@@ -21,6 +21,8 @@ func NewIdentifierResolver(db *gorm.DB) domain.IdentifierResolver {
 }
 
 // ResolveOrganization resolves organization identifier to UUID
+// Accepts: UUID or external ID (format: "ext:provider:id")
+// Does NOT accept names (names are not unique)
 func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identifier string) (string, error) {
 	if r.db == nil {
 		return "", fmt.Errorf("database not available")
@@ -36,20 +38,9 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		return parsed.UUID, nil
 	}
 	
-	// Try to resolve by internal name first
+	// Try to resolve by external org ID
+	// Names are NOT unique, so we only support UUID or external org ID
 	var result struct{ ID string }
-	err = r.db.WithContext(ctx).
-		Table("organizations").
-		Select("id").
-		Where("name = ?", parsed.Name).
-		First(&result).Error
-	
-	if err == nil {
-		return result.ID, nil
-	}
-	
-	// If not found by name, try external org ID
-	// This handles cases where someone passes an external ID directly
 	err = r.db.WithContext(ctx).
 		Table("organizations").
 		Select("id").
@@ -60,7 +51,11 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		return result.ID, nil
 	}
 	
-	return "", fmt.Errorf("organization not found: %s", parsed.Name)
+	if err == gorm.ErrRecordNotFound {
+		return "", fmt.Errorf("organization not found with external ID: %s (names are not unique and cannot be resolved)", parsed.Name)
+	}
+	
+	return "", fmt.Errorf("failed to resolve organization: %w", err)
 }
 
 // ResolveUnit resolves unit identifier to UUID within an organization

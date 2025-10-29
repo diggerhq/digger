@@ -107,7 +107,7 @@ func (rut *RuleUnitTag) BeforeCreate(tx *gorm.DB) error {
 
 type Organization struct {
 	ID            string `gorm:"type:varchar(36);primaryKey"`
-	Name          string `gorm:"type:varchar(255);not null;uniqueIndex"` // Unique identifier (e.g., "acme") - used in CLI and paths
+	Name          string `gorm:"type:varchar(255);not null;"` // name used for internal references
 	DisplayName   string `gorm:"type:varchar(255);not null"`             // Friendly name (e.g., "Acme Corp") - shown in UI
 	ExternalOrgID *string `gorm:"type:varchar(500);uniqueIndex"`          // External org identifier (optional, nullable)
 	CreatedBy     string `gorm:"type:varchar(255);not null"`

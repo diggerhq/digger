@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	// SystemOrgUUID is the well-known UUID used when auth is disabled
+	SystemOrgUUID = "00000000-0000-0000-0000-000000000000"
+)
+
 var (
 	ErrOrgExists    = errors.New("organization already exists")
 	ErrOrgNotFound  = errors.New("organization not found")
@@ -22,7 +27,6 @@ var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$`)
 // ============================================
 
 // Organization represents an organization in the domain layer
-// This is the domain model, separate from database entities
 type Organization struct {
 	ID            string // UUID (primary key, for API)
 	Name          string // Unique identifier (e.g., "acme") - used in CLI and paths
@@ -38,13 +42,12 @@ type Organization struct {
 // ============================================
 
 // OrganizationRepository defines the interface for organization data access
-// Implementations live in the repositories package
 type OrganizationRepository interface {
 	Create(ctx context.Context, orgID, name, displayName, externalOrgID, createdBy string) (*Organization, error)
 	Get(ctx context.Context, orgID string) (*Organization, error)
 	GetByExternalID(ctx context.Context, externalOrgID string) (*Organization, error)
 	List(ctx context.Context) ([]*Organization, error)
-	Delete(ctx context.Context, orgID string) error
+	Delete(ctx context.Context, orgUUID string) error
 
 	WithTransaction(ctx context.Context, fn func(ctx context.Context, txRepo OrganizationRepository) error) error
 }
@@ -55,8 +58,8 @@ type OrganizationRepository interface {
 
 // User represents a user in the domain layer
 type User struct {
-	ID        string // UUID
-	Subject   string // Unique identifier (email, auth0 ID, etc.)
+	ID        string
+	Subject   string
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt time.Time

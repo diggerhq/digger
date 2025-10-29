@@ -109,55 +109,32 @@ func main() {
 		log.Printf("Query backend already has %d units, skipping sync", len(existingUnits))
 	}
 
-	// create repository
-	// repository coordinates blob storage with query index internally
-	// Get the underlying *gorm.DB from the query store
 	db := repositories.GetDBFromQueryStore(queryStore)
 	if db == nil {
 		log.Fatalf("Query store does not provide GetDB method")
 	}
 	
-	// Ensure default organization exists
-	defaultOrgUUID, err := repositories.EnsureDefaultOrganization(context.Background(), db)
-	if err != nil {
-		log.Fatalf("Failed to ensure default organization: %v", err)
-	}
-	log.Printf("Default organization ensured: %s", defaultOrgUUID)
-	
 	repo := repositories.NewUnitRepository(db, blobStore)
 	log.Println("Repository initialized (database-first with blob storage backend)")
 	
-	// Create RBAC Manager
 	rbacManager, err := rbac.NewRBACManagerFromQueryStore(queryStore)
 	if err != nil {
 		log.Fatalf("Failed to create RBAC manager: %v", err)
 	}
 	
-	// --- Create Domain Interfaces with Optional Authorization ---
-	// These interfaces are what handlers will use
 	var fullRepo domain.UnitRepository = repo
 	
-	// Wrap with authorization if auth is enabled
 	if !*authDisable {
 		log.Println("Authorization is ENABLED. Wrapping repository with RBAC.")
-		
-		// Create bootstrap context with default org for RBAC check
-		// During startup, we need org context to check RBAC status
-		bootstrapCtx := domain.ContextWithOrg(context.Background(), defaultOrgUUID)
-		
-		// Verify RBAC manager was created successfully (fail closed for security)
-		canInit, err := rbacManager.IsEnabled(bootstrapCtx)
-		if err != nil {
-			log.Fatalf("Failed to verify RBAC manager: %v", err)
-		}
-		
-		if !canInit {
-			log.Println("RBAC is NOT initialized. System will operate in permissive mode until RBAC is initialized via /v1/rbac/init")
-		}
-		
 		fullRepo = repositories.NewAuthorizingRepository(repo, rbacManager)
 	} else {
 		log.Println("Authorization is DISABLED via flag. All operations allowed.")
+		
+		// Ensure system org exists for auth-disabled mode
+		if err := repositories.EnsureSystemOrganization(context.Background(), db, domain.SystemOrgUUID); err != nil {
+			log.Fatalf("Failed to create system organization: %v", err)
+		}
+		log.Printf("System organization ensured: %s (name: system)", domain.SystemOrgUUID)
 	}
 
 	// Initialize analytics with system ID management (always create system ID)

@@ -93,7 +93,7 @@ type accessClaims struct {
 	Roles  []string `json:"roles,omitempty"`
 	Groups []string `json:"groups,omitempty"`
 	Scopes []string `json:"scopes,omitempty"`
-	Org    string   `json:"org,omitempty"`
+	Org    string   `json:"org_uuid,omitempty"`
 	Email  string   `json:"email,omitempty"`
 	jwt.RegisteredClaims
 }
@@ -108,6 +108,7 @@ type oauthCodeClaims struct {
 	RedirectURI   string   `json:"redirect_uri"`
 	Email         string   `json:"email,omitempty"`
 	Groups        []string `json:"groups,omitempty"`
+	Org           string   `json:"org_uuid,omitempty"`
 	CodeChallenge string   `json:"code_challenge"`
 	jwt.RegisteredClaims
 }
@@ -190,14 +191,15 @@ func (s *Signer) MintRefresh(sub, rid string) (string, time.Time, error) {
 }
 
 // MintOAuthCode creates a JWT authorization code for OAuth flows (5-minute expiry)
-func (s *Signer) MintOAuthCode(sub, email, clientID, redirectURI, codeChallenge string, groups []string) (string, time.Time, error) {
+func (s *Signer) MintOAuthCode(sub, email, clientID, redirectURI, codeChallenge, org string, groups []string) (string, time.Time, error) {
 	now := time.Now()
-	exp := now.Add(5 * time.Minute) // OAuth codes expire quickly
+	exp := now.Add(5 * time.Minute)
 	claims := oauthCodeClaims{
 		ClientID:      clientID,
 		RedirectURI:   redirectURI,
 		Email:         email,
 		Groups:        groups,
+		Org:           org,
 		CodeChallenge: codeChallenge,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
