@@ -1,0 +1,28 @@
+---
+title: "GitHub Issues"
+---
+
+You can create a GitHub Issue whenever drift is detected, to route remediation through your normal triage process. Digger supports sending a summary of Drift notifications via Slack. Another way to get notified is via [Slack](/ce/drift/slack-notifications)
+
+
+## Enable in GitHub Actions
+
+Add the following to your drift workflow:
+
+```
+env:
+  GITHUB_CONTEXT: ${{ toJson(github) }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  INPUT_DRIFT_GITHUB_ISSUES: 'true'
+  # Optional: DIGGER_GITHUB_TOKEN or PAT with appropriate scopes
+```
+
+## Notes
+
+- Ensure the token has permission to create issues in the repository.
+- The issue records the project(s) with drift and links back to context for quick follow-up.
+
+## Next step
+
+- See [Remediation](/ce/drift/remediation) for closing the loop by applying from the issue.
+

@@ -1,0 +1,66 @@
+---
+title: "Scope Drift to Specific Projects"
+---
+
+Use separate Digger config files and workflows to scope drift detection to only the projects you want. The drift config file is a regular `digger.yml` listing a subset of projects (for example, only `dev` or only `prod`).
+
+## Approach
+
+- Create a dedicated `digger.yml` that lists only the projects or blocks you want scanned.
+- Point your drift workflow to that file using the `digger-filename` input.
+- Repeat per environment if needed.
+
+## Examples
+
+### Explicit projects
+
+```yml
+# digger-drift-dev.yml
+projects:
+  - name: app-dev-a
+    dir: terraform/aws_devel/app-a
+    workflow: default
+  - name: app-dev-b
+    dir: terraform/aws_devel/app-b
+    workflow: default
+```
+
+### Terragrunt-generated blocks
+
+```yml
+# digger-drift-dev.yml
+generate_projects:
+  blocks:
+    - block_name: aws_devel
+      terragrunt: true
+      root_dir: terraform/aws_devel/
+      workflow: default
+```
+
+## Referencing the file in your workflow
+
+```yml
+name: Drift (dev)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: diggerhq/digger@vLatest
+        with:
+          mode: drift-detection
+          digger-filename: digger-drift-dev.yml
+```
+
+## Notes
+
+- There is no per-project drift filter in the action; scoping via a dedicated config file is the recommended approach.
+- You can also mark projects with `drift_detection: false` in your main config to disable drift checks for them.
+
+## Related
+
+- Quickstart: see [/ce/drift/quickstart-github-actions](/ce/drift/quickstart-github-actions)
+- Scheduling: see [/ce/drift/scheduling](/ce/drift/scheduling)

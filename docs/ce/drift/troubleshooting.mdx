@@ -1,0 +1,21 @@
+---
+title: "Troubleshooting"
+---
+
+## Common issues
+
+- 403 or permission errors when reporting results
+  - Ensure `no-backend: true` is set in backendless workflows.
+  - Confirm tokens used by the workflow have the required scopes.
+
+- Slack messages not received
+  - Verify the webhook URL and that it’s configured in the correct place (action input or org settings).
+  - Check the configured schedule (Actions cron or org-level crontab).
+
+- Issue creation failures
+  - Confirm the token has permission to create issues in the repository.
+
+## Operator tips (self-hosting)
+
+- Check service logs around the scheduled run time.
+- Use the SQL helpers in `drift/scripts/cron/` to invoke internal endpoints on a predictable cadence.
