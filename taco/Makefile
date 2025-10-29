@@ -160,6 +160,13 @@ atlas-diff-all: ## Generate migrations for all databases (use: make atlas-diff-a
 	@echo "\n📊 SQLite..." && atlas migrate diff $(NAME) --env sqlite
 	@echo "\n✅ All migrations generated successfully!"
 
+atlas-apply-sqlite:
+	@echo "Applying SQLite migrations..."; \
+	SQLITE_PATH="$${OPENTACO_SQLITE_DB_PATH:-/app/data/taco.db}"; \
+	mkdir -p "$$(dirname "$$SQLITE_PATH")"; \
+	DB_URL="sqlite://$$SQLITE_PATH"; \
+	atlas migrate apply --url "$$DB_URL" --dir "file://migrations/sqlite"
+
 
 # Validate and lint all migrations
 atlas-lint-all: ## Validate and lint all migration files

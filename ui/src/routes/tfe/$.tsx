@@ -1,8 +1,22 @@
+import { verifyTokenFn } from '@/api/tokens_serverFunctions';
 import { createFileRoute } from '@tanstack/react-router'
 
 async function handler({ request }) {
   const url = new URL(request.url);
   
+  try {
+    const token = request.headers.get('authorization')?.split(' ')[1]
+    const tokenValidation = await verifyTokenFn({data: { token: token}})
+    console.log('tokenValidation', tokenValidation)
+    if (!tokenValidation.valid) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+  } catch (error) {
+    console.error('Error verifying token', error)
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+
   // important: we need to set these to allow the statesman backend to return the correct URL to opentofu or terraform clients
   const outgoingHeaders = new Headers(request.headers);
   const originalHost = outgoingHeaders.get('host') ?? '';
