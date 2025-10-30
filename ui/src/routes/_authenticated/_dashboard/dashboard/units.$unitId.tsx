@@ -75,7 +75,7 @@ export const Route = createFileRoute(
 )({
   component: RouteComponent,
   loader: async ({ context, params: {unitId} }) => {
-    const { user, organisationId } = context;
+    const { user, organisationId, organisationName } = context;
     const unitData = await getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
     const unitVersionsData = await getUnitVersionsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
     const unitStatusData = await getUnitStatusFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
@@ -89,7 +89,8 @@ export const Route = createFileRoute(
       unitStatus: unitStatusData,
       unitVersions: unitVersionsData.versions, 
       user, 
-      organisationId, 
+      organisationId,
+      organisationName, 
       publicHostname,
 
     }
@@ -120,7 +121,7 @@ function formatDate(input: Date | string | number) {
 
 function RouteComponent() {
   const data = Route.useLoaderData()
-  const { unitData, unitVersions, unitStatus, organisationId, publicHostname, user } = data
+  const { unitData, unitVersions, unitStatus, organisationId, organisationName, publicHostname, user } = data
   const unit = unitData
   const router = useRouter()
 
@@ -344,9 +345,9 @@ function RouteComponent() {
 {`terraform {
   cloud {
     hostname = "${publicHostname}"
-    organization = "${organisationId}"    
+    organization = "${organisationName}:${organisationId}"    
     workspaces {
-      name = "${unit.id}"
+      name = "${unit.name}"
     }
   }
 }`}
@@ -355,9 +356,9 @@ function RouteComponent() {
                       content={`terraform {
   cloud {
     hostname = "${publicHostname}"
-    organization = "${organisationId}"    
+    organization = "${organisationName}:${organisationId}"    
     workspaces {
-      name = "${unit.id}"
+      name = "${unit.name}"
     }
   }
 }`} 

@@ -143,44 +143,104 @@ func (s *SQLStore) GetUnit(ctx context.Context, id string) (*types.Unit, error) 
 	return &unit, nil
 }
 
-// parseBlobPath parses a blob path into org and unit name
-// Supports: "org/name" or "name" (defaults to "default" org)
-func (s *SQLStore) parseBlobPath(ctx context.Context, blobPath string) (orgUUID, name string, err error) {
+// parseBlobPath parses a blob path into org UUID and unit name
+// Supports multiple formats for backward compatibility and new UUID-based paths:
+//   - "org-uuid/unit-uuid" (new format: both UUIDs)
+//   - "org-uuid/unit-name" (hybrid: org UUID, unit by name)
+//   - "org-name/unit-name" (legacy: both by name)
+//   - "unit-name" (legacy: defaults to "default" org, unit by name)
+func (s *SQLStore) parseBlobPath(ctx context.Context, blobPath string) (orgUUID, unitName string, err error) {
 	parts := strings.SplitN(strings.Trim(blobPath, "/"), "/", 2)
 	
-	var orgName string
+	var orgIdentifier, unitIdentifier string
 	if len(parts) == 2 {
-		// Format: "org/name"
-		orgName = parts[0]
-		name = parts[1]
+		// Format: "org-identifier/unit-identifier"
+		orgIdentifier = parts[0]
+		unitIdentifier = parts[1]
 	} else {
-		// Format: "name" - use default org
-		orgName = "default"
-		name = parts[0]
+		// Format: "unit-identifier" - use default org
+		orgIdentifier = "default"
+		unitIdentifier = parts[0]
 	}
 	
-	// Ensure org exists
-	var org types.Organization
-	err = s.db.WithContext(ctx).Where("name = ?", orgName).First(&org).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Create org if it doesn't exist (for migration)
-			org = types.Organization{
-				Name:        orgName,
-				DisplayName: fmt.Sprintf("Auto-created: %s", orgName),
-				CreatedBy:   "system-sync",
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
+	// Step 1: Resolve org identifier to UUID
+	// Try as UUID first, then fall back to name lookup
+	if isUUID(orgIdentifier) {
+		// Direct UUID - verify it exists
+		var org types.Organization
+		err = s.db.WithContext(ctx).Where("id = ?", orgIdentifier).First(&org).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return "", "", fmt.Errorf("organization UUID not found: %s", orgIdentifier)
 			}
-			if err := s.db.WithContext(ctx).Create(&org).Error; err != nil {
-				return "", "", fmt.Errorf("failed to create org: %w", err)
+			return "", "", fmt.Errorf("failed to lookup org by UUID: %w", err)
+		}
+		orgUUID = org.ID
+	} else {
+		// Lookup by name
+		var org types.Organization
+		err = s.db.WithContext(ctx).Where("name = ?", orgIdentifier).First(&org).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Create org if it doesn't exist (for migration/sync)
+				org = types.Organization{
+					Name:        orgIdentifier,
+					DisplayName: fmt.Sprintf("Auto-created: %s", orgIdentifier),
+					CreatedBy:   "system-sync",
+					CreatedAt:   time.Now(),
+					UpdatedAt:   time.Now(),
+				}
+				if err := s.db.WithContext(ctx).Create(&org).Error; err != nil {
+					return "", "", fmt.Errorf("failed to create org: %w", err)
+				}
+			} else {
+				return "", "", fmt.Errorf("failed to lookup org by name: %w", err)
 			}
-		} else {
-			return "", "", fmt.Errorf("failed to lookup org: %w", err)
+		}
+		orgUUID = org.ID
+	}
+	
+	// Step 2: Resolve unit identifier to name
+	// If unit identifier is a UUID, look up its name; otherwise use as-is
+	if isUUID(unitIdentifier) {
+		// Look up unit by UUID to get its name
+		var unit types.Unit
+		err = s.db.WithContext(ctx).Where("id = ? AND org_id = ?", unitIdentifier, orgUUID).First(&unit).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return "", "", fmt.Errorf("unit UUID not found: %s in org %s", unitIdentifier, orgUUID)
+			}
+			return "", "", fmt.Errorf("failed to lookup unit by UUID: %w", err)
+		}
+		unitName = unit.Name
+	} else {
+		// Already a name, use directly
+		unitName = unitIdentifier
+	}
+	
+	return orgUUID, unitName, nil
+}
+
+// isUUID checks if a string looks like a UUID (simple heuristic)
+// Format: 8-4-4-4-12 hex digits with hyphens
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	// Quick check: positions of hyphens
+	if s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
+		return false
+	}
+	// Check that other characters are hex digits
+	for i, c := range s {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			continue
+		}
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
 		}
 	}
-	
-	return org.ID, name, nil
+	return true
 }
 
 // SyncEnsureUnit creates or updates a unit from blob storage

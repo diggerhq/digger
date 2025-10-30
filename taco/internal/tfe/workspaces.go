@@ -82,15 +82,51 @@ func generateStateVersionID(stateID string, timestamp int64) string {
 	return fmt.Sprintf("sv-%s-%d", encodedStateID, timestamp)
 }
 
-// convertWorkspaceToStateID converts a TFE workspace ID to a state ID
-// e.g., "ws-myworkspace" -> "myworkspace" (strip the ws- prefix to match CLI-created states)
-func convertWorkspaceToStateID(workspaceID string) string {
+// convertWorkspaceToStateIDWithOrg converts a workspace name to an org-scoped unit ID
+// Workspace name is a human-readable unit name (e.g., "my-app-prod")
+// Returns: "<org-uuid>/<unit-uuid>" for S3 storage (both UUIDs for immutable paths)
+func (h *TfeHandler) convertWorkspaceToStateIDWithOrg(ctx context.Context, orgIdentifier, workspaceName string) (string, error) {
 	// Validate input
+	if strings.TrimSpace(workspaceName) == "" {
+		return "", fmt.Errorf("workspace name cannot be empty")
+	}
+
+	// Strip "ws-" prefix if present (TFE compatibility for legacy workspace IDs)
+	if strings.HasPrefix(workspaceName, "ws-") {
+		workspaceName = strings.TrimPrefix(workspaceName, "ws-")
+		if workspaceName == "" {
+			return "", fmt.Errorf("invalid workspace name: empty after stripping ws- prefix")
+		}
+	}
+	
+	// If no org identifier provided or no resolver, return workspace name as-is (backwards compat)
+	if orgIdentifier == "" || h.identifierResolver == nil {
+		return workspaceName, nil
+	}
+	
+	// Step 1: Resolve organization identifier (external_org_id, UUID, or name) to UUID
+	orgUUID, err := h.identifierResolver.ResolveOrganization(ctx, orgIdentifier)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve organization '%s': %w", orgIdentifier, err)
+	}
+	
+	// Step 2: Resolve unit name to UUID within the organization
+	unitUUID, err := h.identifierResolver.ResolveUnit(ctx, workspaceName, orgUUID)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve unit '%s' in org '%s': %w", workspaceName, orgIdentifier, err)
+	}
+	
+	// Return org-scoped unit path for S3 storage
+	// Format: <org-uuid>/<unit-uuid> (both UUIDs for immutable, rename-safe paths)
+	// Example: "123e4567-e89b-12d3-a456-426614174000/987f6543-e21a-43d2-b789-123456789abc"
+	return fmt.Sprintf("%s/%s", orgUUID, unitUUID), nil
+}
+
+// Legacy function for backwards compatibility - no org scoping
+func convertWorkspaceToStateID(workspaceID string) string {
 	if strings.TrimSpace(workspaceID) == "" {
 		return ""
 	}
-
-	// If it's a TFE workspace ID (ws-something), extract just the workspace name
 	if strings.HasPrefix(workspaceID, "ws-") {
 		result := strings.TrimPrefix(workspaceID, "ws-")
 		if result == "" {
@@ -98,8 +134,53 @@ func convertWorkspaceToStateID(workspaceID string) string {
 		}
 		return result
 	}
-	// Otherwise, return as-is (for direct workspace names)
 	return workspaceID
+}
+
+// getOrgFromContext extracts organization identifier from the echo context
+// The org is set by authentication middleware (JWT contains org claim)
+// Falls back to "default" if no org is found
+func getOrgFromContext(c echo.Context) string {
+	// Try jwt_org first (set by RequireAuth middleware from JWT claims)
+	if jwtOrg := c.Get("jwt_org"); jwtOrg != nil {
+		if orgStr, ok := jwtOrg.(string); ok && orgStr != "" {
+			return orgStr
+		}
+	}
+	
+	// Try organization_id (set by WebhookAuth middleware)
+	if orgID := c.Get("organization_id"); orgID != nil {
+		if orgStr, ok := orgID.(string); ok && orgStr != "" {
+			return orgStr
+		}
+	}
+	
+	// Fall back to default org
+	return "default"
+}
+
+// parseOrgParam parses organization parameter in format "display:identifier" or just "identifier"
+// Returns the identifier part that can be resolved (external_org_id, UUID, or name)
+//
+// Supported formats:
+//   - "Personal:org_01K8..." -> returns "org_01K8..." (display name for convenience)
+//   - "org_01K8..." -> returns "org_01K8..." (identifier only, works fine!)
+//   - "Acme:123e4567-..." -> returns "123e4567-..." (UUID identifier)
+//   - "123e4567-..." -> returns "123e4567-..." (UUID only)
+//
+// The display name (before colon) is purely cosmetic for user convenience.
+// The identifier (after colon, or the whole string if no colon) is what gets resolved.
+func parseOrgParam(orgParam string) (displayName, identifier string) {
+	// Format: "DisplayName:identifier" or just "identifier"
+	if strings.Contains(orgParam, ":") {
+		parts := strings.SplitN(orgParam, ":", 2)
+		if len(parts) == 2 {
+			return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+		}
+	}
+	// No colon - identifier only (display name omitted for convenience)
+	identifier = strings.TrimSpace(orgParam)
+	return "", identifier
 }
 
 // extractWorkspaceIDFromParam extracts workspace ID from URL parameter
@@ -231,9 +312,44 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
+	orgParam := c.Param("org_name")
 	workspaceName := c.Param("workspace_name")
+	
 	if workspaceName == "" {
 		return c.JSON(400, map[string]string{"error": "workspace_name invalid"})
+	}
+	
+	// Parse org param - supports both "Display:identifier" and just "identifier"
+	displayName, orgIdentifier := parseOrgParam(orgParam)
+	
+	if displayName != "" {
+		fmt.Printf("GetWorkspace: orgParam=%s (display=%s, identifier=%s), workspaceName=%s\n", 
+			orgParam, displayName, orgIdentifier, workspaceName)
+	} else {
+		fmt.Printf("GetWorkspace: orgParam=%s (identifier only, no display name), workspaceName=%s\n", 
+			orgIdentifier, workspaceName)
+	}
+	
+	// Convert workspace name to unit ID (org-scoped if org provided)
+	// workspaceName is now the human-readable unit name, not a UUID
+	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
+	if err != nil {
+		fmt.Printf("GetWorkspace: failed to resolve workspace: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "failed to resolve workspace",
+			"detail": err.Error(),
+		})
+	}
+	
+	fmt.Printf("GetWorkspace: resolved stateID=%s\n", stateID)
+	
+	// Check if unit exists (optional - may auto-create later)
+	_, err = h.stateStore.Get(c.Request().Context(), stateID)
+	locked := false
+	if err == nil {
+		// Check if locked
+		lockInfo, _ := h.stateStore.GetLock(c.Request().Context(), stateID)
+		locked = (lockInfo != nil)
 	}
 
 	workspace := &tfe.TFEWorkspace{
@@ -250,7 +366,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		ExecutionMode:              "local",
 		FileTriggersEnabled:        false,
 		GlobalRemoteState:          false,
-		Locked:                     false,
+		Locked:                     locked,
 		MigrationEnvironment:       "",
 		Name:                       workspaceName,
 		Operations:                 false,
@@ -274,7 +390,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		TagNames:                   nil,
 		CurrentRun:                 nil,
 		Organization: &tfe.TFEOrganization{
-			Name: "opentaco",
+			Name: orgParam,  // Return the full org param (includes display name if provided)
 		},
 		Outputs: nil,
 	}
@@ -291,17 +407,33 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
-	// Extract workspace ID and convert to state ID
+	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
 	if workspaceID == "" {
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
-	// Debug logging
-	fmt.Printf("LockWorkspace: workspaceID=%s\n", workspaceID)
+	// Strip ws- prefix to get workspace name
+	workspaceName := convertWorkspaceToStateID(workspaceID)
+	fmt.Printf("LockWorkspace: workspaceID=%s, workspaceName=%s\n", workspaceID, workspaceName)
+
+	// Get org from authentication context (JWT claim or webhook header)
+	orgIdentifier := getOrgFromContext(c)
+	fmt.Printf("LockWorkspace: orgIdentifier=%s (from auth context)\n", orgIdentifier)
+
+	// Resolve to UUID/UUID path
+	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
+	if err != nil {
+		fmt.Printf("LockWorkspace: failed to resolve workspace: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "failed to resolve workspace",
+			"detail": err.Error(),
+		})
+	}
+	fmt.Printf("LockWorkspace: resolved stateID=%s\n", stateID)
 
 	// Check RBAC permission for locking workspace
-	if err := h.checkWorkspacePermission(c, "unit:write", workspaceID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit:write", stateID); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to lock workspace",
 			"hint":  "contact your administrator to grant unit:write permission",
@@ -312,9 +444,6 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 		fmt.Printf("LockWorkspace: stateStore is nil!\n")
 		return c.JSON(500, map[string]string{"error": "State store not initialized"})
 	}
-
-	stateID := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("LockWorkspace: stateID=%s\n", stateID)
 
 	// Check if state exists, enot
 	_, err := h.stateStore.Get(c.Request().Context(), stateID)
@@ -391,14 +520,28 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
-	// Extract workspace ID and convert to state ID
+	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
 	if workspaceID == "" {
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
-	stateID := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("UnlockWorkspace: workspaceID=%s, stateID=%s\n", workspaceID, stateID)
+	// Strip ws- prefix to get workspace name
+	workspaceName := convertWorkspaceToStateID(workspaceID)
+	
+	// Get org from authentication context (JWT claim or webhook header)
+	orgIdentifier := getOrgFromContext(c)
+	
+	// Resolve to UUID/UUID path
+	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
+	if err != nil {
+		fmt.Printf("UnlockWorkspace: failed to resolve workspace: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "failed to resolve workspace",
+			"detail": err.Error(),
+		})
+	}
+	fmt.Printf("UnlockWorkspace: workspaceID=%s, resolved stateID=%s\n", workspaceID, stateID)
 
 	// Get current lock to find lock ID
 	currentLock, err := h.stateStore.GetLock(c.Request().Context(), stateID)
@@ -459,14 +602,28 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
-	// Extract workspace ID and convert to state ID
+	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
 	if workspaceID == "" {
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
-	stateID := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("ForceUnlockWorkspace: workspaceID=%s, stateID=%s\n", workspaceID, stateID)
+	// Strip ws- prefix to get workspace name
+	workspaceName := convertWorkspaceToStateID(workspaceID)
+	
+	// Get org from authentication context (JWT claim or webhook header)
+	orgIdentifier := getOrgFromContext(c)
+	
+	// Resolve to UUID/UUID path
+	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
+	if err != nil {
+		fmt.Printf("ForceUnlockWorkspace: failed to resolve workspace: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "failed to resolve workspace",
+			"detail": err.Error(),
+		})
+	}
+	fmt.Printf("ForceUnlockWorkspace: workspaceID=%s, resolved stateID=%s\n", workspaceID, stateID)
 
 	// Get current lock to find lock ID
 	currentLock, err := h.stateStore.GetLock(c.Request().Context(), stateID)
@@ -520,6 +677,7 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
+	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
 	fmt.Printf("GetCurrentStateVersion: workspaceID=%s\n", workspaceID)
 	if workspaceID == "" {
@@ -527,15 +685,25 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
-	stateID := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("GetCurrentStateVersion: stateID=%s\n", stateID)
-	if stateID == "" {
-		fmt.Printf("GetCurrentStateVersion: ERROR - invalid state ID from workspace ID: %s\n", workspaceID)
-		return c.JSON(400, map[string]string{"error": "invalid workspace ID"})
+	// Strip ws- prefix to get workspace name
+	workspaceName := convertWorkspaceToStateID(workspaceID)
+	
+	// Get org from authentication context (JWT claim or webhook header)
+	orgIdentifier := getOrgFromContext(c)
+	
+	// Resolve to UUID/UUID path
+	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
+	if err != nil {
+		fmt.Printf("GetCurrentStateVersion: failed to resolve workspace: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "failed to resolve workspace",
+			"detail": err.Error(),
+		})
 	}
+	fmt.Printf("GetCurrentStateVersion: resolved stateID=%s\n", stateID)
 
 	// Check RBAC permission with correct three-scenario logic
-	if err := h.checkWorkspacePermission(c, "unit:read", workspaceID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit:read", stateID); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to access workspace",
 			"hint":  "contact your administrator to grant unit:read permission",
@@ -593,6 +761,7 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
+	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
 	fmt.Printf("CreateStateVersion: workspaceID=%s\n", workspaceID)
 	if workspaceID == "" {
@@ -600,15 +769,25 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
-	stateID := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("CreateStateVersion: stateID=%s\n", stateID)
-	if stateID == "" {
-		fmt.Printf("CreateStateVersion: ERROR - invalid state ID from workspace ID: %s\n", workspaceID)
-		return c.JSON(400, map[string]string{"error": "invalid workspace ID"})
+	// Strip ws- prefix to get workspace name
+	workspaceName := convertWorkspaceToStateID(workspaceID)
+	
+	// Get org from authentication context (JWT claim or webhook header)
+	orgIdentifier := getOrgFromContext(c)
+	
+	// Resolve to UUID/UUID path
+	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
+	if err != nil {
+		fmt.Printf("CreateStateVersion: failed to resolve workspace: %v\n", err)
+		return c.JSON(500, map[string]string{
+			"error": "failed to resolve workspace",
+			"detail": err.Error(),
+		})
 	}
+	fmt.Printf("CreateStateVersion: resolved stateID=%s\n", stateID)
 
 	// Check RBAC permission for creating/writing state versions
-	if err := h.checkWorkspacePermission(c, "unit:write", workspaceID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit:write", stateID); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to create state version",
 			"hint":  "contact your administrator to grant unit:write permission",
@@ -1050,24 +1229,4 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 		},
 	}
 	return c.JSON(http.StatusOK, resp)
-}
-
-// getOrgFromContext extracts org ID from Echo context or defaults to "default"
-func getOrgFromContext(c echo.Context) string {
-	// Try jwt_org (from JWT auth)
-	if jwtOrg := c.Get("jwt_org"); jwtOrg != nil {
-		if orgStr, ok := jwtOrg.(string); ok && orgStr != "" {
-			return orgStr
-		}
-	}
-	
-	// Try organization_id (from webhook auth)
-	if orgID := c.Get("organization_id"); orgID != nil {
-		if orgStr, ok := orgID.(string); ok && orgStr != "" {
-			return orgStr
-		}
-	}
-	
-	// Default for self-hosted
-	return "default"
 }
