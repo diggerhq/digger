@@ -89,6 +89,11 @@ const server = createServer(async (req, res) => {
     response.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
+    
+    // Prevent caching of HTML to avoid stale chunk references for now 
+    if (response.headers.get('content-type')?.includes('text/html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
 
     // Stream the response body
     if (response.body) {
