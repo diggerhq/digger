@@ -10,7 +10,8 @@ export function useIsMobile() {
     typeof window !== "undefined" &&
     window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches
 
-  const [isMobile, setIsMobile] = React.useState<boolean>(get)
+
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   useIsomorphicLayoutEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
@@ -19,6 +20,6 @@ export function useIsMobile() {
     mql.addEventListener("change", onChange)
     return () => mql.removeEventListener("change", onChange)
   }, [])
-
-  return isMobile
+  // prevent hydration mismatch before effect is called
+  return isMobile ?? false
 }
