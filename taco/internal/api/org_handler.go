@@ -95,6 +95,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	slog.Info("Creating organization",
 		"name", req.Name,
 		"displayName", req.DisplayName,
+		"externalOrgID", req.ExternalOrgID,
 		"createdBy", userIDStr,
 	)
 

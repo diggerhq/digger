@@ -19,7 +19,7 @@ export async function syncOrgToStatesman(orgId: string, orgName: string, display
     })  
 
     if (response.status === 409) {
-        console.log("User already exists in statesman")
+        console.log("Organization already exists in statesman")
         return response.json();
     }
 
