@@ -104,7 +104,7 @@ func (h *TfeHandler) convertWorkspaceToStateIDWithOrg(ctx context.Context, orgId
 		return workspaceName, nil
 	}
 	
-	// Step 1: Resolve organization identifier (external_org_id, UUID, or name) to UUID
+	// Step 1: Resolve organization identifier (external_org_id or UUID) to UUID
 	orgUUID, err := h.identifierResolver.ResolveOrganization(ctx, orgIdentifier)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve organization '%s': %w", orgIdentifier, err)
