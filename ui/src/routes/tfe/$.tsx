@@ -19,7 +19,6 @@ async function handler({ request }) {
   // important: we need to set these to allow the statesman backend to return the correct URL to opentofu or terraform clients
   const outgoingHeaders = new Headers(request.headers);
   const originalHost = outgoingHeaders.get('host') ?? '';
-  console.log('originalHost', originalHost);
   if (originalHost) outgoingHeaders.set('x-forwarded-host', originalHost);
   outgoingHeaders.set('x-forwarded-proto', url.protocol.replace(':', ''));
   if (url.port) outgoingHeaders.set('x-forwarded-port', url.port);
