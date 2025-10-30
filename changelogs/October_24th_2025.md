@@ -1,4 +1,4 @@
-## Week ending 10/10
+## Week ending 10/24
 
 We’re closing in on launch date!!! Below are some of the highlights of what we’ve been cooking.
 
