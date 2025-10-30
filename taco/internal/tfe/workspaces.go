@@ -139,24 +139,24 @@ func convertWorkspaceToStateID(workspaceID string) string {
 
 // getOrgFromContext extracts organization identifier from the echo context
 // The org is set by authentication middleware (JWT contains org claim)
-// Falls back to "default" if no org is found
-func getOrgFromContext(c echo.Context) string {
+// Returns error if no organization context is found
+func getOrgFromContext(c echo.Context) (string, error) {
 	// Try jwt_org first (set by RequireAuth middleware from JWT claims)
 	if jwtOrg := c.Get("jwt_org"); jwtOrg != nil {
 		if orgStr, ok := jwtOrg.(string); ok && orgStr != "" {
-			return orgStr
+			return orgStr, nil
 		}
 	}
 	
 	// Try organization_id (set by WebhookAuth middleware)
 	if orgID := c.Get("organization_id"); orgID != nil {
 		if orgStr, ok := orgID.(string); ok && orgStr != "" {
-			return orgStr
+			return orgStr, nil
 		}
 	}
 	
-	// Fall back to default org
-	return "default"
+	// No organization context found - this is an error condition
+	return "", fmt.Errorf("no organization context found in request")
 }
 
 // parseOrgParam parses organization parameter in format "display:identifier" or just "identifier"
@@ -418,7 +418,14 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	fmt.Printf("LockWorkspace: workspaceID=%s, workspaceName=%s\n", workspaceID, workspaceName)
 
 	// Get org from authentication context (JWT claim or webhook header)
-	orgIdentifier := getOrgFromContext(c)
+	orgIdentifier, err := getOrgFromContext(c)
+	if err != nil {
+		fmt.Printf("LockWorkspace: %v\n", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Organization context required",
+			"detail": err.Error(),
+		})
+	}
 	fmt.Printf("LockWorkspace: orgIdentifier=%s (from auth context)\n", orgIdentifier)
 
 	// Resolve to UUID/UUID path
@@ -530,7 +537,14 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 	workspaceName := convertWorkspaceToStateID(workspaceID)
 	
 	// Get org from authentication context (JWT claim or webhook header)
-	orgIdentifier := getOrgFromContext(c)
+	orgIdentifier, err := getOrgFromContext(c)
+	if err != nil {
+		fmt.Printf("UnlockWorkspace: %v\n", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Organization context required",
+			"detail": err.Error(),
+		})
+	}
 	
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
@@ -612,7 +626,14 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 	workspaceName := convertWorkspaceToStateID(workspaceID)
 	
 	// Get org from authentication context (JWT claim or webhook header)
-	orgIdentifier := getOrgFromContext(c)
+	orgIdentifier, err := getOrgFromContext(c)
+	if err != nil {
+		fmt.Printf("ForceUnlockWorkspace: %v\n", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Organization context required",
+			"detail": err.Error(),
+		})
+	}
 	
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
@@ -689,7 +710,14 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 	workspaceName := convertWorkspaceToStateID(workspaceID)
 	
 	// Get org from authentication context (JWT claim or webhook header)
-	orgIdentifier := getOrgFromContext(c)
+	orgIdentifier, err := getOrgFromContext(c)
+	if err != nil {
+		fmt.Printf("GetCurrentStateVersion: %v\n", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Organization context required",
+			"detail": err.Error(),
+		})
+	}
 	
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
@@ -773,7 +801,14 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 	workspaceName := convertWorkspaceToStateID(workspaceID)
 	
 	// Get org from authentication context (JWT claim or webhook header)
-	orgIdentifier := getOrgFromContext(c)
+	orgIdentifier, err := getOrgFromContext(c)
+	if err != nil {
+		fmt.Printf("CreateStateVersion: %v\n", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Organization context required",
+			"detail": err.Error(),
+		})
+	}
 	
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)

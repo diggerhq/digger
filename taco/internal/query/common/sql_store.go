@@ -10,6 +10,7 @@ import (
 
 	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -143,111 +144,64 @@ func (s *SQLStore) GetUnit(ctx context.Context, id string) (*types.Unit, error) 
 	return &unit, nil
 }
 
-// parseBlobPath parses a blob path into org UUID and unit name
-// Supports multiple formats for backward compatibility and new UUID-based paths:
-//   - "org-uuid/unit-uuid" (new format: both UUIDs)
-//   - "org-uuid/unit-name" (hybrid: org UUID, unit by name)
-//   - "org-name/unit-name" (legacy: both by name)
-//   - "unit-name" (legacy: defaults to "default" org, unit by name)
-func (s *SQLStore) parseBlobPath(ctx context.Context, blobPath string) (orgUUID, unitName string, err error) {
+// parseBlobPath parses a UUID-based blob path into org UUID and unit UUID
+// Expected format: "org-uuid/unit-uuid"
+// This is the only format used - all blob paths are UUID-based for immutability
+func (s *SQLStore) parseBlobPath(ctx context.Context, blobPath string) (orgUUID, unitUUID string, err error) {
 	parts := strings.SplitN(strings.Trim(blobPath, "/"), "/", 2)
 	
-	var orgIdentifier, unitIdentifier string
-	if len(parts) == 2 {
-		// Format: "org-identifier/unit-identifier"
-		orgIdentifier = parts[0]
-		unitIdentifier = parts[1]
-	} else {
-		// Format: "unit-identifier" - use default org
-		orgIdentifier = "default"
-		unitIdentifier = parts[0]
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid blob path format: expected 'org-uuid/unit-uuid', got '%s'", blobPath)
 	}
 	
-	// Step 1: Resolve org identifier to UUID
-	// Try as UUID first, then fall back to name lookup
-	if isUUID(orgIdentifier) {
-		// Direct UUID - verify it exists
-		var org types.Organization
-		err = s.db.WithContext(ctx).Where("id = ?", orgIdentifier).First(&org).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return "", "", fmt.Errorf("organization UUID not found: %s", orgIdentifier)
-			}
-			return "", "", fmt.Errorf("failed to lookup org by UUID: %w", err)
-		}
-		orgUUID = org.ID
-	} else {
-		// Lookup by name
-		var org types.Organization
-		err = s.db.WithContext(ctx).Where("name = ?", orgIdentifier).First(&org).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// Create org if it doesn't exist (for migration/sync)
-				org = types.Organization{
-					Name:        orgIdentifier,
-					DisplayName: fmt.Sprintf("Auto-created: %s", orgIdentifier),
-					CreatedBy:   "system-sync",
-					CreatedAt:   time.Now(),
-					UpdatedAt:   time.Now(),
-				}
-				if err := s.db.WithContext(ctx).Create(&org).Error; err != nil {
-					return "", "", fmt.Errorf("failed to create org: %w", err)
-				}
-			} else {
-				return "", "", fmt.Errorf("failed to lookup org by name: %w", err)
-			}
-		}
-		orgUUID = org.ID
+	orgUUID = parts[0]
+	unitUUID = parts[1]
+	
+	// Validate both are UUIDs
+	if !isUUID(orgUUID) {
+		return "", "", fmt.Errorf("invalid org UUID in blob path: %s", orgUUID)
+	}
+	if !isUUID(unitUUID) {
+		return "", "", fmt.Errorf("invalid unit UUID in blob path: %s", unitUUID)
 	}
 	
-	// Step 2: Resolve unit identifier to name
-	// If unit identifier is a UUID, look up its name; otherwise use as-is
-	if isUUID(unitIdentifier) {
-		// Look up unit by UUID to get its name
-		var unit types.Unit
-		err = s.db.WithContext(ctx).Where("id = ? AND org_id = ?", unitIdentifier, orgUUID).First(&unit).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return "", "", fmt.Errorf("unit UUID not found: %s in org %s", unitIdentifier, orgUUID)
-			}
-			return "", "", fmt.Errorf("failed to lookup unit by UUID: %w", err)
+	// Verify org exists
+	var org types.Organization
+	err = s.db.WithContext(ctx).Where("id = ?", orgUUID).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", fmt.Errorf("organization not found: %s", orgUUID)
 		}
-		unitName = unit.Name
-	} else {
-		// Already a name, use directly
-		unitName = unitIdentifier
+		return "", "", fmt.Errorf("failed to lookup organization: %w", err)
 	}
 	
-	return orgUUID, unitName, nil
+	// Verify unit exists
+	var unit types.Unit
+	err = s.db.WithContext(ctx).Where("id = ? AND org_id = ?", unitUUID, orgUUID).First(&unit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", fmt.Errorf("unit not found: %s in org %s", unitUUID, orgUUID)
+		}
+		return "", "", fmt.Errorf("failed to lookup unit: %w", err)
+	}
+	
+	return orgUUID, unitUUID, nil
 }
 
-// isUUID checks if a string looks like a UUID (simple heuristic)
-// Format: 8-4-4-4-12 hex digits with hyphens
+// isUUID checks if a string is a valid UUID
+// Uses proper UUID parsing to validate format and structure
+// This is critical for distinguishing UUID-based paths from name-based paths:
+//   - UUID: "123e4567-89ab-12d3-a456-426614174000" → lookup by ID
+//   - Name: "my-app-prod" → lookup by name
 func isUUID(s string) bool {
-	if len(s) != 36 {
-		return false
-	}
-	// Quick check: positions of hyphens
-	if s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
-		return false
-	}
-	// Check that other characters are hex digits
-	for i, c := range s {
-		if i == 8 || i == 13 || i == 18 || i == 23 {
-			continue
-		}
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-			return false
-		}
-	}
-	return true
+	_, err := uuid.Parse(s)
+	return err == nil
 }
 
 // SyncEnsureUnit creates or updates a unit from blob storage
-// Supports blob paths: "org/name" or "name" (defaults to default org)
-// UUIDs are auto-generated via BeforeCreate hook
-func (s *SQLStore) SyncEnsureUnit(ctx context.Context, unitName string) error {
-	orgUUID, name, err := s.parseBlobPath(ctx, unitName)
+// Expects UUID-based blob path: "org-uuid/unit-uuid"
+func (s *SQLStore) SyncEnsureUnit(ctx context.Context, blobPath string) error {
+	orgUUID, unitUUID, err := s.parseBlobPath(ctx, blobPath)
 	if err != nil {
 		return err
 	}
@@ -255,7 +209,7 @@ func (s *SQLStore) SyncEnsureUnit(ctx context.Context, unitName string) error {
 	// Check if unit exists
 	var existing types.Unit
 	err = s.db.WithContext(ctx).
-		Where(queryOrgAndName, orgUUID, name).
+		Where("id = ? AND org_id = ?", unitUUID, orgUUID).
 		First(&existing).Error
 	
 	if err == nil {
@@ -267,47 +221,44 @@ func (s *SQLStore) SyncEnsureUnit(ctx context.Context, unitName string) error {
 		return err
 	}
 	
-	// Create new unit (UUID auto-generated by BeforeCreate)
-	unit := types.Unit{
-		OrgID: orgUUID,
-		Name:  name,
-	}
-	return s.db.WithContext(ctx).Create(&unit).Error
+	// Unit doesn't exist - this shouldn't happen with UUID-based paths
+	// as units should be created via UnitRepository first
+	return fmt.Errorf("unit %s not found in database (UUID-based paths require unit to exist)", unitUUID)
 }
 
-func (s *SQLStore) SyncUnitMetadata(ctx context.Context, unitName string, size int64, updated time.Time) error {
-	orgUUID, name, err := s.parseBlobPath(ctx, unitName)
+func (s *SQLStore) SyncUnitMetadata(ctx context.Context, blobPath string, size int64, updated time.Time) error {
+	orgUUID, unitUUID, err := s.parseBlobPath(ctx, blobPath)
 	if err != nil {
 		return err
 	}
 	
 	return s.db.WithContext(ctx).Model(&types.Unit{}).
-		Where(queryOrgAndName, orgUUID, name).
+		Where("id = ? AND org_id = ?", unitUUID, orgUUID).
 		Updates(map[string]interface{}{
 			"size":       size,
 			"updated_at": updated,
 		}).Error
 }
 
-func (s *SQLStore) SyncDeleteUnit(ctx context.Context, unitName string) error {
-	orgUUID, name, err := s.parseBlobPath(ctx, unitName)
+func (s *SQLStore) SyncDeleteUnit(ctx context.Context, blobPath string) error {
+	orgUUID, unitUUID, err := s.parseBlobPath(ctx, blobPath)
 	if err != nil {
 		return err
 	}
 	
 	return s.db.WithContext(ctx).
-		Where(queryOrgAndName, orgUUID, name).
+		Where("id = ? AND org_id = ?", unitUUID, orgUUID).
 		Delete(&types.Unit{}).Error
 }
 
-func (s *SQLStore) SyncUnitLock(ctx context.Context, unitName string, lockID, lockWho string, lockCreated time.Time) error {
-	orgUUID, name, err := s.parseBlobPath(ctx, unitName)
+func (s *SQLStore) SyncUnitLock(ctx context.Context, blobPath string, lockID, lockWho string, lockCreated time.Time) error {
+	orgUUID, unitUUID, err := s.parseBlobPath(ctx, blobPath)
 	if err != nil {
 		return err
 	}
 	
 	return s.db.WithContext(ctx).Model(&types.Unit{}).
-		Where(queryOrgAndName, orgUUID, name).
+		Where("id = ? AND org_id = ?", unitUUID, orgUUID).
 		Updates(map[string]interface{}{
 			"locked":       true,
 			"lock_id":      lockID,
@@ -316,14 +267,14 @@ func (s *SQLStore) SyncUnitLock(ctx context.Context, unitName string, lockID, lo
 		}).Error
 }
 
-func (s *SQLStore) SyncUnitUnlock(ctx context.Context, unitName string) error {
-	orgUUID, name, err := s.parseBlobPath(ctx, unitName)
+func (s *SQLStore) SyncUnitUnlock(ctx context.Context, blobPath string) error {
+	orgUUID, unitUUID, err := s.parseBlobPath(ctx, blobPath)
 	if err != nil {
 		return err
 	}
 	
 	return s.db.WithContext(ctx).Model(&types.Unit{}).
-		Where(queryOrgAndName, orgUUID, name).
+		Where("id = ? AND org_id = ?", unitUUID, orgUUID).
 		Updates(map[string]interface{}{
 			"locked":       false,
 			"lock_id":      "",

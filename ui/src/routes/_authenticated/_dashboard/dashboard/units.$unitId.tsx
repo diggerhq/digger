@@ -345,7 +345,7 @@ function RouteComponent() {
 {`terraform {
   cloud {
     hostname = "${publicHostname}"
-    organization = "${organisationName}:${organisationId}"    
+    organization = "${organisationName ? `${organisationName}:` : ''}${organisationId}"    
     workspaces {
       name = "${unit.name}"
     }
@@ -356,7 +356,7 @@ function RouteComponent() {
                       content={`terraform {
   cloud {
     hostname = "${publicHostname}"
-    organization = "${organisationName}:${organisationId}"    
+    organization = "${organisationName ? `${organisationName}:` : ''}${organisationId}"    
     workspaces {
       name = "${unit.name}"
     }
