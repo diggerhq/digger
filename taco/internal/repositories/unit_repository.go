@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -71,6 +72,15 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 	}
 
 	if err := r.db.WithContext(ctx).Create(unit).Error; err != nil {
+		// Check if this is a unique constraint violation
+		// GORM doesn't have a specific error type, so we check the error string
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "duplicate") || 
+		   strings.Contains(errMsg, "unique constraint") ||
+		   strings.Contains(errMsg, "UNIQUE constraint") ||
+		   strings.Contains(errMsg, "idx_units_org_name") {
+			return nil, storage.ErrAlreadyExists
+		}
 		return nil, fmt.Errorf("failed to create unit in database: %w", err)
 	}
 
