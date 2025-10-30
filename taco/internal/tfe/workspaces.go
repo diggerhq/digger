@@ -1,6 +1,7 @@
 package tfe
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
@@ -266,8 +267,11 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	// TFE endpoints: verify opaque token only (for clear API boundaries)
 	var principal rbac.Principal
 	if h.apiTokens != nil {
-		// Extract org from context or default to "default"
-		orgID := getOrgFromContext(c)
+		// Extract org from context
+		orgID, err := getOrgFromContext(c)
+		if err != nil {
+			return fmt.Errorf("failed to get organization context: %v", err)
+		}
 		if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), orgID, token); err == nil {
 			principal = rbac.Principal{
 				Subject: tokenRecord.Subject,
@@ -453,7 +457,7 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	}
 
 	// Check if state exists, enot
-	_, err := h.stateStore.Get(c.Request().Context(), stateID)
+	_, err = h.stateStore.Get(c.Request().Context(), stateID)
 	fmt.Printf("LockWorkspace: Get result, err=%v\n", err)
 	if err == storage.ErrNotFound {
 		fmt.Printf("LockWorkspace: Unit not found - no auto-creation\n")
