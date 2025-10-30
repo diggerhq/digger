@@ -32,7 +32,7 @@ function Home() {
               </h1>
               <p className="mt-4 text-lg text-white/70">You're signed in. Head over to your dashboard to continue.</p>
               <div className="mt-8 flex items-center gap-4">
-                <a href="/dashboard/repos" className="inline-flex items-center rounded-md bg-white px-5 py-3 font-medium text-black shadow-lg shadow-white/10 transition hover:bg-white/90">Go to dashboard</a>
+                <a href="/dashboard/units" className="inline-flex items-center rounded-md bg-white px-5 py-3 font-medium text-black shadow-lg shadow-white/10 transition hover:bg-white/90">Go to dashboard</a>
                 <a href="/logout" className="inline-flex items-center rounded-md bg-transparent border border-white px-5 py-3 font-medium text-white shadow-lg shadow-white/10 transition hover:bg-white/10">Logout</a>
               </div>
             </>
