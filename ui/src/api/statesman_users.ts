@@ -22,7 +22,6 @@ export async function syncUserToStatesman(userId: string, userEmail: string, org
     }
 
     if (!response.ok) {
-        console.log(response.text())
         throw new Error(`Failed to sync user: ${response.statusText}`);
     }
 

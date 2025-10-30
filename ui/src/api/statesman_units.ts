@@ -169,7 +169,7 @@ export async function createUnit(orgId: string, userId: string, email: string, n
             name: name,
         }),
     });
-    console.log(response)
+
     if (!response.ok) {
         throw new Error(`Failed to create unit: ${response.statusText}`);
     }

@@ -67,7 +67,7 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
     setError(null)
 
     try {
-      await createUnitFn({
+      const unit = await createUnitFn({
         data: {
           userId: user?.id!,
           organisationId,
@@ -129,10 +129,14 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
 }
 
 function RouteComponent() {
-  const {  unitsData } = Route.useLoaderData()
-  const units = unitsData?.units || []
+  const {  unitsData, organisationId, user } = Route.useLoaderData()
+  const [units, setUnits] = useState(unitsData?.units || [])
   const navigate = Route.useNavigate()
 
+  async function handleUnitCreated() {
+    const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
+    setUnits(unitsData.units)
+  }
   return (<>
     <div className="container mx-auto p-4">
       <div className="mb-6">
@@ -149,7 +153,7 @@ function RouteComponent() {
             <CardTitle>Units</CardTitle>
             <CardDescription>List of terraform state units and their current status</CardDescription>
           </div>
-          <CreateUnitModal onUnitCreated={() => navigate({ to: '/dashboard/units' })} />
+          <CreateUnitModal onUnitCreated={handleUnitCreated} />
         </CardHeader>
         <CardContent>
           {units.length === 0 ? (
