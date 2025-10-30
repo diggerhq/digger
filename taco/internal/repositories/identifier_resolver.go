@@ -32,30 +32,34 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 	}
 	
 	var result struct{ ID string }
-	
-	if parsed.Type != domain.IdentifierTypeUUID {
-		err = r.db.WithContext(ctx).
-			Table("organizations").
-			Select("id").
-			Where("external_org_id = ?", parsed.Name).
-			First(&result).Error
-		
-		if err == nil {
-			return result.ID, nil
-		}
-		return "", fmt.Errorf("organization not found: %s", parsed.Name)
+	lookupValue := parsed.Name
+	if parsed.Type == domain.IdentifierTypeUUID {
+		lookupValue = parsed.UUID
 	}
 	
 	err = r.db.WithContext(ctx).
 		Table("organizations").
 		Select("id").
-		Where("id = ?", parsed.UUID).
+		Where("external_org_id = ?", lookupValue).
 		First(&result).Error
 	
-	if err != nil {
-		return "", fmt.Errorf("organization not found: %s", parsed.UUID)
+	if err == nil {
+		return result.ID, nil
 	}
-	return parsed.UUID, nil
+	
+	if parsed.Type == domain.IdentifierTypeUUID {
+		err = r.db.WithContext(ctx).
+			Table("organizations").
+			Select("id").
+			Where("id = ?", parsed.UUID).
+			First(&result).Error
+		
+		if err == nil {
+			return parsed.UUID, nil
+		}
+	}
+	
+	return "", fmt.Errorf("organization not found: %s", lookupValue)
 }
 
 // ResolveUnit resolves unit identifier to UUID within an organization
