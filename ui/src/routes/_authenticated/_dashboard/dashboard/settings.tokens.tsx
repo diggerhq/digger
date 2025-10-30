@@ -142,7 +142,7 @@ function RouteComponent() {
           </Dialog>
         </div>
         {newToken && (
-          <div className="space-y-2">
+          <div className="space-y-2 bg-blue-50 p-4 rounded-lg border border-blue-200">
             <p className="text-sm font-medium">New Token (copy this now, it won't be shown again):</p>
             <div className="flex space-x-2">
               <Input value={newToken} readOnly />
