@@ -57,16 +57,9 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, displayName, ex
 		return nil, err
 	}
 
-	// Check if org already exists by name (infrastructure logic)
-	var existing types.Organization
-	err := r.db.WithContext(ctx).Where(queryOrgByName, orgID).First(&existing).Error
-	if err == nil {
-		return nil, domain.ErrOrgExists
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to check existing org: %w", err)
-	}
-
+	// Note: Name uniqueness is no longer enforced - multiple orgs can have the same name
+	// Only external_org_id must be unique (enforced by database constraint)
+	
 	// Check if external org ID already exists (if provided)
 	if externalOrgID != "" {
 		var existingExternal types.Organization
