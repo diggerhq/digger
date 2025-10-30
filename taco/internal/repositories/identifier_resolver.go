@@ -45,34 +45,11 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		First(&result).Error
 	
 	if err == nil {
-		fmt.Printf("[IdentifierResolver] Resolved org by name: '%s' -> UUID: %s\n", parsed.Name, result.ID)
 		return result.ID, nil
 	}
 	
 	// If not found by name, try external org ID
 	// This handles cases where someone passes an external ID directly
-	fmt.Printf("[IdentifierResolver] Name lookup failed for '%s', trying external_org_id lookup\n", parsed.Name)
-	
-	// First, let's debug: see what external org IDs exist
-	var debugOrgs []struct {
-		ID            string
-		Name          string
-		ExternalOrgID *string
-	}
-	r.db.WithContext(ctx).
-		Table("organizations").
-		Select("id, name, external_org_id").
-		Find(&debugOrgs)
-	
-	fmt.Printf("[IdentifierResolver] DEBUG: All orgs in database:\n")
-	for _, org := range debugOrgs {
-		extID := "<null>"
-		if org.ExternalOrgID != nil {
-			extID = *org.ExternalOrgID
-		}
-		fmt.Printf("  - ID: %s, Name: %s, ExternalOrgID: %s\n", org.ID, org.Name, extID)
-	}
-	
 	err = r.db.WithContext(ctx).
 		Table("organizations").
 		Select("id").
@@ -80,11 +57,9 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 		First(&result).Error
 	
 	if err == nil {
-		fmt.Printf("[IdentifierResolver] Resolved org by external_org_id: '%s' -> UUID: %s\n", parsed.Name, result.ID)
 		return result.ID, nil
 	}
 	
-	fmt.Printf("[IdentifierResolver] ERROR: Could not resolve organization '%s' by name or external_org_id\n", parsed.Name)
 	return "", fmt.Errorf("organization not found: %s", parsed.Name)
 }
 
