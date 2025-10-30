@@ -5,7 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/diggerhq/digger/opentaco/internal/auth"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
+
 	"io"
 	"net/http"
 	"strings"
@@ -679,9 +682,20 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 
 	// Build URLs
 	baseURL := getBaseURL(c)
-	uploadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/upload", baseURL, stateVersionID)
+
+	signedUploadUrl, err := auth.SignURL(baseURL, fmt.Sprintf("/tfe/api/v2/state-versions/%s/upload", stateVersionID), time.Now().Add(2*time.Minute))
+	if err != nil {
+		fmt.Printf("CreateStateVersion: ERROR - Failed to sign URL: %v\n", err)
+		return c.JSON(500, map[string]string{"error": "Failed to sign URL"})
+	}
+
+	signedJsonUploadUrl, err := auth.SignURL(baseURL, fmt.Sprintf("/tfe/api/v2/state-versions/%s/json-upload", stateVersionID), time.Now().Add(2*time.Minute))
+	if err != nil {
+		fmt.Printf("CreateStateVersion: ERROR - Failed to sign URL: %v\n", err)
+		return c.JSON(500, map[string]string{"error": "Failed to sign URL"})
+	}
+
 	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, stateVersionID)
-	jsonUploadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/json-upload", baseURL, stateVersionID)
 
 	// Derive serial and lineage from existing state (if any)
 	serial := 0
@@ -699,7 +713,6 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 	}
 
 	fmt.Printf("CreateStateVersion: baseURL='%s'\n", baseURL)
-	fmt.Printf("CreateStateVersion: uploadURL='%s'\n", uploadURL)
 
 	// Build the response
 	response := map[string]interface{}{
@@ -710,10 +723,10 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 				"created-at":                   time.Now().UTC().Format(time.RFC3339),
 				"updated-at":                   time.Now().UTC().Format(time.RFC3339),
 				"size":                         0,
-				"upload-url":                   uploadURL,
-				"hosted-state-upload-url":      uploadURL,
+				"upload-url":                   signedUploadUrl,
+				"hosted-state-upload-url":      signedUploadUrl,
 				"hosted-state-download-url":    downloadURL,
-				"hosted-json-state-upload-url": jsonUploadURL,
+				"hosted-json-state-upload-url": signedJsonUploadUrl,
 				"serial":                       serial,
 				"lineage":                      lineage,
 			},

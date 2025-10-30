@@ -271,8 +271,10 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	// Upload endpoints exempt from auth middleware (Terraform doesn't send auth headers)
 	// Security: These validate lock ownership and have RBAC checks in handlers
 	// Upload URLs can only be obtained from authenticated CreateStateVersion calls
-	e.PUT("/tfe/api/v2/state-versions/:id/upload", tfeHandler.UploadStateVersion)
-	e.PUT("/tfe/api/v2/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
+	tfeSignedUrlsGroup := e.Group("/tfe/api/v2")
+	tfeSignedUrlsGroup.Use(middleware.VerifySignedURL)
+	tfeSignedUrlsGroup.PUT("/state-versions/:id/upload", tfeHandler.UploadStateVersion)
+	tfeSignedUrlsGroup.PUT("/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
 
 	// Keep discovery endpoints unprotected (needed for terraform login)
 	e.GET("/.well-known/terraform.json", tfeHandler.GetWellKnownJson)
