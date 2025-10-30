@@ -31,7 +31,12 @@ const server = createServer(async (req, res) => {
     const pathname = url.pathname;
 
     // Try to serve static files from dist/client first
-    if (pathname.startsWith('/assets/') || pathname === '/favicon.svg' || pathname === '/favicon.png' || pathname === '/favicon.ico') {
+    // Serve: /assets/*, *.js, *.css, *.json, images, fonts, favicons
+    const staticExtensions = ['.js', '.mjs', '.css', '.json', '.png', '.jpg', '.gif', '.ico', '.svg', '.woff', '.woff2'];
+    const isStaticFile = pathname.startsWith('/assets/') || 
+                         staticExtensions.some(ext => pathname.endsWith(ext));
+    
+    if (isStaticFile) {
       try {
         const filePath = join(__dirname, 'dist', 'client', pathname);
         const content = await readFile(filePath);
@@ -67,7 +72,14 @@ const server = createServer(async (req, res) => {
     });
 
     // Call the TanStack Start fetch handler
+    const ssrStart = Date.now();
     const response = await serverHandler.fetch(request);
+    const ssrTime = Date.now() - ssrStart;
+    
+    // Log slow SSR requests
+    if (ssrTime > 1000) {
+      console.log(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms`);
+    }
 
     // Convert Web Standard Response to Node.js response
     res.statusCode = response.status;
