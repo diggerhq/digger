@@ -4,15 +4,23 @@ import { createFileRoute } from '@tanstack/react-router'
 async function handler({ request }) {
   const url = new URL(request.url);
   
-  try {
-    const token = request.headers.get('authorization')?.split(' ')[1]
-    const tokenValidation = await verifyTokenFn({data: { token: token}})
-    if (!tokenValidation.valid) {
+  const isExemptPath =
+    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/upload$/.test(url.pathname) ||
+    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/json-upload$/.test(url.pathname);
+
+  if (!isExemptPath) {
+    try {
+      const token = request.headers.get('authorization')?.split(' ')[1]
+      console.log('verifying token', token, request.url)
+      console.log(request.headers)
+      const tokenValidation = await verifyTokenFn({data: { token: token}})
+      if (!tokenValidation.valid) {
+        return new Response('Unauthorized', { status: 401 })
+      }
+    } catch (error) {
+      console.error('Error verifying token', error)
       return new Response('Unauthorized', { status: 401 })
     }
-  } catch (error) {
-    console.error('Error verifying token', error)
-    return new Response('Unauthorized', { status: 401 })
   }
 
 
@@ -41,6 +49,8 @@ async function handler({ request }) {
   headers.delete('transfer-encoding');
   headers.delete('connection');
 
+
+  console.log(response.status, request.url)
   return new Response(response.body, { headers });
 }
 
