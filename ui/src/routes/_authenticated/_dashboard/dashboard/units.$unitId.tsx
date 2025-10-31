@@ -317,7 +317,7 @@ function RouteComponent() {
               ID: {unit.id}
             </CardDescription>
             <CardDescription>
-              Version {unit.version} • Last updated {formatDate(unit.updated)} • {formatBytes(unit.size)}
+              Last updated {formatDate(unit.updated)} • {formatBytes(unit.size)}
             </CardDescription>
           </CardHeader>
         </Card>

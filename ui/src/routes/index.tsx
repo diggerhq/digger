@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { getSignInUrl } from '../authkit/serverFunctions';
 import SignInButton from '../components/sign-in-button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/ui/collapsible';
@@ -7,6 +7,9 @@ export const Route = createFileRoute('/')({
   component: Home,
   loader: async ({ context }) => {
     const { user } = context;
+    if (user) {
+      throw redirect({ href: '/dashboard/units' });
+    }
     const url = await getSignInUrl();
     return { user, url };
   },

@@ -3,34 +3,45 @@ import { getSignInUrl } from '../../authkit/serverFunctions';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
 import { Link } from '@tanstack/react-router';
 import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut, Cuboid} from 'lucide-react';
+import WorkosOrgSwitcher from '@/components/WorkosOrgSwitcher';
+import { WorkOsWidgets } from '@workos-inc/widgets';
 
 export const Route = createFileRoute('/_authenticated/_dashboard')({
     component: DashboardComponent,
     loader: async ({ context }) => {
-        const { user, organisationName } = context;
-        return { user, organisationName };
+        const { user, organisationName, organisationId, publicServerConfig } = context;
+        return { user, organisationName, organisationId, publicServerConfig };
     },
 });
 
 function DashboardComponent() {
-    const { user, organisationName } = Route.useLoaderData();
+    const { user, organisationName, organisationId, publicServerConfig } = Route.useLoaderData();
+    const workosEnabled = publicServerConfig.WORKOS_REDIRECT_URI !== '';
     const location = useLocation(); 
     return (
         <SidebarProvider>
+        <WorkOsWidgets
+          style={{ display: 'contents', minHeight: 'auto', height: 'auto' } as any}
+          theme={{ panelBackground: 'solid', radius: 'none' } as any}
+        >
         <div className="flex h-screen w-full">
           <Sidebar>
             <SidebarHeader className="text-center">
               <h2 className="text-xl font-bold mb-2">🌮 OpenTACO</h2>
               <div className="px-4">
                 <div className="h-[1px] bg-border mb-2" />
-                <h3>
+                {!workosEnabled && <h3>
                   <Link 
                     to="/dashboard/settings/user" 
                     className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
                   >
                     {organisationName}
                   </Link>
-                </h3>
+                  
+                </h3>}
+                <div className="mt-2" />
+                {workosEnabled && <WorkosOrgSwitcher userId={user?.id || ''} organisationId={organisationId || ''} showSettingsItem />}
+                
                 <div className="h-[1px] bg-border mt-2" />
               </div>
             </SidebarHeader>
@@ -106,6 +117,7 @@ function DashboardComponent() {
             </div>
           </main>
         </div>
+        </WorkOsWidgets>
       </SidebarProvider>    
     )
 };
