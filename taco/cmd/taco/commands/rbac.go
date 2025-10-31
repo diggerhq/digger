@@ -176,7 +176,7 @@ func init() {
 
 // rbac user assign command
 var rbacUserAssignCmd = &cobra.Command{
-    Use:   "assign <email> <role-id>",
+    Use:   "assign <email> <role-name>",
     Short: "Assign a role to a user",
     Long:  `Assign a role to a user by email address. The user must have logged in at least once to be found in the system.`,
     Args:  cobra.ExactArgs(2),
@@ -184,7 +184,7 @@ var rbacUserAssignCmd = &cobra.Command{
         client := newAuthedClient()
         
         email := args[0]
-        roleID := args[1]
+        roleID := mustResolveRoleID(context.Background(), client, args[1])
         
         printVerbose("Assigning role %s to user %s", roleID, email)
         
@@ -209,7 +209,7 @@ var rbacUserAssignCmd = &cobra.Command{
 
 // rbac user revoke command
 var rbacUserRevokeCmd = &cobra.Command{
-    Use:   "revoke <email> <role-id>",
+    Use:   "revoke <email> <role-name>",
     Short: "Revoke a role from a user",
     Long:  `Revoke a role from a user by email address.`,
     Args:  cobra.ExactArgs(2),
@@ -217,7 +217,7 @@ var rbacUserRevokeCmd = &cobra.Command{
         client := newAuthedClient()
         
         email := args[0]
-        roleID := args[1]
+        roleID := mustResolveRoleID(context.Background(), client, args[1])
         
         printVerbose("Revoking role %s from user %s", roleID, email)
         
@@ -382,13 +382,14 @@ var rbacRoleListCmd = &cobra.Command{
         
         // Create tabwriter
         w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-        fmt.Fprintln(w, "ID\tNAME\tDESCRIPTION\tPERMISSIONS\tCREATED")
+        fmt.Fprintln(w, "NAME\tDESCRIPTION\tPERMISSIONS\tCREATED")
         
         for _, role := range roles {
             permissions := strings.Join(role.Permissions, ", ")
-            fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-                role.ID,
-                role.Name,
+            name := role.Name
+            if name == "" { name = role.ID }
+            fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+                name,
                 role.Description,
                 permissions,
                 role.CreatedAt,
@@ -404,14 +405,14 @@ var rbacRoleListCmd = &cobra.Command{
 
 // rbac role delete command
 var rbacRoleDeleteCmd = &cobra.Command{
-    Use:   "delete <role-id>",
+    Use:   "delete <role-name>",
     Short: "Delete a role",
-    Long:  `Delete a role by ID.`,
+    Long:  `Delete a role by name.`,
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
         client := newAuthedClient()
         
-        roleID := args[0]
+        roleID := mustResolveRoleID(context.Background(), client, args[0])
         
         printVerbose("Deleting role %s", roleID)
         
@@ -597,7 +598,7 @@ var rbacPermissionListCmd = &cobra.Command{
         }
         
         w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-        fmt.Fprintln(w, "ID\tName\tDescription\tRules\tCreated")
+        fmt.Fprintln(w, "NAME\tDESCRIPTION\tRULES\tCREATED")
         
         for _, permission := range permissions {
             rules := ""
@@ -608,9 +609,10 @@ var rbacPermissionListCmd = &cobra.Command{
                 rules += fmt.Sprintf("%s:%s:%s", rule.Effect, strings.Join(rule.Actions, ","), strings.Join(rule.Resources, ","))
             }
             
-            fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-                permission.ID,
-                permission.Name,
+            name := permission.Name
+            if name == "" { name = permission.ID }
+            fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+                name,
                 permission.Description,
                 rules,
                 permission.CreatedAt,
@@ -625,13 +627,12 @@ var rbacPermissionListCmd = &cobra.Command{
 
 // rbac permission delete command
 var rbacPermissionDeleteCmd = &cobra.Command{
-    Use:   "delete <id>",
+    Use:   "delete <name>",
     Short: "Delete a permission",
     Args:  cobra.ExactArgs(1),
     RunE: func(cmd *cobra.Command, args []string) error {
-        id := args[0]
-        
         client := newAuthedClient()
+        id := mustResolvePermissionID(context.Background(), client, args[0])
         
         resp, err := client.Delete(context.Background(), "/v1/rbac/permissions/"+id)
         if err != nil {
@@ -895,15 +896,14 @@ func testUserListOutput(client *sdk.Client, email string, args []string) (*TestR
 
 // rbac role assign-policy command
 var rbacRoleAssignPolicyCmd = &cobra.Command{
-    Use:   "assign-policy <role-id> <policy-id>",
+    Use:   "assign-policy <role-name> <permission-name>",
     Short: "Assign a policy to a role",
     Long:  `Assign a policy to a role, giving the role the permissions defined in the policy.`,
     Args:  cobra.ExactArgs(2),
     RunE: func(cmd *cobra.Command, args []string) error {
-        roleID := args[0]
-        permissionID := args[1]
-        
         client := newAuthedClient()
+        roleID := mustResolveRoleID(context.Background(), client, args[0])
+        permissionID := mustResolvePermissionID(context.Background(), client, args[1])
         
         req := map[string]string{
             "role_id":       roleID,
@@ -926,15 +926,14 @@ var rbacRoleAssignPolicyCmd = &cobra.Command{
 
 // rbac role revoke-permission command
 var rbacRoleRevokePermissionCmd = &cobra.Command{
-    Use:   "revoke-permission <role-id> <permission-id>",
+    Use:   "revoke-permission <role-name> <permission-name>",
     Short: "Revoke a permission from a role",
     Long:  `Revoke a permission from a role, removing the access rights defined in the permission.`,
     Args:  cobra.ExactArgs(2),
     RunE: func(cmd *cobra.Command, args []string) error {
-        roleID := args[0]
-        permissionID := args[1]
-        
         client := newAuthedClient()
+        roleID := mustResolveRoleID(context.Background(), client, args[0])
+        permissionID := mustResolvePermissionID(context.Background(), client, args[1])
         
         resp, err := client.Delete(context.Background(), "/v1/rbac/roles/"+roleID+"/permissions/"+permissionID)
         if err != nil {
@@ -948,4 +947,64 @@ var rbacRoleRevokePermissionCmd = &cobra.Command{
         fmt.Printf("Permission '%s' revoked from role '%s' successfully\n", permissionID, roleID)
         return nil
     },
+}
+
+// mustResolveRoleID resolves a role name to its ID
+// If the argument is already a valid identifier, it's returned as-is
+func mustResolveRoleID(ctx context.Context, client *sdk.Client, arg string) string {
+    resp, err := client.Get(ctx, "/v1/rbac/roles")
+    if err != nil || resp.StatusCode != 200 {
+        return arg // fallback
+    }
+    defer resp.Body.Close()
+    
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return arg
+    }
+    
+    var roles []Role
+    if err := json.Unmarshal(body, &roles); err != nil {
+        return arg
+    }
+    
+    for _, r := range roles {
+        if r.Name == arg || r.ID == arg {
+            if r.ID != "" {
+                return r.ID
+            }
+            return arg
+        }
+    }
+    return arg
+}
+
+// mustResolvePermissionID resolves a permission name to its ID
+// If the argument is already a valid identifier, it's returned as-is
+func mustResolvePermissionID(ctx context.Context, client *sdk.Client, arg string) string {
+    resp, err := client.Get(ctx, "/v1/rbac/permissions")
+    if err != nil || resp.StatusCode != 200 {
+        return arg // fallback
+    }
+    defer resp.Body.Close()
+    
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return arg
+    }
+    
+    var permissions []Permission
+    if err := json.Unmarshal(body, &permissions); err != nil {
+        return arg
+    }
+    
+    for _, p := range permissions {
+        if p.Name == arg || p.ID == arg {
+            if p.ID != "" {
+                return p.ID
+            }
+            return arg
+        }
+    }
+    return arg
 }
