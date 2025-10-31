@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, Plus, Database, ExternalLink, Lock, Unlock, Cloud, HardDrive } from 'lucide-react'
 import {
   Table,
@@ -192,11 +192,15 @@ function RouteComponent() {
   const {  unitsData, organisationId, user } = Route.useLoaderData()
   const [units, setUnits] = useState(unitsData?.units || [])
   const navigate = Route.useNavigate()
-
+  const router = useRouter()
+  
   async function handleUnitCreated() {
     const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
     setUnits(unitsData.units)
+    navigate({ to: '/dashboard/units/$unitId', params: { unitId: unitsData.units[0].id } })
+    router.invalidate()
   }
+  
   return (<>
     <div className="container mx-auto p-4">
       <div className="mb-6">
