@@ -2,6 +2,7 @@ package unit
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -111,7 +112,10 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 	if err != nil {
 		if err == storage.ErrAlreadyExists {
 			analytics.SendEssential("unit_create_failed_already_exists")
-			return c.JSON(http.StatusConflict, map[string]string{"error": "Unit already exists"})
+			return c.JSON(http.StatusConflict, map[string]string{
+				"error": "Unit already exists",
+				"detail": fmt.Sprintf("A unit with name '%s' already exists in this organization", name),
+			})
 		}
 		// Log the actual error for debugging
 		c.Logger().Errorf("Failed to create unit '%s' in org '%s': %v", name, orgCtx.OrgID, err)

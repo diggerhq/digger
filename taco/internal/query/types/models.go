@@ -141,8 +141,8 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 
 type Unit struct {
 	ID          string     `gorm:"type:varchar(36);primaryKey"`
-	OrgID       string     `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
-	Name        string     `gorm:"type:varchar(255);not null;index"`
+	OrgID       string     `gorm:"type:varchar(36);index;uniqueIndex:idx_units_org_name"` // Foreign key to organizations.id (UUID)
+	Name        string     `gorm:"type:varchar(255);not null;index;uniqueIndex:idx_units_org_name"`
 	Size        int64      `gorm:"default:0"`
 	UpdatedAt   time.Time  `gorm:"autoUpdateTime"`
 	Locked      bool       `gorm:"default:false"`

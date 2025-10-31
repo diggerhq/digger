@@ -246,7 +246,14 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 
 	// TFE api - inject auth handler, full repository, blob store for tokens, and RBAC dependencies
 	// TFE handler scopes to TFEOperations internally but needs blob store for API token storage
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.BlobStore, deps.RBACManager)
+	// Create identifier resolver for org resolution
+	var tfeIdentifierResolver domain.IdentifierResolver
+	if deps.QueryStore != nil {
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
+			tfeIdentifierResolver = repositories.NewIdentifierResolver(db)
+		}
+	}
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
 
 	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")
