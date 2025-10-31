@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -71,11 +72,21 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 	}
 
 	if err := r.db.WithContext(ctx).Create(unit).Error; err != nil {
+		// Check if this is a unique constraint violation
+		// GORM doesn't have a specific error type, so we check the error string
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "duplicate") || 
+		   strings.Contains(errMsg, "unique constraint") ||
+		   strings.Contains(errMsg, "UNIQUE constraint") ||
+		   strings.Contains(errMsg, "idx_units_org_name") {
+			return nil, storage.ErrAlreadyExists
+		}
 		return nil, fmt.Errorf("failed to create unit in database: %w", err)
 	}
 
-	// Construct org-scoped blob path: {orgId}/{name}
-	blobPath := fmt.Sprintf("%s/%s", org.Name, name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	// This is immutable - unit renames won't affect S3 paths
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Create blob in storage
 	_, err = r.blobStore.Create(ctx, blobPath)
@@ -85,8 +96,8 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 		return nil, fmt.Errorf("failed to create blob storage: %w", err)
 	}
 
-	log.Printf("Created unit: UUID=%s, Org=%s, Name=%s, BlobPath=%s", 
-		unit.ID, org.Name, name, blobPath)
+	log.Printf("Created unit: UUID=%s, Org=%s (%s), Name=%s, BlobPath=%s", 
+		unit.ID, org.Name, org.ID, name, blobPath)
 
 	return &storage.UnitMetadata{
 		ID:       unit.ID,      // UUID
@@ -116,8 +127,8 @@ func (r *UnitRepository) Get(ctx context.Context, uuid string) (*storage.UnitMet
 		return nil, fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Get blob metadata (size, lock info)
 	blobMeta, err := r.blobStore.Get(ctx, blobPath)
@@ -197,8 +208,8 @@ func (r *UnitRepository) Delete(ctx context.Context, uuid string) error {
 		return fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Delete from blob storage first
 	if err := r.blobStore.Delete(ctx, blobPath); err != nil && err != storage.ErrNotFound {
@@ -210,7 +221,8 @@ func (r *UnitRepository) Delete(ctx context.Context, uuid string) error {
 		return fmt.Errorf("failed to delete unit from database: %w", err)
 	}
 
-	log.Printf("Deleted unit: UUID=%s, Org=%s, Name=%s", uuid, org.Name, unit.Name)
+	log.Printf("Deleted unit: UUID=%s, Org=%s (%s), Name=%s, BlobPath=%s", 
+		uuid, org.Name, org.ID, unit.Name, blobPath)
 	return nil
 }
 
@@ -231,8 +243,8 @@ func (r *UnitRepository) Download(ctx context.Context, uuid string) ([]byte, err
 		return nil, fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Download from blob storage
 	return r.blobStore.Download(ctx, blobPath)
@@ -281,8 +293,8 @@ func (r *UnitRepository) Upload(ctx context.Context, uuid string, data []byte, l
 		return fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Upload to blob storage
 	if err := r.blobStore.Upload(ctx, blobPath, data, lockID); err != nil {
@@ -317,8 +329,8 @@ func (r *UnitRepository) Lock(ctx context.Context, uuid string, lockInfo *storag
 		return fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Lock in blob storage
 	if err := r.blobStore.Lock(ctx, blobPath, lockInfo); err != nil {
@@ -355,8 +367,8 @@ func (r *UnitRepository) Unlock(ctx context.Context, uuid string, lockID string)
 		return fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	// Unlock in blob storage
 	if err := r.blobStore.Unlock(ctx, blobPath, lockID); err != nil {
@@ -393,8 +405,8 @@ func (r *UnitRepository) ListVersions(ctx context.Context, uuid string) ([]*stor
 		return nil, fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	return r.blobStore.ListVersions(ctx, blobPath)
 }
@@ -416,8 +428,8 @@ func (r *UnitRepository) RestoreVersion(ctx context.Context, uuid string, versio
 		return fmt.Errorf(errMsgOrgNotFound, err)
 	}
 
-	// Construct blob path
-	blobPath := fmt.Sprintf("%s/%s", org.Name, unit.Name)
+	// Construct UUID-based blob path: {org-uuid}/{unit-uuid}
+	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
 	return r.blobStore.RestoreVersion(ctx, blobPath, versionTimestamp, lockID)
 }

@@ -79,6 +79,15 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, displayName, ex
 		externalOrgIDPtr = &externalOrgID
 	}
 	
+	slog.Info("Creating organization entity",
+		"orgID", orgID,
+		"name", name,
+		"displayName", displayName,
+		"externalOrgID", externalOrgID,
+		"externalOrgIDPtr", externalOrgIDPtr,
+		"createdBy", createdBy,
+	)
+	
 	entity := &types.Organization{
 		Name:          orgID,
 		DisplayName:   displayName,
@@ -92,11 +101,13 @@ func (r *orgRepository) Create(ctx context.Context, orgID, name, displayName, ex
 		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
-	slog.Info("Organization created successfully",
+	slog.Info("Organization created successfully in database",
+		"dbID", entity.ID,
 		"orgID", orgID,
 		"name", name,
 		"displayName", displayName,
 		"externalOrgID", externalOrgID,
+		"storedExternalOrgID", getStringValue(entity.ExternalOrgID),
 		"createdBy", createdBy,
 	)
 

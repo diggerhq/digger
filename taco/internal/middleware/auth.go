@@ -198,7 +198,8 @@ func OpaqueOnlyVerifier(apiTokenMgr *auth.APITokenManager) AccessTokenVerifier {
         if apiTokenMgr == nil {
             return echo.NewHTTPError(http.StatusInternalServerError, "API token manager not configured")
         }
-        
+
+
         // Default to "default" org (no context available in this verifier)
         if _, err := apiTokenMgr.Verify(context.Background(), "default", token); err != nil {
             return echo.ErrUnauthorized

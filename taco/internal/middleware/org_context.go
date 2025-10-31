@@ -44,7 +44,22 @@ func JWTOrgResolverMiddleware(resolver domain.IdentifierResolver) echo.Middlewar
 func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			log.Printf("[WebhookOrgResolver] MIDDLEWARE INVOKED for path: %s", c.Path())
+			path := c.Request().URL.Path
+			method := c.Request().Method
+			
+			log.Printf("[WebhookOrgResolver] MIDDLEWARE INVOKED for path: %s, method: %s", path, method)
+			
+			// Skip org resolution for endpoints that create/list orgs
+			// These endpoints don't require an existing org context
+			skipOrgResolution := (method == "POST" && path == "/internal/api/orgs") ||
+				(method == "POST" && path == "/internal/api/orgs/sync") ||
+				(method == "GET" && path == "/internal/api/orgs") ||
+				(method == "GET" && path == "/internal/api/orgs/user")
+			
+			if skipOrgResolution {
+				log.Printf("[WebhookOrgResolver] Skipping org resolution for endpoint: %s %s", method, path)
+				return next(c)
+			}
 			
 			// Get org name from echo context (set by WebhookAuth)
 			orgName, ok := c.Get("organization_id").(string)
@@ -64,7 +79,14 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 			orgUUID, err := resolver.ResolveOrganization(c.Request().Context(), orgName)
 			if err != nil {
 				log.Printf("[WebhookOrgResolver] ERROR: Failed to resolve organization '%s': %v", orgName, err)
-				return echo.NewHTTPError(500, "Failed to resolve organization")
+				log.Printf("[WebhookOrgResolver] ERROR: This likely means the organization doesn't exist in the database yet or the external_org_id doesn't match")
+				log.Printf("[WebhookOrgResolver] ERROR: Check if the organization was created successfully with external_org_id='%s'", orgName)
+				return echo.NewHTTPError(500, map[string]interface{}{
+					"error": "Failed to resolve organization",
+					"detail": err.Error(),
+					"org_identifier": orgName,
+					"hint": "The organization may not exist in the database or the external_org_id doesn't match",
+				})
 			}
 			
 			log.Printf("[WebhookOrgResolver] SUCCESS: Resolved '%s' to UUID: %s", orgName, orgUUID)
