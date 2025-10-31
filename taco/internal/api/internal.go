@@ -5,10 +5,14 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/diggerhq/digger/opentaco/internal/auth"
+	"github.com/diggerhq/digger/opentaco/internal/auth/oidc"
+	"github.com/diggerhq/digger/opentaco/internal/auth/sts"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/middleware"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/repositories"
+	"github.com/diggerhq/digger/opentaco/internal/tfe"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
 	"github.com/labstack/echo/v4"
 )
@@ -123,6 +127,59 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	internal.GET("/units/:id/versions", unitHandler.ListVersions)
 	internal.POST("/units/:id/restore", unitHandler.RestoreVersion)
 
+	// ====================================================================================
+	// TFE API Routes with Webhook Auth (for UI forwarding)
+	// ====================================================================================
+	// These mirror the public TFE routes but use webhook auth instead of opaque tokens
+	// This allows the UI to forward Terraform Cloud API requests on behalf of users
+	
+	// Prepare auth deps for TFE handler
+	stsi, _ := sts.NewStatelessIssuerFromEnv()
+	ver, _ := oidc.NewFromEnv()
+	authHandler := auth.NewHandler(deps.Signer, stsi, ver)
+	apiTokenMgr := auth.NewAPITokenManagerFromStore(deps.BlobStore)
+	authHandler.SetAPITokenManager(apiTokenMgr)
+	
+	// Create identifier resolver for TFE org resolution
+	var tfeIdentifierResolver domain.IdentifierResolver
+	if deps.QueryStore != nil {
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
+			tfeIdentifierResolver = repositories.NewIdentifierResolver(db)
+		}
+	}
+	
+	// Create TFE handler with webhook auth context
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
+	
+	// TFE group with webhook auth (for UI pass-through)
+	tfeInternal := e.Group("/internal/tfe/api/v2")
+	tfeInternal.Use(middleware.WebhookAuth())
+	
+	// Add org resolution middleware for TFE routes
+	if tfeIdentifierResolver != nil {
+		tfeInternal.Use(middleware.ResolveOrgContextMiddleware(tfeIdentifierResolver))
+		log.Println("Org context resolution middleware enabled for internal TFE routes")
+	}
+	
+	// Register TFE endpoints (same handlers as public TFE routes)
+	tfeInternal.GET("/ping", tfeHandler.Ping)
+	tfeInternal.GET("/organizations/:org_name/entitlement-set", tfeHandler.GetOrganizationEntitlements)
+	tfeInternal.GET("/account/details", tfeHandler.AccountDetails)
+	tfeInternal.GET("/organizations/:org_name/workspaces/:workspace_name", tfeHandler.GetWorkspace)
+	tfeInternal.POST("/workspaces/:workspace_id/actions/lock", tfeHandler.LockWorkspace)
+	tfeInternal.POST("/workspaces/:workspace_id/actions/unlock", tfeHandler.UnlockWorkspace)
+	tfeInternal.POST("/workspaces/:workspace_id/actions/force-unlock", tfeHandler.ForceUnlockWorkspace)
+	tfeInternal.GET("/workspaces/:workspace_id/current-state-version", tfeHandler.GetCurrentStateVersion)
+	tfeInternal.POST("/workspaces/:workspace_id/state-versions", tfeHandler.CreateStateVersion)
+	tfeInternal.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
+	tfeInternal.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
+	
+	log.Println("TFE API endpoints registered at /internal/tfe/api/v2 with webhook auth")
+	
+	// ====================================================================================
+	// Health and Info Endpoints
+	// ====================================================================================
+	
 	// Health check for internal routes
 	internal.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
