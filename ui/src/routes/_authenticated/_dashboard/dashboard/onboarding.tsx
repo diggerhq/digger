@@ -14,13 +14,19 @@ export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/onboarding',
 )({
   component: RouteComponent,
+  loader: async ({ context }) => {
+    const { user, organisationId, publicServerConfig } = context
+    const publicHostname = publicServerConfig?.PUBLIC_HOSTNAME || ''
+    return { user, organisationId, publicHostname }
+  },
 })
 
 function RouteComponent() {
+    const { user, organisationId, publicHostname } = Route.useLoaderData()
     const [repoInfo, setRepoInfo] = useState<RepoInfo | null>(null)
     const router = useRouter()
     const handleOnboardingComplete = () => {
-        router.navigate({ to: "/dashboard/repos" })
+        router.navigate({ to: "/dashboard/units" })
       }
 
   return (
@@ -36,10 +42,20 @@ function RouteComponent() {
       <OnboardingSteps
         repoName={repoInfo.name}
         repoOwner={repoInfo.owner}
+        userId={user?.id || ''}
+        email={user?.email || ''}
+        organisationId={organisationId || ''}
+        publicHostname={publicHostname}
         onComplete={handleOnboardingComplete}
       />
     ) : (
-      <OnboardingSteps onComplete={handleOnboardingComplete} />
+      <OnboardingSteps
+        userId={user?.id || ''}
+        email={user?.email || ''}
+        organisationId={organisationId || ''}
+        publicHostname={publicHostname}
+        onComplete={handleOnboardingComplete}
+      />
     )}
   </div>    
   )

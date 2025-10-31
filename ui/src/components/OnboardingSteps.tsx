@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Github, CheckCircle2, FileCode2, GitPullRequest, FileText, Copy } from "lucide-react"
+import { Github, CheckCircle2, FileCode2, FileText, Copy, Database, Settings } from "lucide-react"
 import { GithubConnectButton } from "./GithubConnectButton"
 import { WorkflowFileButton } from "./WorkflowFileButton"
 import { DiggerYmlButton } from "./DiggerYmlButton"
-import { PRCreatedButton } from "./PRCreatedButton"
+// import { PRCreatedButton } from "./PRCreatedButton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 // import { useToast } from "@/components/ui/use-toast"
@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ToastAction } from "./ui/toast"
+import UnitCreateForm from "./UnitCreateForm"
+import UnitConfigureInstructions from "./UnitConfigureInstructions"
 
 interface Repo {
   id: number
@@ -27,6 +29,10 @@ interface OnboardingStepsProps {
   repoName?: string
   repoOwner?: string
   onComplete?: () => void
+  userId: string
+  email: string
+  organisationId: string
+  publicHostname: string
 }
 
 interface WorkflowConfig {
@@ -36,14 +42,17 @@ interface WorkflowConfig {
   iacVersion: string
 }
 
-export default function OnboardingSteps({ repoName, repoOwner, onComplete }: OnboardingStepsProps) {
-  const [currentStep, setCurrentStep] = useState("github")
+export default function OnboardingSteps({ repoName, repoOwner, onComplete, userId, email, organisationId, publicHostname }: OnboardingStepsProps) {
+  const [currentStep, setCurrentStep] = useState("create-unit")
   const [steps, setSteps] = useState({
     githubConnected: false,
     workflowCreated: false,
     diggerConfigCreated: false,
+    unitCreated: false,
+    unitConfigured: false,
     terraformPRCreated: false
   })
+  const [createdUnit, setCreatedUnit] = useState<{ id: string; name: string } | null>(null)
   const [repos, setRepos] = useState<Repo[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [workflowConfig, setWorkflowConfig] = useState<WorkflowConfig>({
@@ -60,6 +69,7 @@ export default function OnboardingSteps({ repoName, repoOwner, onComplete }: Onb
     terraform: false
 `)
   const { toast } = useToast()
+
 
   const generateWorkflowContent = (config: WorkflowConfig) => {
     const iacVersion = config.iacVersion || (config.iacType === "terraform" ? "1.5.6" : "1.9.1")
@@ -134,22 +144,26 @@ jobs:
   }
 
   const handleDiggerConfigCreate = async () => {
-    setCurrentStep("terraform")
+    setCurrentStep("complete")
     setSteps(prev => ({ ...prev, diggerConfigCreated: true }))
   }
 
-  const handleTerraformPR = async () => {
-    toast({
-      title: "Success",
-      description: "You have configured your repository with Digger!"
-    })
-    setTimeout(() => {
-      window.location.href = "/dashboard/repos"
-    }, 1000)
+  const handleCreateUnit = (unit?: { id: string; name: string }) => {
+    console.log('handleCreateUnit', unit)
+    if (unit) setCreatedUnit({ id: unit.id, name: unit.name })
+    setSteps(prev => ({ ...prev, unitCreated: true }))
+    setCurrentStep("configure-unit")
   }
 
+  const handleConfigureUnit = async () => {
+    setCurrentStep("terraform")
+    setSteps(prev => ({ ...prev, unitConfigured: true }))
+  }
+
+  // Finalize onboarding
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Repository Setup</CardTitle>
@@ -157,7 +171,13 @@ jobs:
         </CardHeader>
         <CardContent>
           <Tabs value={currentStep} onValueChange={setCurrentStep} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="create-unit" disabled={steps.unitCreated}>
+                <Database className="mr-2 h-4 w-4" /> Create Unit
+              </TabsTrigger>
+              <TabsTrigger value="configure-unit" disabled={!steps.unitCreated || steps.unitConfigured}>
+                <Settings className="mr-2 h-4 w-4" /> Configure Unit
+              </TabsTrigger>              
               <TabsTrigger value="github" disabled={steps.githubConnected}>
                 <Github className="mr-2 h-4 w-4" /> GitHub
               </TabsTrigger>
@@ -167,8 +187,9 @@ jobs:
               <TabsTrigger value="digger" disabled={!steps.workflowCreated || steps.diggerConfigCreated}>
                 <FileText className="mr-2 h-4 w-4" /> digger.yml
               </TabsTrigger>
-              <TabsTrigger value="terraform" disabled={!steps.diggerConfigCreated || steps.terraformPRCreated}>
-                <GitPullRequest className="mr-2 h-4 w-4" /> Terraform
+
+              <TabsTrigger value="complete" disabled={!steps.unitCreated}>
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Complete
               </TabsTrigger>
             </TabsList>
 
@@ -178,9 +199,8 @@ jobs:
                 <p className="text-sm text-gray-500">
                   Install the Digger GitHub App to connect your repository
                 </p>
-                {!steps.githubConnected && (
+
                   <GithubConnectButton source="onboarding" onClick={handleGithubConnect} />
-                )}
               </div>
             </TabsContent>
 
@@ -190,7 +210,7 @@ jobs:
                 <p className="text-sm text-gray-500">
                   Pick your settings and then copy the workflow file to your repository
                 </p>
-                {!steps.workflowCreated && steps.githubConnected && (
+
                   <>
                     <div className="space-y-4">
                       
@@ -285,7 +305,7 @@ jobs:
                       </div>
                     </div>
                   </>
-                )}
+
               </div>
             </TabsContent>
 
@@ -295,7 +315,7 @@ jobs:
                 <p className="text-sm text-gray-500">
                   Configure your digger.yml file for the selected repository
                 </p>
-                {!steps.diggerConfigCreated && steps.workflowCreated && (
+
                   <>
                     <Textarea
                       value={diggerConfig}
@@ -307,22 +327,69 @@ jobs:
                       <DiggerYmlButton onClick={handleDiggerConfigCreate} />
                     </div>
                   </>
+
+              </div>
+            </TabsContent>
+
+            <TabsContent value="create-unit" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="font-medium">Create a Unit</h3>
+                <p className="text-sm text-gray-500">
+                  A unit is a deployable piece of Terraform that you plan and apply. You can also
+                  use it to run remote jobs. If you are coming from Terraform Cloud, this is very
+                  similar to a "Workspace".
+                </p>
+
+                {!steps.unitCreated && (
+                  <UnitCreateForm
+                    userId={userId}
+                    email={email}
+                    organisationId={organisationId}
+                    onCreated={handleCreateUnit}
+                    onBringOwnState={() => setCurrentStep('github')}
+                  />
                 )}
               </div>
             </TabsContent>
 
-            <TabsContent value="terraform" className="mt-6">
+            <TabsContent value="configure-unit" className="mt-6">
               <div className="space-y-4">
-                <h3 className="font-medium">Create Terraform PR</h3>
-                <p className="text-sm text-gray-500">
-                  Create a pull request to verify your Terraform configuration. This should be in a root module that exists in digger.yml. 
-                  Once created you should see a comment by digger and an action job started!
-                </p>
-                {!steps.terraformPRCreated && steps.diggerConfigCreated && (
-                  <div className="flex justify-end">
-                    <PRCreatedButton onClick={handleTerraformPR} />
+                {!steps.unitCreated ? (
+                  <div className="text-sm text-gray-500">
+                    Please create a unit first.
+                    <div className="mt-4">
+                      <Button onClick={() => setCurrentStep('create-unit')}>Go to Create Unit</Button>
+                    </div>
                   </div>
+                ) : createdUnit ? (
+                  <UnitConfigureInstructions
+                    unitId={createdUnit.id}
+                    organisationId={organisationId}
+                    publicHostname={publicHostname}
+                    onGoToGithub={() => setCurrentStep('github')}
+                    onGoToLocal={() => setCurrentStep('complete')}
+                  />
+                ) : (
+                  <div className="text-sm text-gray-500">Preparing configuration…</div>
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="complete" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="font-medium">All set!</h3>
+                <p className="text-sm text-gray-500">
+                  Your unit is created and configured. If you want to test Terraform automation, create a PR
+                  that touches one of your Terraform directories defined in <code className="font-mono">digger.yml</code>.
+                  Digger will comment with a plan and manage runs automatically.
+                  Alternatively, you can run <code className="font-mono">terraform plan</code> and <code className="font-mono">terraform apply</code> locally using the instructions in the previous step.
+                </p>
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="outline" onClick={() => setCurrentStep('configure-unit')}>Back</Button>
+                  {onComplete && (
+                    <Button onClick={onComplete}>Finish</Button>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
