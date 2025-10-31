@@ -43,51 +43,70 @@ function RouteComponent() {
         <CardDescription>List of repositories Connected to digger and their latest runs</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>URL</TableHead>
-              {/* <TableHead>Latest Run</TableHead> */}
-              <TableHead>Details</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {repos.map((repo : Repo) => {
-              const Icon = iconMap[repo.vcs]
-              return (
-                <TableRow key={repo.id}>
-                  <TableCell>
-                    <Icon className="h-5 w-5" />
-                  </TableCell>
-                  <TableCell>{repo.name}</TableCell>
-                  <TableCell>
-                    <a
-                      href={repo.repo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      {repo.repo_url}
-                    </a>
-                  </TableCell>
-                  {/* <TableCell>{repo.latestRun}</TableCell> */}
-                  <TableCell>
-                    <Button variant="ghost" asChild>
-                      <Link to="/dashboard/repos/$repoId" params={{ repoId: String(repo.id) }}>
-                        View Details <ExternalLink className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </TableCell>
+        {repos.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+              <Github className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">No Repositories Connected</h2>
+            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+              Connect your first repository to start running Terraform with Digger.
+            </p>
+            <Button asChild>
+              <Link to="/dashboard/onboarding">
+                Connect your first repository <PlusCircle className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>URL</TableHead>
+                  {/* <TableHead>Latest Run</TableHead> */}
+                  <TableHead>Details</TableHead>
                 </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-        <div className="mt-4">
-          <ConnectMoreRepositoriesButton />
-        </div>
+              </TableHeader>
+              <TableBody>
+                {repos.map((repo : Repo) => {
+                  const Icon = iconMap[repo.vcs]
+                  return (
+                    <TableRow key={repo.id}>
+                      <TableCell>
+                        <Icon className="h-5 w-5" />
+                      </TableCell>
+                      <TableCell>{repo.name}</TableCell>
+                      <TableCell>
+                        <a
+                          href={repo.repo_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
+                        >
+                          {repo.repo_url}
+                        </a>
+                      </TableCell>
+                      {/* <TableCell>{repo.latestRun}</TableCell> */}
+                      <TableCell>
+                        <Button variant="ghost" asChild>
+                          <Link to="/dashboard/repos/$repoId" params={{ repoId: String(repo.id) }}>
+                            View Details <ExternalLink className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+            <div className="mt-4">
+              <ConnectMoreRepositoriesButton />
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
     <Outlet />  

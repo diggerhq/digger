@@ -13,6 +13,7 @@ import {
 import '@workos-inc/widgets/styles.css';
 import '@radix-ui/themes/styles.css';
 import CreateOrganizationBtn from './CreateOrganisationButtonWOS';
+import WorkosOrgSwitcher from './WorkosOrgSwitcher';
 
 
 type LoaderData = {

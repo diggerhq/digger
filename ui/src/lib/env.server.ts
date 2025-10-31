@@ -4,10 +4,12 @@
 import { createServerFn } from "@tanstack/react-start"
 
 
+// !IMPORTANT: DO NOT ADD ANYTHING SENSITIVE HERE. THIS IS USED ON THE CLIENT SIDE.
 export type Env = {
   PUBLIC_URL: string
   PUBLIC_HOSTNAME: string
   STATESMAN_BACKEND_URL: string
+  WORKOS_REDIRECT_URI: string
 }
 
 export const getPublicServerConfig = createServerFn({ method: 'GET' })
@@ -16,5 +18,6 @@ export const getPublicServerConfig = createServerFn({ method: 'GET' })
       PUBLIC_URL: process.env.PUBLIC_URL ?? '',
       PUBLIC_HOSTNAME: process.env.PUBLIC_URL?.replace('https://', '').replace('http://', '') ?? '',
       STATESMAN_BACKEND_URL: process.env.STATESMAN_BACKEND_URL ?? '',
+      WORKOS_REDIRECT_URI: process.env.WORKOS_REDIRECT_URI ?? '',
     } as Env
 })
