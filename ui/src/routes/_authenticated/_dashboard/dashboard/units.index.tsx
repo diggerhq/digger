@@ -197,8 +197,6 @@ function RouteComponent() {
   async function handleUnitCreated() {
     const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
     setUnits(unitsData.units)
-    navigate({ to: '/dashboard/units/$unitId', params: { unitId: unitsData.units[0].id } })
-    router.invalidate()
   }
   
   return (<>
