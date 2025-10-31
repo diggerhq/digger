@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, Plus, Database, ExternalLink, Lock, Unlock } from 'lucide-react'
+import { ArrowLeft, Plus, Database, ExternalLink, Lock, Unlock, Cloud, HardDrive } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { createUnitFn } from "@/api/statesman_serverFunctions"
 import { listUnitsFn } from '@/api/statesman_serverFunctions'
@@ -59,6 +61,7 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
   const [unitName, setUnitName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [unitType, setUnitType] = useState<'local' | 'remote'>("local")
   const { user, organisationId } = Route.useLoaderData()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,6 +116,63 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
               className="mt-1"
             />
             {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+          </div>
+          <div className="py-2">
+            <Label className="text-right">Unit Type</Label>
+            <RadioGroup
+              value={unitType}
+              onValueChange={(v) => setUnitType(v as 'local' | 'remote')}
+              className="mt-3 grid grid-cols-1 gap-3"
+            >
+              {/* Local option card */}
+              <label
+                htmlFor="unit-type-local"
+                className={
+                  `relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ` +
+                  (unitType === 'local' ? 'ring-2 ring-primary border-primary' : 'border-muted')
+                }
+                onClick={() => setUnitType('local')}
+              >
+                <RadioGroupItem id="unit-type-local" value="local" className="sr-only" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <HardDrive className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">Local</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Mainly using units as states manager. Useful for teams that want full
+                    control and integrating pipelines with own CI.
+                  </p>
+                </div>
+              </label>
+
+              {/* Remote option card (disabled) */}
+              <label
+                htmlFor="unit-type-remote"
+                className={
+                  `relative flex cursor-not-allowed items-start gap-4 rounded-lg border p-4 md:p-5 opacity-60 ` +
+                  `bg-muted/30`
+                }
+              >
+                <RadioGroupItem id="unit-type-remote" value="remote" disabled className="sr-only" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Cloud className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">Remote</span>
+                    <Badge variant="secondary">Coming soon</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Fully managed terraform runs. Run terraform locally and stream logs from
+                    remote runs. Best for teams that want seamless automation for their
+                    terraform runs without much configuration.
+                  </p>
+                </div>
+              </label>
+            </RadioGroup>
           </div>
           <DialogFooter>
             <Button
