@@ -170,32 +170,20 @@ func (s *s3Store) Create(ctx context.Context, id string) (*UnitMetadata, error) 
 }
 
 func (s *s3Store) Get(ctx context.Context, id string) (*UnitMetadata, error) {
-    fmt.Printf("[TEMPORARY LOG] S3Store.Get() CALLED\n") // temporary log
-    fmt.Printf("[TEMPORARY LOG] - Input ID: %q\n", id) // temporary log
-    fmt.Printf("[TEMPORARY LOG] - Bucket: %q\n", s.bucket) // temporary log
-    fmt.Printf("[TEMPORARY LOG] - Prefix: %q\n", s.prefix) // temporary log
     
     s3Key := s.objKey(id)
-    fmt.Printf("[TEMPORARY LOG] - Constructed S3 Key: %q\n", s3Key) // temporary log
-    fmt.Printf("[TEMPORARY LOG] - Full S3 path would be: s3://%s/%s\n", s.bucket, s3Key) // temporary log
-    fmt.Printf("[TEMPORARY LOG] Calling HeadObject...\n") // temporary log
     
     head, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
         Bucket: &s.bucket,
         Key:    aws.String(s3Key),
     })
     
-    fmt.Printf("[TEMPORARY LOG] HeadObject returned - err: %v\n", err) // temporary log
     if err != nil {
-        fmt.Printf("[TEMPORARY LOG] Error details: %T - %v\n", err, err) // temporary log
         if isNotFound(err) {
-            fmt.Printf("[TEMPORARY LOG] Identified as NOT FOUND error, returning ErrNotFound\n") // temporary log
             return nil, ErrNotFound
         }
-        fmt.Printf("[TEMPORARY LOG] Returning error as-is\n") // temporary log
         return nil, err
     }
-    fmt.Printf("[TEMPORARY LOG] HeadObject SUCCESS - ContentLength: %v, LastModified: %v\n", head.ContentLength, head.LastModified) // temporary log
     meta := UnitMetadata{ID: id}
     if head.ContentLength != nil {
         meta.Size = *head.ContentLength

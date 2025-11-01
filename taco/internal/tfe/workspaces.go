@@ -218,55 +218,42 @@ func extractWorkspaceIDFromParam(c echo.Context) string {
 
 // checkWorkspacePermission handles the three RBAC scenarios correctly
 func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, workspaceID string) error {
-	fmt.Printf("[TEMPORARY LOG] checkWorkspacePermission ENTRY: action=%s, workspaceID=%s\n", action, workspaceID) // temporary log
 	
 	// Scenario 1: No RBAC manager (memory storage) → permissive mode
 	if h.rbacManager == nil {
-		fmt.Printf("[TEMPORARY LOG] Scenario 1: No RBAC manager, allowing access\n") // temporary log
 		return nil
 	}
-	fmt.Printf("[TEMPORARY LOG] RBAC manager exists, checking if initialized\n") // temporary log
 
 	// Scenario 2 & 3: Check if RBAC system has been initialized
 	enabled, err := h.rbacManager.IsEnabled(c.Request().Context())
 	if err != nil {
 		// If we can't check RBAC status, log but don't block (fail open)
-		fmt.Printf("[TEMPORARY LOG] Failed to check RBAC status: %v (failing open)\n", err) // temporary log
 		return nil
 	}
-	fmt.Printf("[TEMPORARY LOG] RBAC IsEnabled check result: enabled=%v\n", enabled) // temporary log
 
 	// Scenario 2: RBAC manager exists but not initialized → permissive mode
 	if !enabled {
-		fmt.Printf("[TEMPORARY LOG] Scenario 2: RBAC not initialized, allowing access\n") // temporary log
 		return nil
 	}
-	fmt.Printf("[TEMPORARY LOG] Scenario 3: RBAC is initialized, enforcing permissions\n") // temporary log
 
 	// Scenario 3: RBAC is initialized → enforce permissions
 	stateID := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("[TEMPORARY LOG] Converted workspaceID to stateID=%s\n", stateID) // temporary log
 
 	// Extract user subject from JWT token in Authorization header
 	authHeader := c.Request().Header.Get("Authorization")
-	fmt.Printf("[TEMPORARY LOG] Authorization header present: %v\n", authHeader != "") // temporary log
 	if authHeader == "" {
-		fmt.Printf("[TEMPORARY LOG] No authorization header, returning error\n") // temporary log
 		return fmt.Errorf("no authorization header")
 	}
 
 	if !strings.HasPrefix(authHeader, "Bearer ") {
-		fmt.Printf("[TEMPORARY LOG] Invalid auth header format (not Bearer), returning error\n") // temporary log
 		return fmt.Errorf("invalid authorization header format")
 	}
 
 	// Extract and verify JWT token to get user principal
 	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-	fmt.Printf("[TEMPORARY LOG] Extracted token (first 20 chars): %s...\n", token[:min(20, len(token))]) // temporary log
 
 	// Get signer from auth handler to verify the token
 	signer := h.authHandler.GetSigner()
-	fmt.Printf("[TEMPORARY LOG] Auth handler signer available: %v\n", signer != nil) // temporary log
 	if signer == nil {
 		// If no signer available, use a permissive approach for backwards compatibility
 		principal := rbac.Principal{Subject: "unknown"}
@@ -301,12 +288,10 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	userIDHeader := c.Request().Header.Get("X-User-ID")
 	userEmailHeader := c.Request().Header.Get("X-Email")
 	
-	fmt.Printf("[TEMPORARY LOG] Webhook headers - X-User-ID=%s, X-Email=%s\n", userIDHeader, userEmailHeader) // temporary log
 	
 	var principal rbac.Principal
 	if userIDHeader != "" && userEmailHeader != "" {
 		// This is webhook auth from internal proxy (UI) - user already verified
-		fmt.Printf("[TEMPORARY LOG] Using webhook auth - building principal from headers\n") // temporary log
 		principal = rbac.Principal{
 			Subject: userIDHeader,
 			Email:   userEmailHeader,
@@ -315,19 +300,14 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		}
 	} else {
 		// TFE endpoints: verify opaque token only (for clear API boundaries)
-		fmt.Printf("[TEMPORARY LOG] No webhook headers, trying opaque token verification\n") // temporary log
 		if h.apiTokens != nil {
-			fmt.Printf("[TEMPORARY LOG] API token manager is available\n") // temporary log
 			// Extract org from context
 			orgID, err := getOrgFromContext(c)
 			if err != nil {
-				fmt.Printf("[TEMPORARY LOG] Failed to get org from context: %v\n", err) // temporary log
 				return fmt.Errorf("failed to get organization context: %v", err)
 			}
-			fmt.Printf("[TEMPORARY LOG] Got orgID from context: %s\n", orgID) // temporary log
 			
 			if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), orgID, token); err == nil {
-				fmt.Printf("[TEMPORARY LOG] Token verified successfully - subject=%s, email=%s, groups=%v\n", tokenRecord.Subject, tokenRecord.Email, tokenRecord.Groups) // temporary log
 				principal = rbac.Principal{
 					Subject: tokenRecord.Subject,
 					Email:   tokenRecord.Email,
@@ -335,17 +315,14 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 					Groups:  tokenRecord.Groups,
 				}
 			} else {
-				fmt.Printf("[TEMPORARY LOG] Token verification failed: %v\n", err) // temporary log
 				return fmt.Errorf("invalid opaque token for TFE endpoint: %v", err)
 			}
 		} else {
-			fmt.Printf("[TEMPORARY LOG] API token manager is NOT available\n") // temporary log
 			return fmt.Errorf("API token manager not available")
 		}
 	}
 	var rbacAction rbac.Action
 
-	fmt.Printf("[TEMPORARY LOG] Converting action string '%s' to RBAC action\n", action) // temporary log
 	switch action {
 	case "unit.read":
 		rbacAction = rbac.ActionUnitRead
@@ -354,28 +331,20 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	case "unit.lock":
 		rbacAction = rbac.ActionUnitLock
 	default:
-		fmt.Printf("[TEMPORARY LOG] Unknown action: %s\n", action) // temporary log
 		return fmt.Errorf("unknown action: %s", action)
 	}
-	fmt.Printf("[TEMPORARY LOG] Mapped to RBAC action: %s\n", rbacAction) // temporary log
 
 	// Check permission using RBAC manager
-	fmt.Printf("[TEMPORARY LOG] Calling RBAC manager.Can() - subject=%s, email=%s, action=%s, resource=%s\n",
-		principal.Subject, principal.Email, rbacAction, stateID) // temporary log
 	
 	allowed, err := h.rbacManager.Can(c.Request().Context(), principal, rbacAction, stateID)
 	if err != nil {
-		fmt.Printf("[TEMPORARY LOG] RBAC manager.Can() returned ERROR: %v\n", err) // temporary log
 		return fmt.Errorf("failed to check permissions: %v", err)
 	}
 
-	fmt.Printf("[TEMPORARY LOG] RBAC manager.Can() returned: allowed=%v\n", allowed) // temporary log
 	if !allowed {
-		fmt.Printf("[TEMPORARY LOG] Access DENIED - returning insufficient permissions error\n") // temporary log
 		return fmt.Errorf("insufficient permissions")
 	}
 
-	fmt.Printf("[TEMPORARY LOG] Access GRANTED - returning nil\n") // temporary log
 	return nil
 }
 
@@ -609,7 +578,11 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 		},
 	}
 	
-	return jsonapi.MarshalPayload(c.Response().Writer, workspace)
+	if err := jsonapi.MarshalPayload(c.Response().Writer, workspace); err != nil {
+		fmt.Printf("LockWorkspace: error marshaling workspace payload: %v\n", err)
+		return err
+	}
+	return nil
 }
 
 func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
@@ -700,7 +673,11 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 		CurrentRun: nil,  // No lock, so no current run
 	}
 	
-	return jsonapi.MarshalPayload(c.Response().Writer, workspace)
+	if err := jsonapi.MarshalPayload(c.Response().Writer, workspace); err != nil {
+		fmt.Printf("UnlockWorkspace: error marshaling workspace payload: %v\n", err)
+		return err
+	}
+	return nil
 }
 
 // ForceUnlockWorkspace handles POST /tfe/api/v2/workspaces/:workspace_id/actions/force-unlock
@@ -813,114 +790,81 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 		CurrentRun: nil,  // No lock, so no current run
 	}
 	
-	return jsonapi.MarshalPayload(c.Response().Writer, workspace)
+	if err := jsonapi.MarshalPayload(c.Response().Writer, workspace); err != nil {
+		fmt.Printf("ForceUnlockWorkspace: error marshaling workspace payload: %v\n", err)
+		return err
+	}
+	return nil
 }
 
 // GetCurrentStateVersion handles GET /tfe/api/v2/workspaces/:workspace_id/current-state-version
 func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ENTRY\n") // temporary log
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
 	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Extracted workspaceID=%s\n", workspaceID) // temporary log
 	if workspaceID == "" {
-		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ERROR - workspace_id is empty\n") // temporary log
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Converted to workspaceName=%s\n", workspaceName) // temporary log
 	
 	// Get org from authentication context (JWT claim or webhook header)
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Getting org from context\n") // temporary log
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
-		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ERROR getting org from context: %v\n", err) // temporary log
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "Organization context required",
 			"detail": err.Error(),
 		})
 	}
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Got orgIdentifier=%s\n", orgIdentifier) // temporary log
 	
 	// Resolve to UUID/UUID path
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Resolving workspace to state ID\n") // temporary log
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
 	if err != nil {
-		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ERROR resolving workspace: %v\n", err) // temporary log
 		return c.JSON(500, map[string]string{
 			"error": "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Resolved to stateID=%s\n", stateID) // temporary log
 
 	// Check RBAC permission with correct three-scenario logic
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Calling checkWorkspacePermission(action='unit.read', stateID='%s')\n", stateID) // temporary log
 	if err := h.checkWorkspacePermission(c, "unit.read", stateID); err != nil {
-		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: RBAC CHECK FAILED: %v\n", err) // temporary log
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to access workspace",
 			"hint":  "contact your administrator to grant unit.read permission",
 		})
 	}
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: RBAC CHECK PASSED\n") // temporary log
 
 	// Check if state exists
-	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
-	fmt.Printf("[TEMPORARY LOG] STORAGE GET OPERATION STARTING\n") // temporary log
-	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
-	fmt.Printf("[TEMPORARY LOG] Storage ID being requested: '%s'\n", stateID) // temporary log
-	fmt.Printf("[TEMPORARY LOG] Storage ID length: %d characters\n", len(stateID)) // temporary log
-	fmt.Printf("[TEMPORARY LOG] Storage ID parts (split by '/'): %v\n", strings.Split(stateID, "/")) // temporary log
-	fmt.Printf("[TEMPORARY LOG] Storage type: %T\n", h.stateStore) // temporary log
 	
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
-	fmt.Printf("[TEMPORARY LOG] Extracted unit UUID: %q (from stateID: %q)\n", unitUUID, stateID) // temporary log
-	fmt.Printf("[TEMPORARY LOG] Calling stateStore.Get(ctx, %q)...\n", unitUUID) // temporary log
 	
 	stateMeta, err := h.stateStore.Get(c.Request().Context(), unitUUID)
 	
-	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
-	fmt.Printf("[TEMPORARY LOG] STORAGE GET OPERATION COMPLETED\n") // temporary log
-	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
-	fmt.Printf("[TEMPORARY LOG] Error returned: %v\n", err) // temporary log
-	fmt.Printf("[TEMPORARY LOG] Error type: %T\n", err) // temporary log
 	if err != nil {
-		fmt.Printf("[TEMPORARY LOG] Error equals storage.ErrNotFound: %v\n", err == storage.ErrNotFound) // temporary log
-		fmt.Printf("[TEMPORARY LOG] Error string: %q\n", err.Error()) // temporary log
 	}
 	if stateMeta != nil {
-		fmt.Printf("[TEMPORARY LOG] StateMeta returned: ID=%s, Size=%d, Updated=%v\n", stateMeta.ID, stateMeta.Size, stateMeta.Updated) // temporary log
 	} else {
-		fmt.Printf("[TEMPORARY LOG] StateMeta is NIL\n") // temporary log
 	}
 	
 	if err != nil {
 		if err == storage.ErrNotFound {
-			fmt.Printf("[TEMPORARY LOG] ERROR IDENTIFIED: State NOT FOUND in storage\n") // temporary log
-			fmt.Printf("[TEMPORARY LOG] This means the storage layer could not find: %q\n", stateID) // temporary log
 			return c.JSON(404, map[string]string{
 				"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
 			})
 		}
-		fmt.Printf("[TEMPORARY LOG] ERROR IDENTIFIED: Storage returned error: %v\n", err) // temporary log
 		return c.JSON(500, map[string]string{"error": "Failed to get workspace state"})
 	}
-	fmt.Printf("[TEMPORARY LOG] SUCCESS: State found - size=%d, updated=%v\n", stateMeta.Size, stateMeta.Updated) // temporary log
 
 	// Generate a state version ID based on state ID and timestamp
 	stateVersionID := generateStateVersionID(stateID, stateMeta.Updated.Unix())
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Generated stateVersionID=%s\n", stateVersionID) // temporary log
 
 	baseURL := getBaseURL(c)
 	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, stateVersionID)
-	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Returning SUCCESS - downloadURL=%s\n", downloadURL) // temporary log
 
 	// Return current state version info
 	return c.JSON(200, map[string]interface{}{
