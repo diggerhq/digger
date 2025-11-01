@@ -141,6 +141,22 @@ func convertWorkspaceToStateID(workspaceID string) string {
 	return workspaceID
 }
 
+// extractUnitUUID extracts the unit UUID from a state ID
+// State ID can be either:
+// - Just a unit UUID: "82ca6591-e01d-49ff-b0d5-4b6d73914260"
+// - Org/unit path: "822d677a-aaa7-47cc-8b84-3c0df683c99e/82ca6591-e01d-49ff-b0d5-4b6d73914260"
+// The repository layer expects just the unit UUID and constructs the blob path internally.
+func extractUnitUUID(stateID string) string {
+	if !strings.Contains(stateID, "/") {
+		return stateID
+	}
+	parts := strings.Split(stateID, "/")
+	if len(parts) == 2 {
+		return parts[1] // Return unit UUID (second part)
+	}
+	return stateID
+}
+
 // getOrgFromContext extracts organization identifier from the echo context
 // The org is set by authentication middleware (JWT contains org claim)
 // Returns error if no organization context is found
@@ -202,42 +218,55 @@ func extractWorkspaceIDFromParam(c echo.Context) string {
 
 // checkWorkspacePermission handles the three RBAC scenarios correctly
 func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, workspaceID string) error {
+	fmt.Printf("[TEMPORARY LOG] checkWorkspacePermission ENTRY: action=%s, workspaceID=%s\n", action, workspaceID) // temporary log
+	
 	// Scenario 1: No RBAC manager (memory storage) → permissive mode
 	if h.rbacManager == nil {
+		fmt.Printf("[TEMPORARY LOG] Scenario 1: No RBAC manager, allowing access\n") // temporary log
 		return nil
 	}
+	fmt.Printf("[TEMPORARY LOG] RBAC manager exists, checking if initialized\n") // temporary log
 
 	// Scenario 2 & 3: Check if RBAC system has been initialized
 	enabled, err := h.rbacManager.IsEnabled(c.Request().Context())
 	if err != nil {
 		// If we can't check RBAC status, log but don't block (fail open)
-		fmt.Printf("Failed to check RBAC status: %v\n", err)
+		fmt.Printf("[TEMPORARY LOG] Failed to check RBAC status: %v (failing open)\n", err) // temporary log
 		return nil
 	}
+	fmt.Printf("[TEMPORARY LOG] RBAC IsEnabled check result: enabled=%v\n", enabled) // temporary log
 
 	// Scenario 2: RBAC manager exists but not initialized → permissive mode
 	if !enabled {
+		fmt.Printf("[TEMPORARY LOG] Scenario 2: RBAC not initialized, allowing access\n") // temporary log
 		return nil
 	}
+	fmt.Printf("[TEMPORARY LOG] Scenario 3: RBAC is initialized, enforcing permissions\n") // temporary log
 
 	// Scenario 3: RBAC is initialized → enforce permissions
 	stateID := convertWorkspaceToStateID(workspaceID)
+	fmt.Printf("[TEMPORARY LOG] Converted workspaceID to stateID=%s\n", stateID) // temporary log
 
 	// Extract user subject from JWT token in Authorization header
 	authHeader := c.Request().Header.Get("Authorization")
+	fmt.Printf("[TEMPORARY LOG] Authorization header present: %v\n", authHeader != "") // temporary log
 	if authHeader == "" {
+		fmt.Printf("[TEMPORARY LOG] No authorization header, returning error\n") // temporary log
 		return fmt.Errorf("no authorization header")
 	}
 
 	if !strings.HasPrefix(authHeader, "Bearer ") {
+		fmt.Printf("[TEMPORARY LOG] Invalid auth header format (not Bearer), returning error\n") // temporary log
 		return fmt.Errorf("invalid authorization header format")
 	}
 
 	// Extract and verify JWT token to get user principal
 	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	fmt.Printf("[TEMPORARY LOG] Extracted token (first 20 chars): %s...\n", token[:min(20, len(token))]) // temporary log
 
 	// Get signer from auth handler to verify the token
 	signer := h.authHandler.GetSigner()
+	fmt.Printf("[TEMPORARY LOG] Auth handler signer available: %v\n", signer != nil) // temporary log
 	if signer == nil {
 		// If no signer available, use a permissive approach for backwards compatibility
 		principal := rbac.Principal{Subject: "unknown"}
@@ -245,11 +274,11 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		var rbacAction rbac.Action
 
 		switch action {
-		case "unit:read":
+		case "unit.read":
 			rbacAction = rbac.ActionUnitRead
-		case "unit:write":
+		case "unit.write":
 			rbacAction = rbac.ActionUnitWrite
-		case "unit:lock":
+		case "unit.lock":
 			rbacAction = rbac.ActionUnitLock
 		default:
 			return fmt.Errorf("unknown action: %s", action)
@@ -267,50 +296,86 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 		return nil
 	}
 
-	// TFE endpoints: verify opaque token only (for clear API boundaries)
+	// Check if this is a webhook-authenticated request (internal endpoints)
+	// Webhook auth uses internal token + X-User-ID/X-Email headers
+	userIDHeader := c.Request().Header.Get("X-User-ID")
+	userEmailHeader := c.Request().Header.Get("X-Email")
+	
+	fmt.Printf("[TEMPORARY LOG] Webhook headers - X-User-ID=%s, X-Email=%s\n", userIDHeader, userEmailHeader) // temporary log
+	
 	var principal rbac.Principal
-	if h.apiTokens != nil {
-		// Extract org from context
-		orgID, err := getOrgFromContext(c)
-		if err != nil {
-			return fmt.Errorf("failed to get organization context: %v", err)
-		}
-		if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), orgID, token); err == nil {
-			principal = rbac.Principal{
-				Subject: tokenRecord.Subject,
-				Email:   tokenRecord.Email,
-				Roles:   []string{}, // Opaque tokens don't have roles directly
-				Groups:  tokenRecord.Groups,
-			}
-		} else {
-			return fmt.Errorf("invalid opaque token for TFE endpoint: %v", err)
+	if userIDHeader != "" && userEmailHeader != "" {
+		// This is webhook auth from internal proxy (UI) - user already verified
+		fmt.Printf("[TEMPORARY LOG] Using webhook auth - building principal from headers\n") // temporary log
+		principal = rbac.Principal{
+			Subject: userIDHeader,
+			Email:   userEmailHeader,
+			Roles:   []string{}, // Will be looked up from database by RBAC manager
+			Groups:  []string{},
 		}
 	} else {
-		return fmt.Errorf("API token manager not available")
+		// TFE endpoints: verify opaque token only (for clear API boundaries)
+		fmt.Printf("[TEMPORARY LOG] No webhook headers, trying opaque token verification\n") // temporary log
+		if h.apiTokens != nil {
+			fmt.Printf("[TEMPORARY LOG] API token manager is available\n") // temporary log
+			// Extract org from context
+			orgID, err := getOrgFromContext(c)
+			if err != nil {
+				fmt.Printf("[TEMPORARY LOG] Failed to get org from context: %v\n", err) // temporary log
+				return fmt.Errorf("failed to get organization context: %v", err)
+			}
+			fmt.Printf("[TEMPORARY LOG] Got orgID from context: %s\n", orgID) // temporary log
+			
+			if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), orgID, token); err == nil {
+				fmt.Printf("[TEMPORARY LOG] Token verified successfully - subject=%s, email=%s, groups=%v\n", tokenRecord.Subject, tokenRecord.Email, tokenRecord.Groups) // temporary log
+				principal = rbac.Principal{
+					Subject: tokenRecord.Subject,
+					Email:   tokenRecord.Email,
+					Roles:   []string{}, // Opaque tokens don't have roles directly
+					Groups:  tokenRecord.Groups,
+				}
+			} else {
+				fmt.Printf("[TEMPORARY LOG] Token verification failed: %v\n", err) // temporary log
+				return fmt.Errorf("invalid opaque token for TFE endpoint: %v", err)
+			}
+		} else {
+			fmt.Printf("[TEMPORARY LOG] API token manager is NOT available\n") // temporary log
+			return fmt.Errorf("API token manager not available")
+		}
 	}
 	var rbacAction rbac.Action
 
+	fmt.Printf("[TEMPORARY LOG] Converting action string '%s' to RBAC action\n", action) // temporary log
 	switch action {
-	case "unit:read":
+	case "unit.read":
 		rbacAction = rbac.ActionUnitRead
-	case "unit:write":
+	case "unit.write":
 		rbacAction = rbac.ActionUnitWrite
-	case "unit:lock":
+	case "unit.lock":
 		rbacAction = rbac.ActionUnitLock
 	default:
+		fmt.Printf("[TEMPORARY LOG] Unknown action: %s\n", action) // temporary log
 		return fmt.Errorf("unknown action: %s", action)
 	}
+	fmt.Printf("[TEMPORARY LOG] Mapped to RBAC action: %s\n", rbacAction) // temporary log
 
 	// Check permission using RBAC manager
+	fmt.Printf("[TEMPORARY LOG] Calling RBAC manager.Can() - subject=%s, email=%s, action=%s, resource=%s\n",
+		principal.Subject, principal.Email, rbacAction, stateID) // temporary log
+	
 	allowed, err := h.rbacManager.Can(c.Request().Context(), principal, rbacAction, stateID)
 	if err != nil {
+		fmt.Printf("[TEMPORARY LOG] RBAC manager.Can() returned ERROR: %v\n", err) // temporary log
 		return fmt.Errorf("failed to check permissions: %v", err)
 	}
 
+	fmt.Printf("[TEMPORARY LOG] RBAC manager.Can() returned: allowed=%v\n", allowed) // temporary log
 	if !allowed {
+		fmt.Printf("[TEMPORARY LOG] Access DENIED - returning insufficient permissions error\n") // temporary log
 		return fmt.Errorf("insufficient permissions")
 	}
 
+	fmt.Printf("[TEMPORARY LOG] Access GRANTED - returning nil\n") // temporary log
 	return nil
 }
 
@@ -350,13 +415,24 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 	
 	fmt.Printf("GetWorkspace: resolved stateID=%s\n", stateID)
 	
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("GetWorkspace: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+	
 	// Check if unit exists (optional - may auto-create later)
-	_, err = h.stateStore.Get(c.Request().Context(), stateID)
+	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
 	locked := false
+	var currentRun *tfe.TFERun
 	if err == nil {
-		// Check if locked
-		lockInfo, _ := h.stateStore.GetLock(c.Request().Context(), stateID)
-		locked = (lockInfo != nil)
+		// Check if locked and get lock details
+		lockInfo, _ := h.stateStore.GetLock(c.Request().Context(), unitUUID)
+		if lockInfo != nil {
+			locked = true
+			// Populate CurrentRun with lock details for Terraform force-unlock
+			currentRun = &tfe.TFERun{
+				ID: lockInfo.ID,
+			}
+		}
 	}
 
 	workspace := &tfe.TFEWorkspace{
@@ -395,7 +471,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		RunFailures:                0,
 		RunsCount:                  0,
 		TagNames:                   nil,
-		CurrentRun:                 nil,
+		CurrentRun:                 currentRun,  // Include lock details when workspace is locked
 		Organization: &tfe.TFEOrganization{
 			Name: orgParam,  // Return the full org param (includes display name if provided)
 		},
@@ -447,10 +523,10 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	fmt.Printf("LockWorkspace: resolved stateID=%s\n", stateID)
 
 	// Check RBAC permission for locking workspace
-	if err := h.checkWorkspacePermission(c, "unit:write", stateID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit.write", stateID); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to lock workspace",
-			"hint":  "contact your administrator to grant unit:write permission",
+			"hint":  "contact your administrator to grant unit.write permission",
 		})
 	}
 
@@ -459,13 +535,17 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 		return c.JSON(500, map[string]string{"error": "State store not initialized"})
 	}
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("LockWorkspace: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+
 	// Check if state exists, enot
-	_, err = h.stateStore.Get(c.Request().Context(), stateID)
+	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
 	fmt.Printf("LockWorkspace: Get result, err=%v\n", err)
 	if err == storage.ErrNotFound {
 		fmt.Printf("LockWorkspace: Unit not found - no auto-creation\n")
 		return c.JSON(404, map[string]string{
-			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	} else if err != nil {
 		// Handle other errors from Get()
@@ -485,14 +565,14 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 	fmt.Printf("LockWorkspace: Attempting to lock with info: %+v\n", lockInfo)
 
 	// Attempt to lock the state
-	err = h.stateStore.Lock(c.Request().Context(), stateID, lockInfo)
+	err = h.stateStore.Lock(c.Request().Context(), unitUUID, lockInfo)
 	fmt.Printf("LockWorkspace: Lock result, err=%v\n", err)
 	if err != nil {
 		// Check for lock conflict using strings.Contains since error message may have additional text
 		if strings.Contains(err.Error(), "lock conflict") {
 			fmt.Printf("LockWorkspace: Lock conflict detected\n")
 			// Get current lock for details
-			currentLock, _ := h.stateStore.GetLock(c.Request().Context(), stateID)
+			currentLock, _ := h.stateStore.GetLock(c.Request().Context(), unitUUID)
 			if currentLock != nil {
 				fmt.Printf("LockWorkspace: Returning 423 with lock details\n")
 				return c.JSON(423, map[string]interface{}{
@@ -516,17 +596,20 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 		})
 	}
 
-	// Return success with lock info
+	// Return success with full workspace object (properly formatted JSON:API)
 	fmt.Printf("LockWorkspace: Returning success\n")
-	return c.JSON(200, map[string]interface{}{
-		"data": map[string]interface{}{
-			"id":   workspaceID,
-			"type": "workspaces",
-			"attributes": map[string]interface{}{
-				"locked": true,
-			},
+	
+	// Build a workspace response with lock info
+	workspace := &tfe.TFEWorkspace{
+		ID:     tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
+		Name:   workspaceName,
+		Locked: true,
+		CurrentRun: &tfe.TFERun{
+			ID: lockInfo.ID,
 		},
-	})
+	}
+	
+	return jsonapi.MarshalPayload(c.Response().Writer, workspace)
 }
 
 func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
@@ -564,8 +647,12 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 	}
 	fmt.Printf("UnlockWorkspace: workspaceID=%s, resolved stateID=%s\n", workspaceID, stateID)
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("UnlockWorkspace: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+
 	// Get current lock to find lock ID
-	currentLock, err := h.stateStore.GetLock(c.Request().Context(), stateID)
+	currentLock, err := h.stateStore.GetLock(c.Request().Context(), unitUUID)
 	fmt.Printf("UnlockWorkspace: GetLock result, err=%v, currentLock=%v\n", err, currentLock)
 	if err != nil {
 		if err == storage.ErrNotFound {
@@ -593,7 +680,7 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 	fmt.Printf("UnlockWorkspace: Unlocking with lock ID: %s\n", currentLock.ID)
 
 	// Unlock the state using the current lock ID
-	err = h.stateStore.Unlock(c.Request().Context(), stateID, currentLock.ID)
+	err = h.stateStore.Unlock(c.Request().Context(), unitUUID, currentLock.ID)
 	fmt.Printf("UnlockWorkspace: Unlock result, err=%v\n", err)
 	if err != nil {
 		if err == storage.ErrNotFound {
@@ -605,16 +692,15 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 		return c.JSON(500, map[string]string{"error": "Failed to release lock"})
 	}
 
-	// Return success
-	return c.JSON(200, map[string]interface{}{
-		"data": map[string]interface{}{
-			"id":   workspaceID,
-			"type": "workspaces",
-			"attributes": map[string]interface{}{
-				"locked": false,
-			},
-		},
-	})
+	// Return success with full workspace object (properly formatted JSON:API)
+	workspace := &tfe.TFEWorkspace{
+		ID:         tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
+		Name:       workspaceName,
+		Locked:     false,
+		CurrentRun: nil,  // No lock, so no current run
+	}
+	
+	return jsonapi.MarshalPayload(c.Response().Writer, workspace)
 }
 
 // ForceUnlockWorkspace handles POST /tfe/api/v2/workspaces/:workspace_id/actions/force-unlock
@@ -653,8 +739,25 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 	}
 	fmt.Printf("ForceUnlockWorkspace: workspaceID=%s, resolved stateID=%s\n", workspaceID, stateID)
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("ForceUnlockWorkspace: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+
+	// Try to get the lock ID from query parameter or request body
+	requestedLockID := c.QueryParam("lock_id")
+	if requestedLockID == "" {
+		// Try to read from body
+		var body map[string]interface{}
+		if err := c.Bind(&body); err == nil {
+			if id, ok := body["lock_id"].(string); ok {
+				requestedLockID = id
+			}
+		}
+	}
+	fmt.Printf("ForceUnlockWorkspace: Requested lock ID: %s\n", requestedLockID)
+
 	// Get current lock to find lock ID
-	currentLock, err := h.stateStore.GetLock(c.Request().Context(), stateID)
+	currentLock, err := h.stateStore.GetLock(c.Request().Context(), unitUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(404, map[string]string{"error": "Workspace not found"})
@@ -676,10 +779,25 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 		})
 	}
 
+	// Validate lock ID if provided
+	if requestedLockID != "" && requestedLockID != currentLock.ID {
+		fmt.Printf("ForceUnlockWorkspace: Lock ID mismatch - requested=%s, current=%s\n", requestedLockID, currentLock.ID)
+		return c.JSON(409, map[string]interface{}{
+			"error": "lock_id_mismatch",
+			"message": fmt.Sprintf("Lock ID %q does not match existing lock ID %q", requestedLockID, currentLock.ID),
+			"current_lock": map[string]interface{}{
+				"id":      currentLock.ID,
+				"who":     currentLock.Who,
+				"version": currentLock.Version,
+				"created": currentLock.Created,
+			},
+		})
+	}
+
 	fmt.Printf("ForceUnlockWorkspace: Force unlocking with lock ID: %s\n", currentLock.ID)
 
 	// Force unlock the state using the current lock ID
-	err = h.stateStore.Unlock(c.Request().Context(), stateID, currentLock.ID)
+	err = h.stateStore.Unlock(c.Request().Context(), unitUUID, currentLock.ID)
 	if err != nil {
 		fmt.Printf("ForceUnlockWorkspace: Failed to unlock: %v\n", err)
 		return c.JSON(500, map[string]string{"error": "Failed to force unlock"})
@@ -687,84 +805,122 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 
 	fmt.Printf("ForceUnlockWorkspace: Successfully force unlocked\n")
 
-	// Return success
-	return c.JSON(200, map[string]interface{}{
-		"data": map[string]interface{}{
-			"id":   workspaceID,
-			"type": "workspaces",
-			"attributes": map[string]interface{}{
-				"locked": false,
-			},
-		},
-	})
+	// Return success with full workspace object (properly formatted JSON:API)
+	workspace := &tfe.TFEWorkspace{
+		ID:         tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
+		Name:       workspaceName,
+		Locked:     false,
+		CurrentRun: nil,  // No lock, so no current run
+	}
+	
+	return jsonapi.MarshalPayload(c.Response().Writer, workspace)
 }
 
 // GetCurrentStateVersion handles GET /tfe/api/v2/workspaces/:workspace_id/current-state-version
 func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ENTRY\n") // temporary log
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
 
 	// Extract workspace ID (format: ws-{workspace-name})
 	workspaceID := extractWorkspaceIDFromParam(c)
-	fmt.Printf("GetCurrentStateVersion: workspaceID=%s\n", workspaceID)
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Extracted workspaceID=%s\n", workspaceID) // temporary log
 	if workspaceID == "" {
-		fmt.Printf("GetCurrentStateVersion: ERROR - workspace_id required\n")
+		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ERROR - workspace_id is empty\n") // temporary log
 		return c.JSON(400, map[string]string{"error": "workspace_id required"})
 	}
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Converted to workspaceName=%s\n", workspaceName) // temporary log
 	
 	// Get org from authentication context (JWT claim or webhook header)
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Getting org from context\n") // temporary log
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
-		fmt.Printf("GetCurrentStateVersion: %v\n", err)
+		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ERROR getting org from context: %v\n", err) // temporary log
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "Organization context required",
 			"detail": err.Error(),
 		})
 	}
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Got orgIdentifier=%s\n", orgIdentifier) // temporary log
 	
 	// Resolve to UUID/UUID path
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Resolving workspace to state ID\n") // temporary log
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
 	if err != nil {
-		fmt.Printf("GetCurrentStateVersion: failed to resolve workspace: %v\n", err)
+		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: ERROR resolving workspace: %v\n", err) // temporary log
 		return c.JSON(500, map[string]string{
 			"error": "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
-	fmt.Printf("GetCurrentStateVersion: resolved stateID=%s\n", stateID)
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Resolved to stateID=%s\n", stateID) // temporary log
 
 	// Check RBAC permission with correct three-scenario logic
-	if err := h.checkWorkspacePermission(c, "unit:read", stateID); err != nil {
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Calling checkWorkspacePermission(action='unit.read', stateID='%s')\n", stateID) // temporary log
+	if err := h.checkWorkspacePermission(c, "unit.read", stateID); err != nil {
+		fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: RBAC CHECK FAILED: %v\n", err) // temporary log
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to access workspace",
-			"hint":  "contact your administrator to grant unit:read permission",
+			"hint":  "contact your administrator to grant unit.read permission",
 		})
 	}
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: RBAC CHECK PASSED\n") // temporary log
 
 	// Check if state exists
-	stateMeta, err := h.stateStore.Get(c.Request().Context(), stateID)
-	fmt.Printf("GetCurrentStateVersion: Get result, err=%v\n", err)
+	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
+	fmt.Printf("[TEMPORARY LOG] STORAGE GET OPERATION STARTING\n") // temporary log
+	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
+	fmt.Printf("[TEMPORARY LOG] Storage ID being requested: '%s'\n", stateID) // temporary log
+	fmt.Printf("[TEMPORARY LOG] Storage ID length: %d characters\n", len(stateID)) // temporary log
+	fmt.Printf("[TEMPORARY LOG] Storage ID parts (split by '/'): %v\n", strings.Split(stateID, "/")) // temporary log
+	fmt.Printf("[TEMPORARY LOG] Storage type: %T\n", h.stateStore) // temporary log
+	
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("[TEMPORARY LOG] Extracted unit UUID: %q (from stateID: %q)\n", unitUUID, stateID) // temporary log
+	fmt.Printf("[TEMPORARY LOG] Calling stateStore.Get(ctx, %q)...\n", unitUUID) // temporary log
+	
+	stateMeta, err := h.stateStore.Get(c.Request().Context(), unitUUID)
+	
+	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
+	fmt.Printf("[TEMPORARY LOG] STORAGE GET OPERATION COMPLETED\n") // temporary log
+	fmt.Printf("[TEMPORARY LOG] ========================================\n") // temporary log
+	fmt.Printf("[TEMPORARY LOG] Error returned: %v\n", err) // temporary log
+	fmt.Printf("[TEMPORARY LOG] Error type: %T\n", err) // temporary log
+	if err != nil {
+		fmt.Printf("[TEMPORARY LOG] Error equals storage.ErrNotFound: %v\n", err == storage.ErrNotFound) // temporary log
+		fmt.Printf("[TEMPORARY LOG] Error string: %q\n", err.Error()) // temporary log
+	}
+	if stateMeta != nil {
+		fmt.Printf("[TEMPORARY LOG] StateMeta returned: ID=%s, Size=%d, Updated=%v\n", stateMeta.ID, stateMeta.Size, stateMeta.Updated) // temporary log
+	} else {
+		fmt.Printf("[TEMPORARY LOG] StateMeta is NIL\n") // temporary log
+	}
+	
 	if err != nil {
 		if err == storage.ErrNotFound {
-			fmt.Printf("GetCurrentStateVersion: Unit not found\n")
+			fmt.Printf("[TEMPORARY LOG] ERROR IDENTIFIED: State NOT FOUND in storage\n") // temporary log
+			fmt.Printf("[TEMPORARY LOG] This means the storage layer could not find: %q\n", stateID) // temporary log
 			return c.JSON(404, map[string]string{
 				"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
 			})
 		}
-		fmt.Printf("GetCurrentStateVersion: ERROR - Failed to get workspace state: %v\n", err)
+		fmt.Printf("[TEMPORARY LOG] ERROR IDENTIFIED: Storage returned error: %v\n", err) // temporary log
 		return c.JSON(500, map[string]string{"error": "Failed to get workspace state"})
 	}
+	fmt.Printf("[TEMPORARY LOG] SUCCESS: State found - size=%d, updated=%v\n", stateMeta.Size, stateMeta.Updated) // temporary log
 
 	// Generate a state version ID based on state ID and timestamp
 	stateVersionID := generateStateVersionID(stateID, stateMeta.Updated.Unix())
-	fmt.Printf("GetCurrentStateVersion: Returning stateVersionID=%s, size=%d\n", stateVersionID, stateMeta.Size)
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Generated stateVersionID=%s\n", stateVersionID) // temporary log
 
 	baseURL := getBaseURL(c)
 	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, stateVersionID)
+	fmt.Printf("[TEMPORARY LOG] GetCurrentStateVersion: Returning SUCCESS - downloadURL=%s\n", downloadURL) // temporary log
 
 	// Return current state version info
 	return c.JSON(200, map[string]interface{}{
@@ -829,10 +985,10 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 	fmt.Printf("CreateStateVersion: resolved stateID=%s\n", stateID)
 
 	// Check RBAC permission for creating/writing state versions
-	if err := h.checkWorkspacePermission(c, "unit:write", stateID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit.write", stateID); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "insufficient permissions to create state version",
-			"hint":  "contact your administrator to grant unit:write permission",
+			"hint":  "contact your administrator to grant unit.write permission",
 		})
 	}
 
@@ -880,12 +1036,16 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		}
 	}
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("CreateStateVersion: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+
 	// Check that state exists (no auto-creation)
-	_, err = h.stateStore.Get(c.Request().Context(), stateID)
+	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
 	if err == storage.ErrNotFound {
 		fmt.Printf("CreateStateVersion: Unit not found\n")
 		return c.JSON(404, map[string]string{
-			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	} else if err != nil {
 		fmt.Printf("CreateStateVersion: ERROR - Failed to check state existence: %v\n", err)
@@ -918,7 +1078,7 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 	// Derive serial and lineage from existing state (if any)
 	serial := 0
 	lineage := ""
-	if stateBytes, dErr := h.stateStore.Download(c.Request().Context(), stateID); dErr == nil {
+	if stateBytes, dErr := h.stateStore.Download(c.Request().Context(), unitUUID); dErr == nil {
 		var st map[string]interface{}
 		if uErr := json.Unmarshal(stateBytes, &st); uErr == nil {
 			if v, ok := st["serial"].(float64); ok {
@@ -974,17 +1134,21 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 func (h *TfeHandler) CreateStateVersionDirect(c echo.Context, workspaceID, stateID string, body []byte) error {
 	fmt.Printf("CreateStateVersionDirect: START - workspaceID=%s, stateID=%s, bodyLen=%d\n", workspaceID, stateID, len(body))
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("CreateStateVersionDirect: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+
 	// Check if state exists, create if not
-	_, err := h.stateStore.Get(c.Request().Context(), stateID)
+	_, err := h.stateStore.Get(c.Request().Context(), unitUUID)
 	if err == storage.ErrNotFound {
 		fmt.Printf("CreateStateVersionDirect: Unit not found\n")
 		return c.JSON(404, map[string]string{
-			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	}
 
 	// Get the current lock to extract lock ID for state upload
-	currentLock, lockErr := h.stateStore.GetLock(c.Request().Context(), stateID)
+	currentLock, lockErr := h.stateStore.GetLock(c.Request().Context(), unitUUID)
 	if lockErr != nil && lockErr != storage.ErrNotFound {
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
@@ -996,7 +1160,7 @@ func (h *TfeHandler) CreateStateVersionDirect(c echo.Context, workspaceID, state
 	}
 
 	// Upload the state with proper lock ID
-	err = h.stateStore.Upload(c.Request().Context(), stateID, body, lockID)
+	err = h.stateStore.Upload(c.Request().Context(), unitUUID, body, lockID)
 	if err != nil {
 		if err == storage.ErrLockConflict {
 			return c.JSON(423, map[string]string{
@@ -1009,7 +1173,7 @@ func (h *TfeHandler) CreateStateVersionDirect(c echo.Context, workspaceID, state
 	}
 
 	// Get updated metadata
-	stateMeta, err := h.stateStore.Get(c.Request().Context(), stateID)
+	stateMeta, err := h.stateStore.Get(c.Request().Context(), unitUUID)
 	if err != nil {
 		return c.JSON(500, map[string]string{"error": "Failed to get updated state metadata"})
 	}
@@ -1051,8 +1215,11 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "Invalid state version ID format"})
 	}
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	
 	// Download the state data
-	stateData, err := h.stateStore.Download(c.Request().Context(), stateID)
+	stateData, err := h.stateStore.Download(c.Request().Context(), unitUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(404, map[string]string{"error": "State version not found"})
@@ -1095,13 +1262,13 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	// Check RBAC permission for uploading state (if auth available)
 	// Note: Upload endpoints are exempt from auth middleware since Terraform doesn't send headers
 	// Security relies on: valid upload URL + lock ownership + this RBAC check when possible
-	if err := h.checkWorkspacePermission(c, "unit:write", workspaceID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit.write", workspaceID); err != nil {
 		// Only enforce RBAC if we have a real auth error, not just missing headers
 		if !strings.Contains(err.Error(), "no authorization header") {
 			fmt.Printf("UploadStateVersion: RBAC permission denied: %v\n", err)
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "insufficient permissions to upload state",
-				"hint":  "contact your administrator to grant unit:write permission",
+				"hint":  "contact your administrator to grant unit.write permission",
 			})
 		}
 		// If no auth header, allow but log for security monitoring
@@ -1119,12 +1286,16 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 		fmt.Printf("UploadStateVersion: Body preview: %s\n", string(stateData))
 	}
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	fmt.Printf("UploadStateVersion: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
+
 	// Check if state exists (no auto-creation)
-	_, err = h.stateStore.Get(c.Request().Context(), stateID)
+	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
 	if err == storage.ErrNotFound {
 		fmt.Printf("UploadStateVersion: Unit not found - no auto-creation\n")
 		return c.JSON(404, map[string]string{
-			"error": "Unit not found. Please create the unit first using 'taco unit create " + stateID + "' or the opentaco_unit Terraform resource.",
+			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	} else if err != nil {
 		fmt.Printf("UploadStateVersion: ERROR - Failed to check state existence: %v\n", err)
@@ -1134,7 +1305,7 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	}
 
 	// Get the current lock to extract lock ID for state upload
-	currentLock, lockErr := h.stateStore.GetLock(c.Request().Context(), stateID)
+	currentLock, lockErr := h.stateStore.GetLock(c.Request().Context(), unitUUID)
 	if lockErr != nil && lockErr != storage.ErrNotFound {
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
@@ -1147,7 +1318,7 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 
 	// Upload the state with proper lock ID
 	fmt.Printf("UploadStateVersion: Uploading to storage with lockID=%s\n", lockID)
-	err = h.stateStore.Upload(c.Request().Context(), stateID, stateData, lockID)
+	err = h.stateStore.Upload(c.Request().Context(), unitUUID, stateData, lockID)
 	fmt.Printf("UploadStateVersion: Upload result, err=%v\n", err)
 	if err != nil {
 		if err == storage.ErrLockConflict {
@@ -1189,13 +1360,13 @@ func (h *TfeHandler) UploadJSONStateOutputs(c echo.Context) error {
 	// Check RBAC permission for uploading state outputs (if auth available)
 	// Note: Upload endpoints are exempt from auth middleware since Terraform doesn't send headers
 	// Security relies on: valid upload URL + lock ownership + this RBAC check when possible
-	if err := h.checkWorkspacePermission(c, "unit:write", workspaceID); err != nil {
+	if err := h.checkWorkspacePermission(c, "unit.write", workspaceID); err != nil {
 		// Only enforce RBAC if we have a real auth error, not just missing headers
 		if !strings.Contains(err.Error(), "no authorization header") {
 			fmt.Printf("UploadJSONStateOutputs: RBAC permission denied: %v\n", err)
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "insufficient permissions to upload state outputs",
-				"hint":  "contact your administrator to grant state:write permission",
+				"hint":  "contact your administrator to grant unit.write permission",
 			})
 		}
 		// If no auth header, allow but log for security monitoring
@@ -1229,8 +1400,11 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 		})
 	}
 
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
+	
 	// Load metadata (and optionally content)
-	meta, err := h.stateStore.Get(c.Request().Context(), stateID)
+	meta, err := h.stateStore.Get(c.Request().Context(), unitUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(http.StatusNotFound, map[string]interface{}{
@@ -1243,7 +1417,7 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 	// Optional: extract serial/lineage + md5
 	var serial int
 	var lineage, md5b64 string
-	if bytes, dErr := h.stateStore.Download(c.Request().Context(), stateID); dErr == nil && len(bytes) > 0 {
+	if bytes, dErr := h.stateStore.Download(c.Request().Context(), unitUUID); dErr == nil && len(bytes) > 0 {
 		var st map[string]interface{}
 		if json.Unmarshal(bytes, &st) == nil {
 			if v, ok := st["serial"].(float64); ok {

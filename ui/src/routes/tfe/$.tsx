@@ -73,11 +73,35 @@ async function handler({ request }) {
     }
     
     // Extract user info from token service response
-    userId = tokenInfo.user_id || tokenInfo.userId || 'anonymous';
-    userEmail = tokenInfo.email || '';
-    orgId = tokenInfo.org_id || tokenInfo.orgId || 'default';
+    const tokenData = tokenInfo.token || {};
+    userId = tokenData.user_id || tokenInfo.user_id || 'anonymous';
+    orgId = tokenData.org_id || tokenInfo.org_id || 'default';
     
-    console.log('Verified token service token for user:', userId, 'org:', orgId);
+    console.log('Verified token for user:', userId, 'org:', orgId);
+    
+    // Get email from statesman (token service doesn't store email)
+    try {
+      const userResponse = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
+          'X-Org-ID': orgId,
+          'X-User-ID': userId,
+          'X-Email': '',
+        },
+      });
+      
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        userEmail = userData.email || '';
+        console.log('Got user email from statesman:', userEmail);
+      } else {
+        console.warn('Could not fetch user from statesman:', userResponse.status);
+        userEmail = '';
+      }
+    } catch (error) {
+      console.error('Error fetching user email:', error);
+      userEmail = '';
+    }
   } catch (error) {
     console.error('Error verifying token:', error);
     return new Response('Unauthorized: Token verification failed', { status: 401 })
