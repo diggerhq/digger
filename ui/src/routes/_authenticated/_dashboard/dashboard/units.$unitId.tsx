@@ -43,6 +43,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import UnitStateForceUploadDialog from '@/components/UnitStateForceUploadDialog'
+import UnitConfigureInstructions from '@/components/UnitConfigureInstructions'
 
 function CopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false)
@@ -330,96 +331,22 @@ function RouteComponent() {
           </TabsList>
 
           <TabsContent value="setup" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Terraform Configuration</CardTitle>
-                <CardDescription>Add this configuration block to your Terraform code to use this unit</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    To use this unit in your Terraform configuration, add the following block to your Terraform code:
-                  </p>
-                  <div className="relative">
-                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">
-{`terraform {
-  cloud {
-    hostname = "${publicHostname}"
-    organization = "${organisationName ? `${organisationName}:` : ''}${organisationId}"    
-    workspaces {
-      name = "${unit.name}"
-    }
-  }
-}`}
-                    </pre>
-                    <CopyButton 
-                      content={`terraform {
-  cloud {
-    hostname = "${publicHostname}"
-    organization = "${organisationName ? `${organisationName}:` : ''}${organisationId}"    
-    workspaces {
-      name = "${unit.name}"
-    }
-  }
-}`} 
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold mb-2">1. Login to the remote backend</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      First, authenticate with the remote backend:
-                    </p>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">terraform login {publicHostname}</pre>
-                      <CopyButton content={`terraform login ${publicHostname}`} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">2. Initialize Terraform</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      After adding the configuration block above, initialize your working directory:
-                    </p>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">terraform init</pre>
-                      <CopyButton content="terraform init" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">3. Review Changes</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Preview any changes that will be made to your infrastructure:
-                    </p>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">terraform plan</pre>
-                      <CopyButton content="terraform plan" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">4. Apply Changes</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Apply the changes to your infrastructure:
-                    </p>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg overflow-x-auto font-mono text-sm">terraform apply</pre>
-                      <CopyButton content="terraform apply" />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">Note</h3>
-                    <p className="text-sm text-blue-600 dark:text-blue-400">
-                      After completing these steps, your Terraform state will be managed by this unit. All state operations will be automatically versioned and you can roll back to previous versions if needed.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <UnitConfigureInstructions
+              unitId={unit.id}
+              organisationId={organisationId}
+              publicHostname={publicHostname}
+              showNextActions={false}
+            />
+            <div className="mt-4 rounded-md border bg-muted/30 p-4">
+              <p className="text-sm text-muted-foreground mb-2">
+                Want PR automation? Connect your VCS to trigger plans and applies from pull requests.
+              </p>
+              <Button asChild>
+                <Link to="/dashboard/onboarding" search={{ step: 'github' } as any}>
+                  Connect VCS for PR automation
+                </Link>
+              </Button>
+            </div>
           </TabsContent>
           
           <TabsContent value="versions" className="mt-6">

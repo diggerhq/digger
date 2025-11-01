@@ -84,6 +84,15 @@ inputs:
     description: Setup OpenToFu
     required: false
     default: "false"
+  opentofu-tfe-token:
+    description: the cli credentials token to use with opentofu
+    required: false
+    default: ""
+  opentofu-tfe-hostname:
+    description: the cli hostname auth to use with opentofu
+    required: false
+    default: ""
+
   setup-pulumi:
     description: Setup Pulumi
     required: false
@@ -109,6 +118,15 @@ inputs:
     description: Terraform version
     required: false
     default: v1.5.5
+  terraform-tfe-token:
+    description: the cli credentials token to use with opentofu
+    required: false
+    default: ""
+  terraform-tfe-hostname:
+    description: the cli hostname auth to use with opentofu
+    required: false
+    default: ""
+
   configure-checkout:
     description: Configure checkout. Beware that this will overwrite any changes in the working directory
     required: false
@@ -392,6 +410,8 @@ runs:
       with:
         terraform_version: ${{ inputs.terraform-version }}
         terraform_wrapper: false
+        cli_config_credentials_token: ${{ inputs.terraform-tfe-token || '' }}
+        cli_config_credentials_hostname: ${{ inputs.terraform-tfe-hostname || 'otaco.app' }}
       if: inputs.setup-terraform == 'true'
 
     - name: Setup tfenv
@@ -409,6 +429,8 @@ runs:
       with:
         tofu_version: ${{ inputs.opentofu-version }}
         tofu_wrapper: false
+        cli_config_credentials_token: ${{ inputs.opentofu-tfe-token || '' }}
+        cli_config_credentials_hostname: ${{ inputs.opentofu-tfe-hostname || 'otaco.app' }}
       if: inputs.setup-opentofu == 'true'
 
     - name: Setup Pulumi
