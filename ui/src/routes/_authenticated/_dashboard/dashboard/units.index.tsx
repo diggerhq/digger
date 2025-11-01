@@ -116,7 +116,7 @@ function RouteComponent() {
             <CardDescription className="mt-2">List of terraform state units and their current status</CardDescription>
           </div>
           
-          {units.length > 1 && (<div className="flex items-center gap-2">
+          {units.length > 0 && (<div className="flex items-center gap-2">
             <Button variant="outline" asChild>
               <Link to="/dashboard/onboarding">Show onboarding flow</Link>
             </Button>

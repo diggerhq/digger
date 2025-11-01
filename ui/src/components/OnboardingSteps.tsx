@@ -172,6 +172,15 @@ jobs:
     })
   }
 
+  const handleCopyDigger = () => {
+    navigator.clipboard.writeText(diggerConfig)
+    toast({
+      title: "Success",
+      description: "digger.yml content copied to clipboard",
+      action: <ToastAction altText="OK">OK</ToastAction>,
+    })
+  }
+
 
   const handleGithubConnect = () => {
     window.open("https://github.com/apps/digger-pro", "_blank")
@@ -455,13 +464,23 @@ jobs:
                 </p>
 
                   <>
-                    <Textarea
-                      value={diggerConfig}
-                      onChange={(e) => setDiggerConfig(e.target.value)}
-                      className="font-mono h-[200px]"
-                      placeholder="Enter your digger.yml configuration"
-                    />
-                    <div className="flex justify-end">
+                    <div className="relative">
+                      <Textarea
+                        value={diggerConfig}
+                        onChange={(e) => setDiggerConfig(e.target.value)}
+                        className="font-mono h-[200px]"
+                        placeholder="Enter your digger.yml configuration"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={handleCopyDigger}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex justify-end mt-2">
                       <DiggerYmlButton onClick={handleDiggerConfigCreate} />
                     </div>
                   </>
