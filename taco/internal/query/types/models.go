@@ -8,8 +8,8 @@ import (
 
 type Role struct {
 	ID          string        `gorm:"type:varchar(36);primaryKey"`
-	OrgID       string        `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
-	Name        string        `gorm:"type:varchar(255);not null;index"` // Unique identifier (e.g., "admin", "viewer")
+	OrgID       string        `gorm:"type:varchar(36);index;uniqueIndex:unique_org_role_name"` // Foreign key to organizations.id (UUID)
+	Name        string        `gorm:"type:varchar(255);not null;index;uniqueIndex:unique_org_role_name"` // Unique identifier per org (e.g., "admin", "viewer")
 	Description string
 	Permissions []Permission  `gorm:"many2many:role_permissions;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
 	CreatedAt   time.Time
@@ -27,8 +27,8 @@ func (Role) TableName() string { return "roles" }
 
 type Permission struct {
 	ID          string `gorm:"type:varchar(36);primaryKey"`
-	OrgID       string `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
-	Name        string `gorm:"type:varchar(255);not null;index"` // Unique identifier (e.g., "unit-read", "unit-write")
+	OrgID       string `gorm:"type:varchar(36);index;uniqueIndex:unique_org_permission_name"` // Foreign key to organizations.id (UUID)
+	Name        string `gorm:"type:varchar(255);not null;index;uniqueIndex:unique_org_permission_name"` // Unique identifier per org (e.g., "unit-read", "unit-write")
 	Description string
 	Rules       []Rule `gorm:"constraint:OnDelete:CASCADE"`
 	CreatedBy   string
@@ -163,8 +163,8 @@ func (Unit) TableName() string { return "units" }
 
 type Tag struct {
 	ID    string `gorm:"type:varchar(36);primaryKey"`
-	OrgID string `gorm:"type:varchar(36);index"` // Foreign key to organizations.id (UUID)
-	Name  string `gorm:"type:varchar(255);not null;index"`
+	OrgID string `gorm:"type:varchar(36);index;uniqueIndex:unique_org_tag_name"` // Foreign key to organizations.id (UUID)
+	Name  string `gorm:"type:varchar(255);not null;index;uniqueIndex:unique_org_tag_name"` // Unique per org
 }
 
 func (t *Tag) BeforeCreate(tx *gorm.DB) error {

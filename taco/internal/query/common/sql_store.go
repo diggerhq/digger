@@ -28,10 +28,9 @@ type SQLStore struct {
 func NewSQLStore(db *gorm.DB) (*SQLStore, error) {
 	store := &SQLStore{db: db}
 	
-	// Create org-scoped indexes (not handled by Atlas migrations)
-	if err := CreateOrgScopedIndexes(db); err != nil {
-		return nil, fmt.Errorf("failed to create org-scoped indexes: %w", err)
-	}
+	// All org-scoped unique indexes are now managed by Atlas migrations:
+	//   - migrations/*/20251031000000_add_unique_unit_name_per_org.sql
+	//   - migrations/*/20251031000001_add_unique_org_constraints.sql
 	
 	// Create database views (not handled by Atlas migrations)
 	if err := store.createViews(); err != nil {
