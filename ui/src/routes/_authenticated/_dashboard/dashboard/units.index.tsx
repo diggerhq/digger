@@ -113,7 +113,7 @@ function RouteComponent() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle>Units</CardTitle>
-            <CardDescription>List of terraform state units and their current status</CardDescription>
+            <CardDescription className="mt-2">List of terraform state units and their current status</CardDescription>
           </div>
           
           {units.length > 1 && (<div className="flex items-center gap-2">
