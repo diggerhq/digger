@@ -115,12 +115,13 @@ function RouteComponent() {
             <CardTitle>Units</CardTitle>
             <CardDescription>List of terraform state units and their current status</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          
+          {units.length > 1 && (<div className="flex items-center gap-2">
             <Button variant="outline" asChild>
               <Link to="/dashboard/onboarding">Show onboarding flow</Link>
             </Button>
             <CreateUnitModal onUnitCreated={handleUnitCreated} />
-          </div>
+          </div>)}
         </CardHeader>
         <CardContent>
           {units.length === 0 ? (
@@ -130,13 +131,12 @@ function RouteComponent() {
           </div>
           <h2 className="text-lg font-semibold mb-2">No Units Created Yet</h2>
           <p className="text-muted-foreground max-w-sm mx-auto mb-6">
-            Units are equivalent to individual terraform statefiles - but they also include version history by default and you can rollback to a previous version of a unit's state.
+            Units are equivalent to individual terraform deployable pieces - but they also include version history by default and you can rollback to a previous version of a unit's state.
           </p>
           <div className="flex items-center justify-center gap-2">
-            <Button variant="outline" asChild>
-              <Link to="/dashboard/onboarding">Show onboarding flow</Link>
+            <Button asChild>
+              <Link to="/dashboard/onboarding">Create first unit</Link>
             </Button>
-            <CreateUnitModal onUnitCreated={() => navigate({ to: '/dashboard/units' })} />
           </div>
         </div>
       ) : (
