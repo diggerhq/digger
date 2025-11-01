@@ -170,10 +170,14 @@ func (s *s3Store) Create(ctx context.Context, id string) (*UnitMetadata, error) 
 }
 
 func (s *s3Store) Get(ctx context.Context, id string) (*UnitMetadata, error) {
+    
+    s3Key := s.objKey(id)
+    
     head, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
         Bucket: &s.bucket,
-        Key:    aws.String(s.objKey(id)),
+        Key:    aws.String(s3Key),
     })
+    
     if err != nil {
         if isNotFound(err) {
             return nil, ErrNotFound
