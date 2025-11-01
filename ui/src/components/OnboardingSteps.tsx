@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Github, CheckCircle2, FileCode2, FileText, Copy, Database, Settings } from "lucide-react"
+import { Github, CheckCircle2, FileCode2, FileText, Copy, Database, Settings, Cloud, CloudRain, CloudSun } from "lucide-react"
 import { GithubConnectButton } from "./GithubConnectButton"
 import { WorkflowFileButton } from "./WorkflowFileButton"
 import { DiggerYmlButton } from "./DiggerYmlButton"
@@ -43,7 +43,13 @@ interface WorkflowConfig {
 }
 
 export default function OnboardingSteps({ repoName, repoOwner, onComplete, userId, email, organisationId, publicHostname }: OnboardingStepsProps) {
-  const [currentStep, setCurrentStep] = useState("create-unit")
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const step = new URLSearchParams(window.location.search).get('step')
+      if (step) return step
+    }
+    return "create-unit"
+  })
   const [steps, setSteps] = useState({
     githubConnected: false,
     workflowCreated: false,
@@ -53,6 +59,7 @@ export default function OnboardingSteps({ repoName, repoOwner, onComplete, userI
     terraformPRCreated: false
   })
   const [createdUnit, setCreatedUnit] = useState<{ id: string; name: string } | null>(null)
+  const [onboardingMode, setOnboardingMode] = useState<'unit' | 'pr_only' | null>(null)
   const [repos, setRepos] = useState<Repo[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [workflowConfig, setWorkflowConfig] = useState<WorkflowConfig>({
@@ -61,20 +68,50 @@ export default function OnboardingSteps({ repoName, repoOwner, onComplete, userI
     iacType: "terraform",
     iacVersion: "1.5.6"
   })
-  const [diggerConfig, setDiggerConfig] = useState(`projects:
+  const getDiggerConfig = (iacType: "terraform" | "opentofu") => `projects:
   - name: my-dev
     dir: path/to/dev
-    # switch around if using terraform
-    opentofu: true
-    terraform: false
-`)
+    opentofu: ${iacType === 'opentofu' ? 'true' : 'false'}
+    terraform: ${iacType === 'terraform' ? 'true' : 'false'}
+`
+  const [diggerConfig, setDiggerConfig] = useState(getDiggerConfig("terraform"))
   const { toast } = useToast()
 
+  // Keep digger.yml engine toggles in sync with chosen IAC type until user reaches digger step
+  useEffect(() => {
+    if (!steps.workflowCreated) {
+      setDiggerConfig(getDiggerConfig(workflowConfig.iacType))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowConfig.iacType])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const m = window.localStorage.getItem('onboardingMode') as any
+      if (m === 'unit' || m === 'pr_only') setOnboardingMode(m)
+      const cu = window.localStorage.getItem('onboardingUnit')
+      if (cu) setCreatedUnit(JSON.parse(cu))
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (onboardingMode) window.localStorage.setItem('onboardingMode', onboardingMode)
+      if (createdUnit) window.localStorage.setItem('onboardingUnit', JSON.stringify(createdUnit))
+    } catch {}
+  }, [onboardingMode, createdUnit])
 
   const generateWorkflowContent = (config: WorkflowConfig) => {
     const iacVersion = config.iacVersion || (config.iacType === "terraform" ? "1.5.6" : "1.9.1")
     const iacName = config.iacType === "terraform" ? "Terraform" : "OpenTofu"
     const iacCommand = config.iacType === "terraform" ? "terraform" : "tofu"
+    const remoteStateEnv = createdUnit
+      ? `\n          DGR_UNIT_ID: ${createdUnit.id}\n          DGR_UNIT_NAME: ${createdUnit.name}\n          DGR_REMOTE_STATE: true`
+      : onboardingMode === 'pr_only'
+        ? `\n          # Using local state for now\n          DGR_REMOTE_STATE: false`
+        : ''
 
     return `name: Digger Workflow
 
@@ -107,8 +144,12 @@ jobs:
         with:
           digger-spec: \${{ inputs.spec }}
           ${iacCommand == "terraform" ? `setup-terraform: true
-          terraform-version: ${iacVersion}` : ""}${iacCommand == "tofu" ? `setup-opentofu: true
-          opentofu-version: ${iacVersion}` : ""}
+          terraform-version: ${iacVersion}${onboardingMode === 'unit' ? `
+          terraform-tfe-token: \${{ secrets.TFE_TOKEN }}` : ""}${onboardingMode === 'unit' ? `
+          terraform-tfe-hostname: ${publicHostname}` : ""}` : ""}${iacCommand == "tofu" ? `setup-opentofu: true
+          opentofu-version: ${iacVersion}${onboardingMode === 'unit' ? `
+          opentofu-tfe-token: \${{ secrets.TFE_TOKEN }}` : ""}${onboardingMode === 'unit' ? `
+          opentofu-tfe-hostname: ${publicHostname}` : ""}` : ""}
           ${config.cloudProvider == "aws" ? `setup-aws: true
           aws-access-key-id: \${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: \${{ secrets.AWS_SECRET_ACCESS_KEY }}` : ""}${config.cloudProvider == "gcp" ? `setup-google-cloud: true
@@ -151,6 +192,7 @@ jobs:
   const handleCreateUnit = (unit?: { id: string; name: string }) => {
     console.log('handleCreateUnit', unit)
     if (unit) setCreatedUnit({ id: unit.id, name: unit.name })
+    setOnboardingMode('unit')
     setSteps(prev => ({ ...prev, unitCreated: true }))
     setCurrentStep("configure-unit")
   }
@@ -223,20 +265,52 @@ jobs:
                             onValueChange={(value: "aws" | "gcp" | "azure") =>
                               setWorkflowConfig(prev => ({ ...prev, cloudProvider: value }))
                             }
-                            className="flex space-x-4 mt-2"
+                            className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3"
                           >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="aws" id="aws" />
-                              <Label htmlFor="aws">AWS</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="gcp" id="gcp" />
-                              <Label htmlFor="gcp">GCP</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="azure" id="azure" />
-                              <Label htmlFor="azure">Azure</Label>
-                            </div>
+                            <label
+                              htmlFor="aws"
+                              className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${workflowConfig.cloudProvider === 'aws' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                              onClick={() => setWorkflowConfig(prev => ({ ...prev, cloudProvider: 'aws' }))}
+                            >
+                              <RadioGroupItem value="aws" id="aws" className="sr-only" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <Cloud className="h-5 w-5" />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-base font-semibold">AWS</span>
+                                <p className="text-sm text-muted-foreground">Use AWS credentials or OIDC in your workflow.</p>
+                              </div>
+                            </label>
+
+                            <label
+                              htmlFor="gcp"
+                              className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${workflowConfig.cloudProvider === 'gcp' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                              onClick={() => setWorkflowConfig(prev => ({ ...prev, cloudProvider: 'gcp' }))}
+                            >
+                              <RadioGroupItem value="gcp" id="gcp" className="sr-only" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <CloudRain className="h-5 w-5" />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-base font-semibold">GCP</span>
+                                <p className="text-sm text-muted-foreground">Provide service account JSON or workload identity.</p>
+                              </div>
+                            </label>
+
+                            <label
+                              htmlFor="azure"
+                              className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${workflowConfig.cloudProvider === 'azure' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                              onClick={() => setWorkflowConfig(prev => ({ ...prev, cloudProvider: 'azure' }))}
+                            >
+                              <RadioGroupItem value="azure" id="azure" className="sr-only" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <CloudSun className="h-5 w-5" />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-base font-semibold">Azure</span>
+                                <p className="text-sm text-muted-foreground">Use federated credentials or client secret.</p>
+                              </div>
+                            </label>
                           </RadioGroup>
                         </div>
 
@@ -251,16 +325,37 @@ jobs:
                                 iacVersion: value === "terraform" ? "1.5.6" : "1.9.1"
                               }))
                             }
-                            className="flex space-x-4 mt-2"
+                            className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3"
                           >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="terraform" id="terraform" />
-                              <Label htmlFor="terraform">Terraform</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="opentofu" id="opentofu" />
-                              <Label htmlFor="opentofu">OpenTofu</Label>
-                            </div>
+                            <label
+                              htmlFor="terraform"
+                              className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${workflowConfig.iacType === 'terraform' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                              onClick={() => setWorkflowConfig(prev => ({ ...prev, iacType: 'terraform', iacVersion: '1.5.6' }))}
+                            >
+                              <RadioGroupItem value="terraform" id="terraform" className="sr-only" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-base font-semibold">Terraform</span>
+                                <p className="text-sm text-muted-foreground">Use HashiCorp Terraform runtime.</p>
+                              </div>
+                            </label>
+
+                            <label
+                              htmlFor="opentofu"
+                              className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${workflowConfig.iacType === 'opentofu' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                              onClick={() => setWorkflowConfig(prev => ({ ...prev, iacType: 'opentofu', iacVersion: '1.9.1' }))}
+                            >
+                              <RadioGroupItem value="opentofu" id="opentofu" className="sr-only" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-base font-semibold">OpenTofu</span>
+                                <p className="text-sm text-muted-foreground">Use OpenTofu community runtime.</p>
+                              </div>
+                            </label>
                           </RadioGroup>
                         </div>
 
@@ -284,7 +379,7 @@ jobs:
                           <Textarea
                             value={generateWorkflowContent(workflowConfig)}
                             readOnly
-                            className="font-mono h-[200px]"
+                            className="font-mono h-[440px]"
                           />
                           <Button
                             size="sm"
@@ -294,6 +389,49 @@ jobs:
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
+                        </div>
+                        {/* Required secrets section */}
+                        <div className="mt-4 rounded-md border bg-muted/30 p-4">
+                          <h4 className="text-sm font-medium mb-2">Set these GitHub secrets</h4>
+                          <div className="text-sm text-muted-foreground">
+                            <p className="mb-2">Add the following secrets in your repository settings → Secrets and variables → Actions:</p>
+                            {workflowConfig.cloudProvider === 'aws' && (
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li><code className="font-mono">AWS_ACCESS_KEY_ID</code></li>
+                                <li><code className="font-mono">AWS_SECRET_ACCESS_KEY</code></li>
+                              </ul>
+                            )}
+                            {workflowConfig.cloudProvider === 'gcp' && (
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li><code className="font-mono">GOOGLE_CLOUD_CREDENTIALS</code></li>
+                              </ul>
+                            )}
+                            {workflowConfig.cloudProvider === 'azure' && (
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li><code className="font-mono">AZURE_CLIENT_ID</code></li>
+                                <li><code className="font-mono">AZURE_TENANT_ID</code></li>
+                                <li><code className="font-mono">AZURE_SUBSCRIPTION_ID</code></li>
+                              </ul>
+                            )}
+                            {onboardingMode === 'unit' && (
+                              <div className="mt-3">
+                                <p className="font-medium">For remote state</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  <li>
+                                    <code className="font-mono">TFE_TOKEN</code> — API token for remote state access, generate from{" "}
+                                    <a
+                                      href="/dashboard/settings/tokens"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 hover:underline"
+                                    >
+                                      token settings page
+                                    </a>
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -346,7 +484,7 @@ jobs:
                     email={email}
                     organisationId={organisationId}
                     onCreated={handleCreateUnit}
-                    onBringOwnState={() => setCurrentStep('github')}
+                    onBringOwnState={() => { setOnboardingMode('pr_only'); setCurrentStep('github') }}
                   />
                 )}
               </div>

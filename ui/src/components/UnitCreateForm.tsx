@@ -13,9 +13,10 @@ type UnitCreateFormProps = {
   organisationId: string
   onCreated: (unit: { id: string; name: string }) => void
   onBringOwnState: () => void
+  showBringOwnState?: boolean
 }
 
-export default function UnitCreateForm({ userId, email, organisationId, onCreated, onBringOwnState }: UnitCreateFormProps) {
+export default function UnitCreateForm({ userId, email, organisationId, onCreated, onBringOwnState, showBringOwnState = true }: UnitCreateFormProps) {
   const [unitName, setUnitName] = React.useState('')
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
   const [isCreating, setIsCreating] = React.useState(false)
@@ -112,14 +113,22 @@ export default function UnitCreateForm({ userId, email, organisationId, onCreate
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" type="button" onClick={onBringOwnState}>
-          I want to bring my own state
-        </Button>
-        <Button onClick={handleCreate} disabled={!unitName.trim() || isCreating}>
-          {isCreating ? 'Creating...' : 'Create Unit'}
-        </Button>
-      </div>
+      {showBringOwnState ? (
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" type="button" onClick={onBringOwnState}>
+            I want to bring my own state
+          </Button>
+          <Button onClick={handleCreate} disabled={!unitName.trim() || isCreating}>
+            {isCreating ? 'Creating...' : 'Create Unit'}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-end">
+          <Button onClick={handleCreate} disabled={!unitName.trim() || isCreating}>
+            {isCreating ? 'Creating...' : 'Create Unit'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

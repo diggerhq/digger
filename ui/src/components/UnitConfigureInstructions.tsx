@@ -22,11 +22,12 @@ type Props = {
   unitId: string
   organisationId: string
   publicHostname: string
-  onGoToGithub: () => void
-  onGoToLocal: () => void
+  onGoToGithub?: () => void
+  onGoToLocal?: () => void
+  showNextActions?: boolean
 }
 
-export default function UnitConfigureInstructions({ unitId, organisationId, publicHostname, onGoToGithub, onGoToLocal }: Props) {
+export default function UnitConfigureInstructions({ unitId, organisationId, publicHostname, onGoToGithub, onGoToLocal, showNextActions = true }: Props) {
   const tfBlock = `terraform {\n  cloud {\n    hostname = "${publicHostname}"\n    organization = "${organisationId}"    \n    workspaces {\n      name = "${unitId}"\n    }\n  }\n}`
   return (
     <>
@@ -90,6 +91,7 @@ export default function UnitConfigureInstructions({ unitId, organisationId, publ
               </p>
             </div>
 
+            {showNextActions && (
             <div className="pt-4">
               <Label className="text-right">What would you like to do next?</Label>
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -134,6 +136,7 @@ export default function UnitConfigureInstructions({ unitId, organisationId, publ
                 </div>
               </div>
             </div>
+            )}
           </div>
         </CardContent>
       </Card>

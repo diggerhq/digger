@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { ArrowLeft, Plus, Database, ExternalLink, Lock, Unlock, Cloud, HardDrive } from 'lucide-react'
+import { ArrowLeft, Plus, Database, ExternalLink, Lock, Unlock } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -19,12 +19,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Badge } from "@/components/ui/badge"
+ 
 import { useState } from "react"
-import { createUnitFn } from "@/api/statesman_serverFunctions"
+import UnitCreateForm from "@/components/UnitCreateForm"
 import { listUnitsFn } from '@/api/statesman_serverFunctions'
 
 export const Route = createFileRoute(
@@ -58,35 +55,8 @@ function formatDate(date: Date) {
 
 function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
   const [open, setOpen] = useState(false)
-  const [unitName, setUnitName] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [unitType, setUnitType] = useState<'local' | 'remote'>("local")
   const { user, organisationId } = Route.useLoaderData()
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const unit = await createUnitFn({
-        data: {
-          userId: user?.id!,
-          organisationId,
-          email: user?.email || '',
-          name: unitName,
-        }
-      })
-      setOpen(false)
-      setUnitName("")
-      onUnitCreated()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create unit")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const navigate = Route.useNavigate()
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -97,92 +67,22 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Create New Unit</DialogTitle>
-            <DialogDescription>
-              Enter a name for your new terraform state unit.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="name" className="text-right">
-              Unit Name
-            </Label>
-            <Input
-              id="name"
-              value={unitName}
-              onChange={(e) => setUnitName(e.target.value)}
-              placeholder="my-terraform-state"
-              className="mt-1"
-            />
-            {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-          </div>
-          <div className="py-2">
-            <Label className="text-right">Unit Type</Label>
-            <RadioGroup
-              value={unitType}
-              onValueChange={(v) => setUnitType(v as 'local' | 'remote')}
-              className="mt-3 grid grid-cols-1 gap-3"
-            >
-              {/* Local option card */}
-              <label
-                htmlFor="unit-type-local"
-                className={
-                  `relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ` +
-                  (unitType === 'local' ? 'ring-2 ring-primary border-primary' : 'border-muted')
-                }
-                onClick={() => setUnitType('local')}
-              >
-                <RadioGroupItem id="unit-type-local" value="local" className="sr-only" />
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <HardDrive className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-semibold">Local</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Mainly using units as states manager. Useful for teams that want full
-                    control and integrating pipelines with own CI.
-                  </p>
-                </div>
-              </label>
-
-              {/* Remote option card (disabled) */}
-              <label
-                htmlFor="unit-type-remote"
-                className={
-                  `relative flex cursor-not-allowed items-start gap-4 rounded-lg border p-4 md:p-5 opacity-60 ` +
-                  `bg-muted/30`
-                }
-              >
-                <RadioGroupItem id="unit-type-remote" value="remote" disabled className="sr-only" />
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                  <Cloud className="h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-semibold">Remote</span>
-                    <Badge variant="secondary">Coming soon</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Fully managed terraform runs. Run terraform locally and stream logs from
-                    remote runs. Best for teams that want seamless automation for their
-                    terraform runs without much configuration.
-                  </p>
-                </div>
-              </label>
-            </RadioGroup>
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              disabled={!unitName.trim() || isLoading}
-            >
-              {isLoading ? "Creating..." : "Create Unit"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogHeader>
+          <DialogTitle>Create New Unit</DialogTitle>
+          <DialogDescription>
+            Enter a name for your new terraform state unit.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-2">
+          <UnitCreateForm
+            userId={user?.id || ''}
+            email={user?.email || ''}
+            organisationId={organisationId}
+            onCreated={() => { setOpen(false); onUnitCreated(); }}
+            onBringOwnState={() => { setOpen(false); navigate({ to: '/dashboard/onboarding' }); }}
+            showBringOwnState={false}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -215,7 +115,12 @@ function RouteComponent() {
             <CardTitle>Units</CardTitle>
             <CardDescription>List of terraform state units and their current status</CardDescription>
           </div>
-          <CreateUnitModal onUnitCreated={handleUnitCreated} />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/onboarding">Show onboarding flow</Link>
+            </Button>
+            <CreateUnitModal onUnitCreated={handleUnitCreated} />
+          </div>
         </CardHeader>
         <CardContent>
           {units.length === 0 ? (
@@ -227,7 +132,12 @@ function RouteComponent() {
           <p className="text-muted-foreground max-w-sm mx-auto mb-6">
             Units are equivalent to individual terraform statefiles - but they also include version history by default and you can rollback to a previous version of a unit's state.
           </p>
-          <CreateUnitModal onUnitCreated={() => navigate({ to: '/dashboard/units' })} />
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/onboarding">Show onboarding flow</Link>
+            </Button>
+            <CreateUnitModal onUnitCreated={() => navigate({ to: '/dashboard/units' })} />
+          </div>
         </div>
       ) : (
         <Table>

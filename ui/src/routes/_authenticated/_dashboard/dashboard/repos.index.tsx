@@ -53,7 +53,7 @@ function RouteComponent() {
               Connect your first repository to start running Terraform with Digger.
             </p>
             <Button asChild>
-              <Link to="/dashboard/onboarding">
+              <Link to="/dashboard/onboarding" search={{ step: 'github' } as any}>
                 Connect your first repository <PlusCircle className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -117,7 +117,7 @@ function RouteComponent() {
 const ConnectMoreRepositoriesButton = () => {
   return (
     <Button variant="ghost" asChild>
-      <Link to="/dashboard/onboarding">
+      <Link to="/dashboard/onboarding" search={{ step: 'github' } as any}>
         Connect More Repositories <PlusCircle className="ml-2 h-4 w-4" />
       </Link>
     </Button>
