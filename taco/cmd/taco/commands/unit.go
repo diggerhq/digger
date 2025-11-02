@@ -61,6 +61,11 @@ var unitCreateCmd = &cobra.Command{
         resp, err := client.CreateUnit(context.Background(), unitID)
         if err != nil {
             analytics.SendEssential("taco_unit_create_failed")
+            // Check if this is a "unit already exists" error (HTTP 409)
+            if strings.Contains(err.Error(), "HTTP 409") {
+                fmt.Printf("Unit already exists: %s\n", unitID)
+                return nil
+            }
             return fmt.Errorf("failed to create unit: %w", err)
         }
 
