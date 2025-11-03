@@ -4,6 +4,7 @@ import { fetchRepos } from "./orchestrator_repos";
 import { getOrgSettings, updateOrgSettings } from "./orchestrator_orgs";
 import { testSlackWebhook } from "./drift_slack";
 import { fetchProjects, updateProject, fetchProject } from "./orchestrator_projects";
+import { timeAsync } from "@/lib/perf.server";
 
 export const getOrgSettingsFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string}) => data)
@@ -28,7 +29,10 @@ export const getProjectsFn = createServerFn({method: 'GET'})
     })
     .handler(async ({ data }) => {
       try {
-        const projects : any = await fetchProjects(data.organisationId, data.userId)
+        const projects : any = await timeAsync(
+          `fetchProjects(org=${data.organisationId})`,
+          () => fetchProjects(data.organisationId, data.userId)
+        )
         return projects.result || []
       } catch (error) {
         console.error('Error in getProjectsFn:', error)
@@ -49,7 +53,10 @@ export const getReposFn = createServerFn({method: 'GET'})
     .handler(async ({ data }) => {
     let repos = []
     try {
-        const reposData :any = await fetchRepos(data.organisationId, data.userId)
+        const reposData :any = await timeAsync(
+          `fetchRepos(org=${data.organisationId})`,
+          () => fetchRepos(data.organisationId, data.userId)
+        )
         repos = reposData.result
       } catch (error) {
         console.error('Error fetching repos:', error)
@@ -61,7 +68,10 @@ export const getReposFn = createServerFn({method: 'GET'})
 export const getProjectFn = createServerFn({method: 'GET'})
     .inputValidator((data : {projectId: string, organisationId: string, userId: string}) => data)
     .handler(async ({ data }) => {
-    const project : any = await fetchProject(data.projectId, data.organisationId, data.userId)
+    const project : any = await timeAsync(
+      `fetchProject(${data.projectId})`,
+      () => fetchProject(data.projectId, data.organisationId, data.userId)
+    )
     return project
   })
 
@@ -73,23 +83,29 @@ export const getRepoDetailsFn = createServerFn({method: 'GET'})
       let allJobs: Job[] = [];
       let repo: Repo 
       try {
-        const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}/jobs`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
-            'DIGGER_ORG_ID': organisationId,
-            'DIGGER_USER_ID': userId,
-            'DIGGER_ORG_SOURCE': 'workos',
-          },
-        });
-      
-        if (!response.ok) {
-          throw new Error('Failed to fetch jobs');
-        }
-      
-        const data :any = await response.json();
-        repo = data.repo    
-        allJobs = data.jobs || []
+        const result = await timeAsync(
+          `fetchRepoJobs(${repoId})`,
+          async () => {
+            const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}/jobs`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
+                'DIGGER_ORG_ID': organisationId,
+                'DIGGER_USER_ID': userId,
+                'DIGGER_ORG_SOURCE': 'workos',
+              },
+            });
+          
+            if (!response.ok) {
+              throw new Error('Failed to fetch jobs');
+            }
+          
+            return await response.json();
+          }
+        );
+        
+        repo = result.repo    
+        allJobs = result.jobs || []
     
       } catch (error) {
         console.error('Error fetching jobs:', error);

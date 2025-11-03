@@ -76,9 +76,11 @@ const server = createServer(async (req, res) => {
     const response = await serverHandler.fetch(request);
     const ssrTime = Date.now() - ssrStart;
     
-    // Log slow SSR requests
+    // Log SSR timing
     if (ssrTime > 1000) {
       console.log(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms`);
+    } else if (ssrTime > 200) {
+      console.log(`⏱️  SSR: ${req.method} ${pathname} took ${ssrTime}ms`);
     }
 
     // Convert Web Standard Response to Node.js response

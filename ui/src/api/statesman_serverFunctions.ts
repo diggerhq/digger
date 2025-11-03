@@ -1,24 +1,34 @@
 import { createServerFn } from "@tanstack/react-start"
 import { createUnit, getUnit, listUnits, getUnitVersions, unlockUnit, lockUnit, getUnitStatus, deleteUnit, downloadLatestState, forcePushState, restoreUnitStateVersion } from "./statesman_units"
+import { timeAsync } from "@/lib/perf.server"
 
 export const listUnitsFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string, email: string}) => data)
   .handler(async ({ data }) => {
-    const units : any = await listUnits(data.organisationId, data.userId, data.email)
+    const units : any = await timeAsync(
+      `listUnits(org=${data.organisationId})`,
+      () => listUnits(data.organisationId, data.userId, data.email)
+    )
     return units
 })
 
 export const getUnitFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unit : any = await getUnit(data.organisationId, data.userId, data.email, data.unitId)
+    const unit : any = await timeAsync(
+      `getUnit(${data.unitId})`,
+      () => getUnit(data.organisationId, data.userId, data.email, data.unitId)
+    )
     return unit
 })
 
 export const getUnitVersionsFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unitVersions : any = await getUnitVersions(data.organisationId, data.userId, data.email, data.unitId)
+    const unitVersions : any = await timeAsync(
+      `getUnitVersions(${data.unitId})`,
+      () => getUnitVersions(data.organisationId, data.userId, data.email, data.unitId)
+    )
     return unitVersions
 })
 
@@ -60,7 +70,10 @@ export const restoreUnitStateVersionFn = createServerFn({method: 'POST'})
 export const getUnitStatusFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unitStatus : any = await getUnitStatus(data.organisationId, data.userId, data.email, data.unitId)
+    const unitStatus : any = await timeAsync(
+      `getUnitStatus(${data.unitId})`,
+      () => getUnitStatus(data.organisationId, data.userId, data.email, data.unitId)
+    )
     return unitStatus
 })
 

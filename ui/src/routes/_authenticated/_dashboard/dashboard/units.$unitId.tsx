@@ -77,9 +77,13 @@ export const Route = createFileRoute(
   component: RouteComponent,
   loader: async ({ context, params: {unitId} }) => {
     const { user, organisationId, organisationName } = context;
-    const unitData = await getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
-    const unitVersionsData = await getUnitVersionsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
-    const unitStatusData = await getUnitStatusFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
+    
+    // Run all API calls in parallel instead of sequentially! 🚀
+    const [unitData, unitVersionsData, unitStatusData] = await Promise.all([
+      getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}}),
+      getUnitVersionsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}}),
+      getUnitStatusFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
+    ]);
     
     const publicServerConfig = context.publicServerConfig
     const publicHostname = publicServerConfig.PUBLIC_HOSTNAME || '<hostname>'
