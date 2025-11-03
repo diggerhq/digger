@@ -1,3 +1,4 @@
+import { Flex } from "@radix-ui/themes";
 // Commented out - legacy file, not currently used
 // import { getApiProps } from "@repo/env";
 // import { UsersManagement, WorkOsWidgets } from "@workos-inc/widgets";
@@ -41,7 +42,7 @@ export default async function OrgSelector(props: { user: any, organizationId: st
   //   scopes: ["widgets:users-table:manage"],
   // });
   return (
-    <div className="flex gap-2 p-2 flex-col items-start w-full">
+    <Flex gap="2" p="2" direction="column" align="start" width="100%">
     {/* <WorkOsWidgets>
         <OrganizationSwitcher
           authToken={authToken}
@@ -57,6 +58,6 @@ export default async function OrgSelector(props: { user: any, organizationId: st
         >
         </OrganizationSwitcher>
     </WorkOsWidgets> */}
-    </div>
+    </Flex>
   );
 }

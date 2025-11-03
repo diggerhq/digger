@@ -1,20 +1,20 @@
-import { Button } from '@/components/ui/button';
+import { Button, Flex } from '@radix-ui/themes';
 import { Link } from '@tanstack/react-router';
 import type { User } from '@workos-inc/node';
 
 export default function SignInButton({ large, user, url }: { large?: boolean; user: User | null; url: string }) {
   if (user) {
     return (
-      <div className="flex gap-3">
-        <Button asChild size={large ? 'lg' : 'default'}>
+      <Flex gap="3">
+        <Button asChild size={large ? '3' : '2'}>
           <Link to="/logout">Sign Out</Link>
         </Button>
-      </div>
+      </Flex>
     );
   }
 
   return (
-    <Button asChild size={large ? 'lg' : 'default'} className="cursor-pointer">
+    <Button asChild size={large ? '3' : '2'} className="cursor-pointer">
       <a href={url}>Sign In To Get Started</a>
     </Button>
   );
