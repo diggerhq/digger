@@ -94,9 +94,9 @@ const server = createServer(async (req, res) => {
       res.setHeader(key, value);
     });
     
-    // Prevent caching of HTML to avoid stale chunk references for now 
+    // Enable HTML caching with must-revalidate for versioned builds
     if (response.headers.get('content-type')?.includes('text/html')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
     }
 
     // Stream the response body
