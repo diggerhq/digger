@@ -7,6 +7,13 @@ type WorkspaceVersion struct {
 	semver string `json:"semver"`
 }
 
+func NewWorkspaceVersion(latest bool, semver string) *WorkspaceVersion {
+	return &WorkspaceVersion{
+		Latest: latest,
+		semver: semver,
+	}
+}
+
 type TFEWorkspaceActions struct {
 	IsDestroyable bool `json:"is-destroyable"`
 }
@@ -55,15 +62,15 @@ type WorkspaceRecord struct {
 	GlobalRemoteState          bool                     `jsonapi:"attr,global-remote-state" json:"global-remote-state"`
 	Locked                     bool                     `jsonapi:"attr,locked" json:"locked"`
 	MigrationEnvironment       string                   `jsonapi:"attr,migration-environment" json:"migration-environment"`
-	Name                       string                   `jsonapi:"attr,Name" json:"Name"`
+	Name                       string                   `jsonapi:"attr,name" json:"name"`
 	Operations                 bool                     `jsonapi:"attr,operations" json:"operations"`
 	Permissions                *TFEWorkspacePermissions `jsonapi:"attr,permissions" json:"permissions"`
 	QueueAllRuns               bool                     `jsonapi:"attr,queue-all-runs" json:"queue-all-runs"`
 	SpeculativeEnabled         bool                     `jsonapi:"attr,speculative-enabled" json:"speculative-enabled"`
-	SourceName                 string                   `jsonapi:"attr,source-Name" json:"source-Name"`
+	SourceName                 string                   `jsonapi:"attr,source-name" json:"source-name"`
 	SourceURL                  string                   `jsonapi:"attr,source-url" json:"source-url"`
 	StructuredRunOutputEnabled bool                     `jsonapi:"attr,structured-run-output-enabled" json:"structured-run-output-enabled"`
-	TerraformVersion           *WorkspaceVersion        `jsonapi:"attr,terraform-version" json:"terraform-version"`
+	TerraformVersion           string        			`jsonapi:"attr,terraform-version" json:"terraform-version"`
 	TriggerPrefixes            []string                 `jsonapi:"attr,trigger-prefixes" json:"trigger-prefixes"`
 	TriggerPatterns            []string                 `jsonapi:"attr,trigger-patterns" json:"trigger-patterns"`
 	VCSRepo                    *TFEVCSRepository        `jsonapi:"attr,vcs-repo" json:"vcs-repo"`

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 async function handler({ request }) {
   const url = new URL(request.url);
-  
+  console.log('url', url);
   // OAuth/discovery paths that don't require token auth (login flow)
   const isOAuthPath = 
     url.pathname.startsWith('/tfe/app/oauth2/') ||
@@ -11,12 +11,14 @@ async function handler({ request }) {
     url.pathname === '/tfe/api/v2/motd';
   
   // Upload paths that use signed URLs (no Bearer token)
-  const isUploadPath =
+  const signedUrlPaths =
     /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/upload$/.test(url.pathname) ||
-    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/json-upload$/.test(url.pathname);
+    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/json-upload$/.test(url.pathname ) ||
+    /^\/tfe\/api\/v2\/configuration-versions\/[^\/]+\/upload$/.test(url.pathname ) ||
+    /^\/tfe\/api\/v2\/plans\/[^\/]+\/logs\/[^\/]+$/.test(url.pathname );
 
   // OAuth and upload paths: forward directly to public statesman endpoints
-  if (isOAuthPath || isUploadPath) {
+  if (isOAuthPath || signedUrlPaths) {
     const outgoingHeaders = new Headers(request.headers);
     const originalHost = outgoingHeaders.get('host') ?? '';
     if (originalHost) outgoingHeaders.set('x-forwarded-host', originalHost);
@@ -108,9 +110,9 @@ async function handler({ request }) {
   }
 
   // Use webhook auth to forward to internal TFE routes
-  const webhookSecret = process.env.OPENTACO_ENABLE_INTERNAL_ENDPOINTS;
+  const webhookSecret = process.env.STATESMAN_BACKEND_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error('OPENTACO_ENABLE_INTERNAL_ENDPOINTS not configured');
+    console.error('STATESMAN_BACKEND_WEBHOOK_SECRET not configured');
     return new Response('Internal configuration error', { status: 500 });
   }
 

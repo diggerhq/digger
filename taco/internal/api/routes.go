@@ -275,6 +275,8 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeGroup.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
 	tfeGroup.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
 
+	tfeGroup.GET("/plans/:planID/logs/:blobId", tfeHandler.GetPlanLogs)
+
 	// Upload endpoints exempt from auth middleware (Terraform doesn't send auth headers)
 	// Security: These validate lock ownership and have RBAC checks in handlers
 	// Upload URLs can only be obtained from authenticated CreateStateVersion calls
@@ -282,6 +284,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeSignedUrlsGroup.Use(middleware.VerifySignedURL)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/upload", tfeHandler.UploadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
+	tfeSignedUrlsGroup.PUT("/configuration-versions/:id/upload", tfeHandler.UploadConfigurationArchive)
 
 	// Keep discovery endpoints unprotected (needed for terraform login)
 	e.GET("/.well-known/terraform.json", tfeHandler.GetWellKnownJson)
