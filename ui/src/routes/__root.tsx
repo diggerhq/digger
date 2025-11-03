@@ -38,7 +38,8 @@ export const Route = createRootRoute({
   }),
   loader: async ({ context }) => {
     const { user } = context;
-    const url = await getSignInUrl();
+    // Only fetch sign-in URL if user is not authenticated
+    const url = !user ? await getSignInUrl() : null;
     return {
       user,
       url,
