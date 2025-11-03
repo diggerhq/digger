@@ -53,7 +53,9 @@ function DashboardRootComponent() {
   return (
     <DashboardRootDocument>
       <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
+      <Suspense fallback={null}>
+        <TanStackRouterDevtools position="bottom-right" />
+      </Suspense>
     </DashboardRootDocument>
   );
 }

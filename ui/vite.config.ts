@@ -21,6 +21,10 @@ export default defineConfig(({ mode }) => {
       port: 3030,
       allowedHosts,
     },
+    build: {
+      // Enable source maps for profiling
+      sourcemap: true,
+    },
     plugins: [
       tsConfigPaths({
         projects: ['./tsconfig.json'],
