@@ -86,20 +86,20 @@ export const getRepoDetailsFn = createServerFn({method: 'GET'})
         const result = await timeAsync(
           `fetchRepoJobs(${repoId})`,
           async () => {
-            const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}/jobs`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
-                'DIGGER_ORG_ID': organisationId,
-                'DIGGER_USER_ID': userId,
-                'DIGGER_ORG_SOURCE': 'workos',
-              },
-            });
-          
-            if (!response.ok) {
-              throw new Error('Failed to fetch jobs');
-            }
-          
+        const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}/jobs`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
+            'DIGGER_ORG_ID': organisationId,
+            'DIGGER_USER_ID': userId,
+            'DIGGER_ORG_SOURCE': 'workos',
+          },
+        });
+      
+        if (!response.ok) {
+          throw new Error('Failed to fetch jobs');
+        }
+      
             return await response.json();
           }
         );

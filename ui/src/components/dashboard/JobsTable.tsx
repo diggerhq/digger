@@ -1,7 +1,6 @@
-import { Card } from "@radix-ui/themes"
 import { Table } from "../ui/table"
 import { useState } from "react"
-import { CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
 import { TableHead, TableRow } from "../ui/table"
 import { TableHeader, TableBody } from "../ui/table"
 import { TableCell } from "../ui/table"

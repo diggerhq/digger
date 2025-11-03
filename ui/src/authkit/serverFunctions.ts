@@ -42,7 +42,7 @@ export const getOrganisationDetails = createServerFn({method: 'GET'})
     serverCache.setOrg(organizationId, organization);
     
     return organization;
-  });
+});
 
 
 export const createOrganization = createServerFn({method: 'POST'})

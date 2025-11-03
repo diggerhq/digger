@@ -1,5 +1,4 @@
-import { Box, Button, Card, Container, Flex, Theme } from '@radix-ui/themes';
-import radixCssUrl from '@radix-ui/themes/styles.css?url';
+import workosWidgetsCssUrl from '@workos-inc/widgets/styles.css?url';
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { Suspense } from 'react';
@@ -63,8 +62,8 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
       <head>
         <HeadContent />
         {/* Preload and apply critical CSS to avoid FOUC */}
-        <link rel="preload" as="style" href={radixCssUrl} />
-        <link rel="stylesheet" href={radixCssUrl} />
+        <link rel="preload" as="style" href={workosWidgetsCssUrl} />
+        <link rel="stylesheet" href={workosWidgetsCssUrl} />
         <link rel="preload" as="style" href={globalCssUrl} />
         <link rel="stylesheet" href={globalCssUrl} />
         {/* App icons */}

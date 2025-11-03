@@ -1,32 +1,32 @@
-import { Card, Grid, Heading, Text } from '@radix-ui/themes';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function Footer() {
   return (
-    <Grid columns={{ initial: '1', sm: '3' }} gap={{ initial: '3', sm: '5' }}>
-      <Card size="4" asChild variant="classic">
-        <a href="https://workos.com/docs" rel="noreferrer" target="_blank">
-          <Heading size="4" mb="1">
-            Documentation
-          </Heading>
-          <Text color="gray">View integration guides and SDK documentation.</Text>
-        </a>
-      </Card>
-      <Card size="4" asChild variant="classic">
-        <a href="https://workos.com/docs/reference" rel="noreferrer" target="_blank">
-          <Heading size="4" mb="1">
-            API Reference
-          </Heading>
-          <Text color="gray">Every WorkOS API method and endpoint documented.</Text>
-        </a>
-      </Card>
-      <Card size="4" asChild variant="classic">
-        <a href="https://workos.com" rel="noreferrer" target="_blank">
-          <Heading size="4" mb="1">
-            WorkOS
-          </Heading>
-          <Text color="gray">Learn more about other WorkOS products.</Text>
-        </a>
-      </Card>
-    </Grid>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+      <a href="https://workos.com/docs" rel="noreferrer" target="_blank" className="no-underline">
+        <Card className="hover:bg-accent transition-colors h-full">
+          <CardHeader>
+            <CardTitle className="text-lg mb-1">Documentation</CardTitle>
+            <CardDescription>View integration guides and SDK documentation.</CardDescription>
+          </CardHeader>
+        </Card>
+      </a>
+      <a href="https://workos.com/docs/reference" rel="noreferrer" target="_blank" className="no-underline">
+        <Card className="hover:bg-accent transition-colors h-full">
+          <CardHeader>
+            <CardTitle className="text-lg mb-1">API Reference</CardTitle>
+            <CardDescription>Every WorkOS API method and endpoint documented.</CardDescription>
+          </CardHeader>
+        </Card>
+      </a>
+      <a href="https://workos.com" rel="noreferrer" target="_blank" className="no-underline">
+        <Card className="hover:bg-accent transition-colors h-full">
+          <CardHeader>
+            <CardTitle className="text-lg mb-1">WorkOS</CardTitle>
+            <CardDescription>Learn more about other WorkOS products.</CardDescription>
+          </CardHeader>
+        </Card>
+      </a>
+    </div>
   );
 }

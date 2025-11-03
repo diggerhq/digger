@@ -1,11 +1,9 @@
-import { Card, DropdownMenu, Flex } from "@radix-ui/themes";
+// Commented out - legacy file, not currently used
 // import { getApiProps } from "@repo/env";
 // import { UsersManagement, WorkOsWidgets } from "@workos-inc/widgets";
 // import { OrganizationSwitcher } from "@workos-inc/widgets/organization-switcher";
 // import { WorkOS } from '@workos-inc/node';
 // import { switchToOrganization } from "@/server-functions/switch-to-organization";
-import '@radix-ui/themes/styles.css';
-import '@workos-inc/widgets/styles.css';
 
 // export function getApiProps() {
 //     if (typeof process === "undefined") {
@@ -43,7 +41,7 @@ export default async function OrgSelector(props: { user: any, organizationId: st
   //   scopes: ["widgets:users-table:manage"],
   // });
   return (
-    <Flex gap="2" p="2" direction="column" align="start" width="100%">
+    <div className="flex gap-2 p-2 flex-col items-start w-full">
     {/* <WorkOsWidgets>
         <OrganizationSwitcher
           authToken={authToken}
@@ -59,6 +57,6 @@ export default async function OrgSelector(props: { user: any, organizationId: st
         >
         </OrganizationSwitcher>
     </WorkOsWidgets> */}
-    </Flex>
+    </div>
   );
 }

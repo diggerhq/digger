@@ -3,10 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { getWidgetsAuthToken } from '@/authkit/serverFunctions'
 import { useToast } from '@/hooks/use-toast'
 import { OrganizationSwitcher, WorkOsWidgets } from '@workos-inc/widgets'
-import { DropdownMenu } from '@radix-ui/themes'
-
-import '@workos-inc/widgets/styles.css'
-import '@radix-ui/themes/styles.css'
+import { DropdownMenuSeparator, DropdownMenuGroup, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 type WorkosOrgSwitcherProps = {
   userId: string
@@ -84,12 +81,12 @@ export default function WorkosOrgSwitcher({
 
   const extraMenu = showSettingsItem ? (
     <>
-      <DropdownMenu.Separator />
-      <DropdownMenu.Group>
-        <DropdownMenu.Item onClick={() => router.navigate({ to: '/dashboard/settings/user' })}>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuItem onClick={() => router.navigate({ to: '/dashboard/settings/user' })}>
           Settings
-        </DropdownMenu.Item>
-      </DropdownMenu.Group>
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
     </>
   ) : null
 
