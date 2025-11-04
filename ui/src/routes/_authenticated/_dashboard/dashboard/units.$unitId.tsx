@@ -28,6 +28,7 @@ import { toast } from '@/hooks/use-toast'
 import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn, downloadLatestStateFn, restoreUnitStateVersionFn } from '@/api/statesman_serverFunctions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getPublicServerConfig } from '@/lib/env.server'
+import { DetailsSkeleton } from '@/components/LoadingSkeleton'
 import type { Env } from '@/lib/env.server'
 import { downloadJson } from '@/lib/io'
 
@@ -75,6 +76,12 @@ export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/$unitId',
 )({
   component: RouteComponent,
+  pendingComponent: () => (
+    <div className="container mx-auto p-4">
+      <div className="mb-6"><div className="h-10 w-32" /></div>
+      <DetailsSkeleton />
+    </div>
+  ),
   loader: async ({ context, params: {unitId} }) => {
     const { user, organisationId, organisationName } = context;
     

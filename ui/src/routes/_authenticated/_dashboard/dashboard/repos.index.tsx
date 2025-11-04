@@ -5,10 +5,12 @@ import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { ArrowLeft, Github, Gitlab, GithubIcon as Bitbucket, ExternalLink, PlusCircle } from "lucide-react"
 import { getReposFn } from '@/api/orchestrator_serverFunctions'
 import { Repo } from '@/api/orchestrator_types'
+import { PageLoading } from '@/components/LoadingSkeleton'
 
 
 export const Route = createFileRoute('/_authenticated/_dashboard/dashboard/repos/')({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
     const repos = await getReposFn({data: {organisationId, userId: user?.id || ''}})

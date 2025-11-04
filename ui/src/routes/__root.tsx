@@ -1,14 +1,10 @@
 import radixCssUrl from '@radix-ui/themes/styles.css?url';
 import workosWidgetsCssUrl from '@workos-inc/widgets/styles.css?url';
-import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
+import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { Suspense } from 'react';
-import { getAuth, getOrganisationDetails, getSignInUrl, signOut } from '@/authkit/serverFunctions';
-import Footer from '@/components/footer';
-import SignInButton from '@/components/sign-in-button';
+import { getAuth, getOrganisationDetails, getSignInUrl } from '@/authkit/serverFunctions';
 import type { ReactNode } from 'react';
-import { Sidebar, SidebarMenuButton, SidebarGroupContent, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarTrigger, SidebarProvider, SidebarMenu, SidebarMenuItem } from '../components/ui/sidebar';
-import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
 import globalCssUrl from '@/styles/global.css?url'
 import { Toaster } from '@/components/ui/toaster';
 import { getPublicServerConfig, type Env } from '@/lib/env.server';

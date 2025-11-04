@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import JobsTable from '@/components/dashboard/JobsTable'
 import { getRepoDetailsFn } from '@/api/orchestrator_serverFunctions'
+import { PageLoading } from '@/components/LoadingSkeleton'
 
 export const Route = createFileRoute('/_authenticated/_dashboard/dashboard/repos/$repoId')({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ params: {repoId}, context }) => {
     const { user, organisationId } = context;
     const { repo, allJobs } = await getRepoDetailsFn({data: {repoId, organisationId, userId: user?.id || ''}})

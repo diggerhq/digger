@@ -23,11 +23,13 @@ import {
 import { useState } from "react"
 import UnitCreateForm from "@/components/UnitCreateForm"
 import { listUnitsFn } from '@/api/statesman_serverFunctions'
+import { PageLoading } from '@/components/LoadingSkeleton'
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/',
 )({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
     const unitsData = await listUnitsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || ''}})
