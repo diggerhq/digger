@@ -77,10 +77,9 @@ export const getUnitStatusFn = createServerFn({method: 'GET'})
 
 export const createUnitFn = createServerFn({method: 'POST'})
   .inputValidator((data : {userId: string, organisationId: string, email: string, name: string, requestId?: string}) => data)
-  .handler(async ({ data, context }) => {
-    // Use client-provided requestId, or fall back to HTTP header, or generate one
-    const httpRequestId = context?.request?.headers?.get?.('x-request-id');
-    const requestId = data.requestId || httpRequestId || `unit-${Date.now()}-server`;
+  .handler(async ({ data }) => {
+    // Use client-provided requestId, or generate one
+    const requestId = data.requestId || `unit-${Date.now()}-server`;
     const startServerFn = Date.now();
     
     console.log(`[${requestId}] 🔷 SERVER_FN: Received create unit request for "${data.name}" (org: ${data.organisationId})`);
