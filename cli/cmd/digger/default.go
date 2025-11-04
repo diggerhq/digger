@@ -3,6 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/github"
@@ -13,9 +17,6 @@ import (
 	"github.com/diggerhq/digger/libs/policy"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
-	"log/slog"
-	"os"
-	"runtime/debug"
 )
 
 func initLogger() {
@@ -68,6 +69,10 @@ var defaultCmd = &cobra.Command{
 				usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("error while running spec: %v", err), 1)
 			}
 			usage.ReportErrorAndExit(spec.VCS.Actor, "Successfully ran spec", 0)
+		}
+
+		if specStr == "" {
+			slog.Warn("No orchestrator spec found (DIGGER_RUN_SPEC is empty); falling back to backendless mode. If this run was triggered by Digger backend, ensure your workflow passes 'with: digger-spec: ${{ inputs.spec }}' so DIGGER_RUN_SPEC is set.")
 		}
 
 		var logLeader = "Unknown CI"
