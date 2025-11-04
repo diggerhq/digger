@@ -64,7 +64,9 @@ const MIME_TYPES = {
 };
 
 const server = createServer(async (req, res) => {
-  const requestId = Math.random().toString(36).slice(2, 10);
+  // Use X-Request-ID from client if provided, otherwise generate one
+  const requestId = req.headers['x-request-id'] || `ssr-${Math.random().toString(36).slice(2, 10)}`;
+  const requestStart = Date.now();
   
   // Set request timeout
   req.setTimeout(REQUEST_TIMEOUT, () => {
@@ -110,27 +112,43 @@ const server = createServer(async (req, res) => {
       body = nodeToWebStream(req);
     }
 
+    // Add/forward request ID header for correlation with server functions
+    const headers = new Headers(req.headers);
+    if (!headers.has('x-request-id')) {
+      headers.set('x-request-id', requestId);
+    }
+
     const request = new Request(`http://${req.headers.host}${req.url}`, {
       method: req.method,
-      headers: req.headers,
+      headers: headers,
       body: body,
       duplex: 'half', // Required for streaming request bodies
     });
+
+    // Log server function calls for better debugging
+    const isServerFn = pathname.startsWith('/_server');
+    if (isServerFn) {
+      console.log(`[${requestId}] 🔧 HTTP_SERVER: Server function call started - ${req.method} ${pathname}`);
+    }
 
     // Call the TanStack Start fetch handler
     const ssrStart = Date.now();
     const response = await serverHandler.fetch(request);
     const ssrTime = Date.now() - ssrStart;
+    const totalRequestTime = Date.now() - requestStart;
+    const overhead = totalRequestTime - ssrTime; // Time before/after TanStack handler
     
     // Log SSR timing with request details for profiling
+    const routeLabel = isServerFn ? 'SERVER_FN' : 'SSR';
     if (ssrTime > 2000) {
-      console.log(`🔥 VERY SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      console.log(`[${requestId}] 🔥 ${routeLabel}: VERY SLOW - ${req.method} ${pathname} (tanstack: ${ssrTime}ms, overhead: ${overhead}ms, total: ${totalRequestTime}ms)`);
     } else if (ssrTime > 1000) {
-      console.log(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
-    } else if (ssrTime > 500) {
-      console.log(`⏱️  SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      console.log(`[${requestId}] ⚠️  ${routeLabel}: SLOW - ${req.method} ${pathname} (tanstack: ${ssrTime}ms, overhead: ${overhead}ms, total: ${totalRequestTime}ms)`);
+    } else if (ssrTime > 500 || isServerFn) {
+      // Always log server function calls for debugging
+      console.log(`[${requestId}] ⏱️  ${routeLabel}: ${req.method} ${pathname} (tanstack: ${ssrTime}ms, overhead: ${overhead}ms, total: ${totalRequestTime}ms)`);
     } else if (process.env.DEBUG === 'true') {
-      console.log(`✅ SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      console.log(`[${requestId}] ✅ ${routeLabel}: ${req.method} ${pathname} (tanstack: ${ssrTime}ms, overhead: ${overhead}ms, total: ${totalRequestTime}ms)`);
     }
 
     // Convert Web Standard Response to Node.js response
