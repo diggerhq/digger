@@ -12,11 +12,22 @@ type UnitCreateFormProps = {
   email: string
   organisationId: string
   onCreated: (unit: { id: string; name: string }) => void
+  onCreatedOptimistic?: (tempUnit: { id: string; name: string; isOptimistic: boolean }) => void
+  onCreatedFailed?: () => void
   onBringOwnState: () => void
   showBringOwnState?: boolean
 }
 
-export default function UnitCreateForm({ userId, email, organisationId, onCreated, onBringOwnState, showBringOwnState = true }: UnitCreateFormProps) {
+export default function UnitCreateForm({ 
+  userId, 
+  email, 
+  organisationId, 
+  onCreated, 
+  onCreatedOptimistic,
+  onCreatedFailed,
+  onBringOwnState, 
+  showBringOwnState = true 
+}: UnitCreateFormProps) {
   const [unitName, setUnitName] = React.useState('')
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
   const [isCreating, setIsCreating] = React.useState(false)
@@ -26,6 +37,15 @@ export default function UnitCreateForm({ userId, email, organisationId, onCreate
     if (!unitName.trim()) return
     setIsCreating(true)
     setError(null)
+    
+    const tempId = `temp-${Date.now()}`
+    const tempUnit = { id: tempId, name: unitName.trim(), isOptimistic: true }
+    
+    // Optimistic update - show immediately
+    if (onCreatedOptimistic) {
+      onCreatedOptimistic(tempUnit)
+    }
+    
     try {
       const unit = await createUnitFn({
         data: {
@@ -38,6 +58,9 @@ export default function UnitCreateForm({ userId, email, organisationId, onCreate
       onCreated({ id: unit.id, name: unit.name })
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create unit')
+      if (onCreatedFailed) {
+        onCreatedFailed()
+      }
     } finally {
       setIsCreating(false)
     }

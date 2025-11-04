@@ -8,9 +8,6 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "NODE_ENV=production node dist/server/server.js",
-    "start:profile": "NODE_ENV=production node --prof dist/server/server.js",
-    "start:inspect": "NODE_ENV=production node --inspect dist/server/server.js",
-    "start:debug": "NODE_ENV=production DEBUG=true node dist/server/server.js",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch"
