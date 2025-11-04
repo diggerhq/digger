@@ -76,20 +76,25 @@ export const getUnitStatusFn = createServerFn({method: 'GET'})
 })
 
 export const createUnitFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, name: string}) => data)
+  .inputValidator((data : {userId: string, organisationId: string, email: string, name: string, requestId?: string}) => data)
   .handler(async ({ data }) => {
-    const startCreate = Date.now();
-    console.log(`🔵 Starting unit creation: "${data.name}" for org ${data.organisationId}`);
+    const requestId = data.requestId || `unit-${Date.now()}-server`
+    const startServerFn = Date.now();
     
-    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.name);
+    console.log(`[${requestId}] 🔷 SERVER_FN: Received create unit request for "${data.name}" (org: ${data.organisationId})`);
     
-    const createTime = Date.now() - startCreate;
-    if (createTime > 3000) {
-      console.log(`🔥 VERY SLOW unit creation: "${data.name}" took ${createTime}ms`);
-    } else if (createTime > 1000) {
-      console.log(`⚠️  SLOW unit creation: "${data.name}" took ${createTime}ms`);
+    const apiCallStart = Date.now();
+    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.name, requestId);
+    const apiCallTime = Date.now() - apiCallStart;
+    
+    const totalServerTime = Date.now() - startServerFn;
+    
+    if (totalServerTime > 3000) {
+      console.log(`[${requestId}] 🔥 SERVER_FN: VERY SLOW - total: ${totalServerTime}ms (api: ${apiCallTime}ms)`);
+    } else if (totalServerTime > 1000) {
+      console.log(`[${requestId}] ⚠️  SERVER_FN: SLOW - total: ${totalServerTime}ms (api: ${apiCallTime}ms)`);
     } else {
-      console.log(`✅ Unit created: "${data.name}" in ${createTime}ms`);
+      console.log(`[${requestId}] ✅ SERVER_FN: Completed - total: ${totalServerTime}ms (api: ${apiCallTime}ms)`);
     }
     
     return unit;

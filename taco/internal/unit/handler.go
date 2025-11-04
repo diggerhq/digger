@@ -88,13 +88,29 @@ type CreateUnitResponse struct {
 }
 
 func (h *Handler) CreateUnit(c echo.Context) error {
+	startHandler := time.Now()
+	
+	// Extract request ID for end-to-end tracing
+	requestID := c.Request().Header.Get("X-Request-ID")
+	if requestID == "" {
+		requestID = fmt.Sprintf("backend-%d", time.Now().UnixNano())
+	}
+	
+	c.Logger().Infof("[%s] 🔶 BACKEND: Received create unit request", requestID)
+	
 	var req CreateUnitRequest
+	bindStart := time.Now()
 	if err := c.Bind(&req); err != nil {
+		c.Logger().Errorf("[%s] ❌ BACKEND: Failed to bind request body - %v (+%dms)", requestID, err, time.Since(startHandler).Milliseconds())
 		analytics.SendEssential("unit_create_failed_invalid_request")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 	}
+	bindTime := time.Since(bindStart)
+	
+	c.Logger().Infof("[%s] 📋 BACKEND: Parsed request for unit '%s' (bind: %dms)", requestID, req.Name, bindTime.Milliseconds())
 
 	if err := domain.ValidateUnitID(req.Name); err != nil {
+		c.Logger().Errorf("[%s] ❌ BACKEND: Invalid unit name '%s' - %v (+%dms)", requestID, req.Name, err, time.Since(startHandler).Milliseconds())
 		analytics.SendEssential("unit_create_failed_invalid_name")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -104,13 +120,20 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 	ctx := c.Request().Context()
 	orgCtx, ok := domain.OrgFromContext(ctx)
 	if !ok {
+		c.Logger().Errorf("[%s] ❌ BACKEND: Organization context missing (+%dms)", requestID, time.Since(startHandler).Milliseconds())
 		analytics.SendEssential("unit_create_failed_no_org_context")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
 	}
+	
+	c.Logger().Infof("[%s] 🗄️  BACKEND: Calling repository Create (org: %s, name: %s)", requestID, orgCtx.OrgID, name)
 
+	createStart := time.Now()
 	metadata, err := h.store.Create(ctx, orgCtx.OrgID, name)
+	createTime := time.Since(createStart)
+	
 	if err != nil {
 		if err == storage.ErrAlreadyExists {
+			c.Logger().Warnf("[%s] ⚠️  BACKEND: Unit already exists (repo: %dms, total: %dms)", requestID, createTime.Milliseconds(), time.Since(startHandler).Milliseconds())
 			analytics.SendEssential("unit_create_failed_already_exists")
 			return c.JSON(http.StatusConflict, map[string]string{
 				"error": "Unit already exists",
@@ -118,13 +141,24 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 			})
 		}
 		// Log the actual error for debugging
-		c.Logger().Errorf("Failed to create unit '%s' in org '%s': %v", name, orgCtx.OrgID, err)
+		c.Logger().Errorf("[%s] ❌ BACKEND: Repository error (repo: %dms, total: %dms) - %v", requestID, createTime.Milliseconds(), time.Since(startHandler).Milliseconds(), err)
 		analytics.SendEssential("unit_create_failed_storage_error")
 		// Surface the actual error message to help with debugging
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to create unit",
 			"detail": err.Error(),
 		})
+	}
+
+	totalTime := time.Since(startHandler)
+	
+	// Log timing breakdown
+	if totalTime.Milliseconds() > 3000 {
+		c.Logger().Warnf("[%s] 🔥 BACKEND: VERY SLOW - total: %dms (bind: %dms, repo: %dms)", requestID, totalTime.Milliseconds(), bindTime.Milliseconds(), createTime.Milliseconds())
+	} else if totalTime.Milliseconds() > 1000 {
+		c.Logger().Warnf("[%s] ⚠️  BACKEND: SLOW - total: %dms (bind: %dms, repo: %dms)", requestID, totalTime.Milliseconds(), bindTime.Milliseconds(), createTime.Milliseconds())
+	} else {
+		c.Logger().Infof("[%s] ✅ BACKEND: Success - total: %dms (bind: %dms, repo: %dms)", requestID, totalTime.Milliseconds(), bindTime.Milliseconds(), createTime.Milliseconds())
 	}
 
 	analytics.SendEssential("unit_created")

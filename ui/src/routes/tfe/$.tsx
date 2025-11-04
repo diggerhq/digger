@@ -31,7 +31,9 @@ async function handler({ request }) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}${url.pathname}${url.search}`, {
       method: request.method,
       headers: outgoingHeaders,
-      body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.blob() : undefined
+      body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+      // @ts-ignore - duplex is required for streaming but not in @types/node yet
+      duplex: 'half',
     });
 
     const headers = new Headers(response.headers);
@@ -157,7 +159,9 @@ async function handler({ request }) {
   const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}${internalPath}${url.search}`, {
     method: request.method,
     headers: outgoingHeaders,
-    body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.blob() : undefined
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+    // @ts-ignore - duplex is required for streaming but not in @types/node yet
+    duplex: 'half',
   });
 
   const proxyTime = Date.now() - startProxy;

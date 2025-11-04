@@ -38,25 +38,38 @@ export default function UnitCreateForm({
     setIsCreating(true)
     setError(null)
     
+    // Generate request ID for end-to-end tracing
+    const requestId = `unit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const startTime = Date.now()
+    
+    console.log(`[${requestId}] 📝 CLIENT: Starting unit creation for "${unitName.trim()}"`)
+    
     const tempId = `temp-${Date.now()}`
     const tempUnit = { id: tempId, name: unitName.trim(), isOptimistic: true }
     
     // Optimistic update - show immediately
     if (onCreatedOptimistic) {
       onCreatedOptimistic(tempUnit)
+      console.log(`[${requestId}] ⚡ CLIENT: Optimistic UI update applied (+${Date.now() - startTime}ms)`)
     }
     
     try {
+      const serverCallStart = Date.now()
       const unit = await createUnitFn({
         data: {
           userId,
           organisationId,
           email,
           name: unitName.trim(),
+          requestId, // Pass request ID to server
         },
       })
+      const totalTime = Date.now() - startTime
+      console.log(`[${requestId}] ✅ CLIENT: Unit created successfully (server: ${Date.now() - serverCallStart}ms, total: ${totalTime}ms)`)
       onCreated({ id: unit.id, name: unit.name })
     } catch (e: any) {
+      const totalTime = Date.now() - startTime
+      console.error(`[${requestId}] ❌ CLIENT: Unit creation failed after ${totalTime}ms:`, e?.message)
       setError(e?.message ?? 'Failed to create unit')
       if (onCreatedFailed) {
         onCreatedFailed()

@@ -163,7 +163,8 @@ const server = createServer(async (req, res) => {
         res.setHeader('Content-Encoding', 'gzip');
         res.removeHeader('Content-Length'); // Let gzip set the correct length
         
-        const gzip = createGzip();
+        // Optimize gzip: level 6 = good compression/speed balance, memLevel 8 = more memory for speed
+        const gzip = createGzip({ level: 6, memLevel: 8 });
         gzip.pipe(res);
         
         const reader = response.body.getReader();
