@@ -10,6 +10,8 @@ export const Route = createFileRoute('/orchestrator/github/webhook')({
             method: 'POST',
             headers: request.headers,
             body: request.body,
+            // @ts-expect-error: 'duplex' is required by Node/undici for streaming bodies
+            duplex: 'half',
           });
 
           return response;
