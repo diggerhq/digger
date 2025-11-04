@@ -2,7 +2,6 @@ import radixCssUrl from '@radix-ui/themes/styles.css?url';
 import workosWidgetsCssUrl from '@workos-inc/widgets/styles.css?url';
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { Suspense } from 'react';
 import { getAuth, getOrganisationDetails, getSignInUrl } from '@/authkit/serverFunctions';
 import type { ReactNode } from 'react';
 import globalCssUrl from '@/styles/global.css?url'
@@ -61,9 +60,7 @@ function DashboardRootComponent() {
   return (
     <DashboardRootDocument>
       <Outlet />
-      <Suspense fallback={null}>
-        <TanStackRouterDevtools position="bottom-right" />
-      </Suspense>
+      <TanStackRouterDevtools position="bottom-right" />
     </DashboardRootDocument>
   );
 }

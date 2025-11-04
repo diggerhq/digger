@@ -56,15 +56,12 @@ export async function encryptSession(session: Session) {
 }
 
 export async function withAuth() {
-  const start = Date.now();
   const session = await getSessionFromCookie();
-  const sessionTime = Date.now() - start;
 
   if (!session?.user) {
     return { user: null };
   }
 
-  const decodeStart = Date.now();
   const {
     sid: sessionId,
     org_id: organizationId,
@@ -72,12 +69,6 @@ export async function withAuth() {
     permissions,
     entitlements,
   } = decodeJwt<AccessToken>(session.accessToken);
-  const decodeTime = Date.now() - decodeStart;
-
-  const totalTime = Date.now() - start;
-  if (totalTime > 100) {
-    console.log(`   └─ withAuth took ${totalTime}ms (session: ${sessionTime}ms, decode: ${decodeTime}ms)`);
-  }
 
   return {
     sessionId,

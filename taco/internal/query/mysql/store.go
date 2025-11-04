@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/query/common"
@@ -30,11 +29,11 @@ func Connect(cfg query.MySQLConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
 	
-	// Optimize connection pool settings
-	sqlDB.SetMaxOpenConns(25)                      // Max concurrent connections
-	sqlDB.SetMaxIdleConns(10)                      // Keep connections warm
-	sqlDB.SetConnMaxLifetime(5 * time.Minute)      // Recycle connections every 5 min
-	sqlDB.SetConnMaxIdleTime(10 * time.Minute)     // Close idle connections after 10 min
+	// Optimize connection pool settings from config (use MYSQL_MAX_OPEN_CONNS, etc.)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
 
 	return db, nil
 }
