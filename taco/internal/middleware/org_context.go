@@ -1,9 +1,7 @@
 package middleware
 
 import (
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/labstack/echo/v4"
