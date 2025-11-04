@@ -1,6 +1,4 @@
 export async function listUnits(orgId: string, userId: string, email: string) {
-    const startFetch = Date.now();
-    
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'GET',
         headers: {
@@ -12,22 +10,11 @@ export async function listUnits(orgId: string, userId: string, email: string) {
         },  
     });
 
-    const fetchTime = Date.now() - startFetch;
-    console.log(`  → Statesman listUnits API call took ${fetchTime}ms (status: ${response.status})`);
-
     if (!response.ok) {
         throw new Error(`Failed to list units: ${response.statusText}`);
     }
     
-    const parseStart = Date.now();
-    const result = await response.json();
-    const parseTime = Date.now() - parseStart;
-    
-    if (parseTime > 100) {
-        console.log(`  → JSON parsing took ${parseTime}ms`);
-    }
-    
-    return result;
+    return response.json();
 }
 
 export async function getUnit(orgId: string, userId: string, email: string, unitId: string) {
@@ -169,13 +156,7 @@ export async function getUnitStatus(orgId: string, userId: string, email: string
     return response.json();
 }
 
-export async function createUnit(orgId: string, userId: string, email: string, name: string, requestId?: string) {
-    const rid = requestId || `unit-${Date.now()}-api`
-    const startApi = Date.now();
-    
-    console.log(`[${rid}] 🌐 API_LAYER: Making HTTP POST to Statesman backend`);
-
-    const fetchStart = Date.now();
+export async function createUnit(orgId: string, userId: string, email: string, name: string) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'POST',
         headers: {
@@ -184,36 +165,17 @@ export async function createUnit(orgId: string, userId: string, email: string, n
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
-            'X-Request-ID': rid, // Pass request ID to backend for correlation
         },
         body: JSON.stringify({
             name: name,
         }),
     });
 
-    const fetchTime = Date.now() - fetchStart;
-    const statusEmoji = response.ok ? '✅' : '❌';
-    console.log(`[${rid}] ${statusEmoji} API_LAYER: Statesman responded - status: ${response.status}, time: ${fetchTime}ms`);
-
     if (!response.ok) {
-        const errorBody = await response.text().catch(() => 'Unknown error');
-        console.error(`[${rid}] ❌ API_LAYER: Backend error - ${response.status} ${response.statusText}: ${errorBody}`);
         throw new Error(`Failed to create unit: ${response.statusText}`);
     }
 
-    const parseStart = Date.now();
-    const result = await response.json();
-    const parseTime = Date.now() - parseStart;
-
-    const totalApiTime = Date.now() - startApi;
-    
-    if (parseTime > 100) {
-        console.log(`[${rid}] 📄 API_LAYER: JSON parse took ${parseTime}ms`);
-    }
-    
-    console.log(`[${rid}] ✅ API_LAYER: Complete - total: ${totalApiTime}ms (fetch: ${fetchTime}ms, parse: ${parseTime}ms)`);
-
-    return result;
+    return response.json();
 }
 
 export async function deleteUnit(orgId: string, userId: string, email: string, unitId: string) {

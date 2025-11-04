@@ -31,7 +31,6 @@ export const Route = createFileRoute(
   component: RouteComponent,
   pendingComponent: PageLoading,
   loader: async ({ context }) => {
-    const startLoad = Date.now();
     const { user, organisationId } = context;
     
     const unitsData = await listUnitsFn({
@@ -41,11 +40,6 @@ export const Route = createFileRoute(
         email: user?.email || ''
       }
     });
-    
-    const loadTime = Date.now() - startLoad;
-    if (loadTime > 1000) {
-      console.log(`⚠️  Units loader took ${loadTime}ms (listUnits call)`);
-    }
     
     return { unitsData: unitsData, user, organisationId } 
   }

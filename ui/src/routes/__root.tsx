@@ -14,30 +14,18 @@ import type { Organization } from '@workos-inc/node';
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const startRootLoad = Date.now();
-    
     // Run auth and config in parallel (they don't depend on each other)
-    const parallelStart = Date.now();
     const [authResult, publicServerConfig] = await Promise.all([
       getAuth(),
       getPublicServerConfig()
     ]);
-    const parallelTime = Date.now() - parallelStart;
     
     const { auth, organisationId } = authResult;
     
     // Get org details if we have an orgId (this depends on auth)
     let organisationDetails: Organization | null = null;
-    let orgTime = 0;
     if (organisationId) {
-      const orgStart = Date.now();
       organisationDetails = await getOrganisationDetails({data: {organizationId: organisationId}});
-      orgTime = Date.now() - orgStart;
-    }
-    
-    const totalTime = Date.now() - startRootLoad;
-    if (totalTime > 500) {
-      console.log(`⚠️  Root loader took ${totalTime}ms (parallel: ${parallelTime}ms, org: ${orgTime}ms)`);
     }
     
     return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };

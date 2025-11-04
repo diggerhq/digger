@@ -4,18 +4,7 @@ import { createUnit, getUnit, listUnits, getUnitVersions, unlockUnit, lockUnit, 
 export const listUnitsFn = createServerFn({method: 'GET'})
   .inputValidator((data : {userId: string, organisationId: string, email: string}) => data)
   .handler(async ({ data }) => {
-    const startList = Date.now();
     const units : any = await listUnits(data.organisationId, data.userId, data.email);
-    const listTime = Date.now() - startList;
-    
-    if (listTime > 3000) {
-      console.log(`🔥 VERY SLOW listUnits: took ${listTime}ms (returned ${units.units?.length || 0} units)`);
-    } else if (listTime > 1000) {
-      console.log(`⚠️  SLOW listUnits: took ${listTime}ms (returned ${units.units?.length || 0} units)`);
-    } else if (listTime > 500) {
-      console.log(`⏱️  listUnits: took ${listTime}ms (returned ${units.units?.length || 0} units)`);
-    }
-    
     return units;
 })
 
@@ -78,26 +67,7 @@ export const getUnitStatusFn = createServerFn({method: 'GET'})
 export const createUnitFn = createServerFn({method: 'POST'})
   .inputValidator((data : {userId: string, organisationId: string, email: string, name: string, requestId?: string}) => data)
   .handler(async ({ data }) => {
-    // Use client-provided requestId, or generate one
-    const requestId = data.requestId || `unit-${Date.now()}-server`;
-    const startServerFn = Date.now();
-    
-    console.log(`[${requestId}] 🔷 SERVER_FN: Received create unit request for "${data.name}" (org: ${data.organisationId})`);
-    
-    const apiCallStart = Date.now();
-    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.name, requestId);
-    const apiCallTime = Date.now() - apiCallStart;
-    
-    const totalServerTime = Date.now() - startServerFn;
-    
-    if (totalServerTime > 3000) {
-      console.log(`[${requestId}] 🔥 SERVER_FN: VERY SLOW - total: ${totalServerTime}ms (api: ${apiCallTime}ms)`);
-    } else if (totalServerTime > 1000) {
-      console.log(`[${requestId}] ⚠️  SERVER_FN: SLOW - total: ${totalServerTime}ms (api: ${apiCallTime}ms)`);
-    } else {
-      console.log(`[${requestId}] ✅ SERVER_FN: Completed - total: ${totalServerTime}ms (api: ${apiCallTime}ms)`);
-    }
-    
+    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.name);
     return unit;
 })
 
