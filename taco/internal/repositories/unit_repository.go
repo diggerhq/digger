@@ -88,15 +88,22 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 	// This is immutable - unit renames won't affect S3 paths
 	blobPath := fmt.Sprintf("%s/%s", org.ID, unit.ID)
 
-	// Create blob in storage
-	_, err = r.blobStore.Create(ctx, blobPath)
-	if err != nil {
-		// Rollback database record if blob creation fails
-		r.db.WithContext(ctx).Delete(unit)
-		return nil, fmt.Errorf("failed to create blob storage: %w", err)
-	}
+	// Create blob in storage ASYNCHRONOUSLY for faster response
+	// The unit is usable even if S3 isn't ready yet (first terraform apply will initialize it)
+	go func() {
+		// Use background context to avoid cancellation
+		bgCtx := context.Background()
+		_, err := r.blobStore.Create(bgCtx, blobPath)
+		if err != nil {
+			log.Printf("⚠️  Async S3 creation failed for unit %s (%s/%s): %v - will be created on first use", 
+				unit.ID, org.ID, unit.ID, err)
+			// Note: Unit remains in DB even if S3 fails - terraform apply will create the state file
+		} else {
+			log.Printf("✅ Async S3 blob created for unit %s (%s/%s)", unit.ID, org.ID, unit.ID)
+		}
+	}()
 
-	log.Printf("Created unit: UUID=%s, Org=%s (%s), Name=%s, BlobPath=%s", 
+	log.Printf("Created unit: UUID=%s, Org=%s (%s), Name=%s, BlobPath=%s (S3 creating async)", 
 		unit.ID, org.Name, org.ID, name, blobPath)
 
 	return &storage.UnitMetadata{
@@ -169,10 +176,17 @@ func (r *UnitRepository) List(ctx context.Context, orgID, prefix string) ([]*sto
 		return nil, fmt.Errorf("failed to list units: %w", err)
 	}
 
-	// Get organization info
-	var org types.Organization
-	if err := r.db.WithContext(ctx).Where(queryByID, orgID).First(&org).Error; err != nil {
-		return nil, fmt.Errorf(errMsgOrgNotFound, err)
+	// Try to get org name from context to avoid DB query (optimization)
+	orgName := ""
+	if orgCtx, ok := domain.OrgFromContext(ctx); ok && orgCtx.OrgName != "" {
+		orgName = orgCtx.OrgName
+	} else {
+		// Fallback: query database for org info
+		var org types.Organization
+		if err := r.db.WithContext(ctx).Where(queryByID, orgID).First(&org).Error; err != nil {
+			return nil, fmt.Errorf(errMsgOrgNotFound, err)
+		}
+		orgName = org.Name
 	}
 
 	result := make([]*storage.UnitMetadata, len(units))
@@ -181,7 +195,7 @@ func (r *UnitRepository) List(ctx context.Context, orgID, prefix string) ([]*sto
 			ID:       unit.ID,
 			Name:     unit.Name,
 			OrgID:    unit.OrgID,
-			OrgName:  org.Name,
+			OrgName:  orgName,
 			Size:     unit.Size,
 			Updated:  unit.UpdatedAt,
 			Locked:   unit.Locked,

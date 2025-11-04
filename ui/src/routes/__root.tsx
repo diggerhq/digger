@@ -7,7 +7,8 @@ import { getAuth, getOrganisationDetails, getSignInUrl } from '@/authkit/serverF
 import type { ReactNode } from 'react';
 import globalCssUrl from '@/styles/global.css?url'
 import { Toaster } from '@/components/ui/toaster';
-import { getPublicServerConfig, type Env } from '@/lib/env.server';
+import { getPublicServerConfig } from '@/lib/env.server';
+import type { Organization } from '@workos-inc/node';
 
 
 
@@ -16,21 +17,27 @@ export const Route = createRootRoute({
     const startRootLoad = Date.now();
     
     // Run auth and config in parallel (they don't depend on each other)
+    const parallelStart = Date.now();
     const [authResult, publicServerConfig] = await Promise.all([
       getAuth(),
       getPublicServerConfig()
     ]);
+    const parallelTime = Date.now() - parallelStart;
     
     const { auth, organisationId } = authResult;
     
     // Get org details if we have an orgId (this depends on auth)
-    const organisationDetails = organisationId 
-      ? await getOrganisationDetails({data: {organizationId: organisationId}}) 
-      : null;
+    let organisationDetails: Organization | null = null;
+    let orgTime = 0;
+    if (organisationId) {
+      const orgStart = Date.now();
+      organisationDetails = await getOrganisationDetails({data: {organizationId: organisationId}});
+      orgTime = Date.now() - orgStart;
+    }
     
     const totalTime = Date.now() - startRootLoad;
     if (totalTime > 500) {
-      console.log(`⚠️  Root loader took ${totalTime}ms`);
+      console.log(`⚠️  Root loader took ${totalTime}ms (parallel: ${parallelTime}ms, org: ${orgTime}ms)`);
     }
     
     return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };

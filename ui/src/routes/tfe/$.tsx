@@ -24,8 +24,8 @@ async function handler({ request }) {
     outgoingHeaders.set('x-forwarded-proto', url.protocol.replace(':', ''));
     if (url.port) outgoingHeaders.set('x-forwarded-port', url.port);
     
-    // Drop hop-by-hop headers
-    ['host','content-length','connection','keep-alive','proxy-connection','transfer-encoding','upgrade','te','trailer','accept-encoding']
+    // Drop hop-by-hop headers (but KEEP accept-encoding for compression)
+    ['host','content-length','connection','keep-alive','proxy-connection','transfer-encoding','upgrade','te','trailer']
       .forEach(h => outgoingHeaders.delete(h));
 
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}${url.pathname}${url.search}`, {
@@ -142,8 +142,9 @@ async function handler({ request }) {
   outgoingHeaders.set('x-forwarded-proto', url.protocol.replace(':', ''));
   if (url.port) outgoingHeaders.set('x-forwarded-port', url.port);
   
-  // Copy other relevant headers
-  const headersToForward = ['content-type', 'accept', 'user-agent'];
+  // Copy other relevant headers - INCLUDE accept-encoding for compression!
+  // Without accept-encoding, backend sends uncompressed data (5-10x larger = slow)
+  const headersToForward = ['content-type', 'accept', 'user-agent', 'accept-encoding'];
   headersToForward.forEach(h => {
     const value = request.headers.get(h);
     if (value) outgoingHeaders.set(h, value);
@@ -161,14 +162,18 @@ async function handler({ request }) {
   const proxyTime = Date.now() - startProxy;
 
   // important, remove all encoding headers since the fetch already decompresses the gzip
-  // the removal of headeres avoids gzip errors in the client
+  // the removal of headers avoids gzip errors in the client (double decompression)
   const headers = new Headers(response.headers);
+  const wasCompressed = headers.get('Content-Encoding') === 'gzip';
+  const contentLength = headers.get('content-length');
+  
   headers.delete('Content-Encoding');
   headers.delete('content-length');
   headers.delete('transfer-encoding');
   headers.delete('connection');
 
-  console.log(`${response.status} ${request.method} ${url.pathname} - Backend: ${proxyTime}ms`);
+  const compressionInfo = wasCompressed ? ` (gzip, ${contentLength} bytes)` : '';
+  console.log(`${response.status} ${request.method} ${url.pathname} - Backend: ${proxyTime}ms${compressionInfo}`);
   return new Response(response.body, { headers });
 }
 

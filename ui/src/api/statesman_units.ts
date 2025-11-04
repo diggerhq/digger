@@ -1,4 +1,6 @@
 export async function listUnits(orgId: string, userId: string, email: string) {
+    const startFetch = Date.now();
+    
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'GET',
         headers: {
@@ -10,10 +12,22 @@ export async function listUnits(orgId: string, userId: string, email: string) {
         },  
     });
 
+    const fetchTime = Date.now() - startFetch;
+    console.log(`  → Statesman listUnits API call took ${fetchTime}ms (status: ${response.status})`);
+
     if (!response.ok) {
         throw new Error(`Failed to list units: ${response.statusText}`);
     }
-    return response.json();
+    
+    const parseStart = Date.now();
+    const result = await response.json();
+    const parseTime = Date.now() - parseStart;
+    
+    if (parseTime > 100) {
+        console.log(`  → JSON parsing took ${parseTime}ms`);
+    }
+    
+    return result;
 }
 
 export async function getUnit(orgId: string, userId: string, email: string, unitId: string) {
@@ -156,6 +170,8 @@ export async function getUnitStatus(orgId: string, userId: string, email: string
 }
 
 export async function createUnit(orgId: string, userId: string, email: string, name: string) {
+    const startFetch = Date.now();
+    
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'POST',
         headers: {
@@ -170,11 +186,22 @@ export async function createUnit(orgId: string, userId: string, email: string, n
         }),
     });
 
+    const fetchTime = Date.now() - startFetch;
+    console.log(`  → Statesman API call took ${fetchTime}ms (status: ${response.status})`);
+
     if (!response.ok) {
         throw new Error(`Failed to create unit: ${response.statusText}`);
     }
 
-    return response.json();
+    const parseStart = Date.now();
+    const result = await response.json();
+    const parseTime = Date.now() - parseStart;
+    
+    if (parseTime > 100) {
+        console.log(`  → JSON parsing took ${parseTime}ms`);
+    }
+
+    return result;
 }
 
 export async function deleteUnit(orgId: string, userId: string, email: string, unitId: string) {

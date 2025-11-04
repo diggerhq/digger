@@ -75,7 +75,7 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 			
 			log.Printf("[WebhookOrgResolver] Resolving org name '%s' to UUID", orgName)
 			
-			// Resolve org name to UUID
+			// Resolve org name to UUID and get full org info
 			orgUUID, err := resolver.ResolveOrganization(c.Request().Context(), orgName)
 			if err != nil {
 				log.Printf("[WebhookOrgResolver] ERROR: Failed to resolve organization '%s': %v", orgName, err)
@@ -91,11 +91,19 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 			
 			log.Printf("[WebhookOrgResolver] SUCCESS: Resolved '%s' to UUID: %s", orgName, orgUUID)
 			
-			// Add to domain context
-			ctx := domain.ContextWithOrg(c.Request().Context(), orgUUID)
-			c.SetRequest(c.Request().WithContext(ctx))
-			
-			log.Printf("[WebhookOrgResolver] Domain context updated with org UUID")
+			// Get full org info to populate context (avoids repeated queries)
+			orgInfo, err := resolver.GetOrganization(c.Request().Context(), orgUUID)
+			if err != nil {
+				log.Printf("[WebhookOrgResolver] WARNING: Failed to get org details for %s: %v", orgUUID, err)
+				// Fall back to basic context if org lookup fails
+				ctx := domain.ContextWithOrg(c.Request().Context(), orgUUID)
+				c.SetRequest(c.Request().WithContext(ctx))
+			} else {
+				// Add full org info to domain context to avoid repeated queries
+				ctx := domain.ContextWithOrgFull(c.Request().Context(), orgInfo.ID, orgInfo.Name, orgInfo.DisplayName)
+				c.SetRequest(c.Request().WithContext(ctx))
+				log.Printf("[WebhookOrgResolver] Domain context updated with full org info: %s (%s)", orgInfo.Name, orgInfo.DisplayName)
+			}
 			
 			return next(c)
 		}
