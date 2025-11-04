@@ -12,9 +12,10 @@ import { GithubConnectButton } from "./GithubConnectButton"
 interface AddConnectionDialogProps {
   onBitbucketSubmit: (data: { type: string; bitbucket_webhook_secret: string; bitbucket_access_token: string }) => Promise<void>
   onGitlabSubmit: (data: { type: string; gitlab_webhook_secret: string, gitlab_access_token: string }) => Promise<void>
+  githubAppUrl: string
 }
 
-export function AddConnectionDialog({ onBitbucketSubmit, onGitlabSubmit }: AddConnectionDialogProps) {
+export function AddConnectionDialog({ onBitbucketSubmit, onGitlabSubmit, githubAppUrl  }: AddConnectionDialogProps) {
   const [connectionType, setConnectionType] = useState("")
   const [webhookSecret, setWebhookSecret] = useState("")
   const [bitbucketAccessToken, setBitbucketAccessToken] = useState("")
@@ -37,7 +38,7 @@ export function AddConnectionDialog({ onBitbucketSubmit, onGitlabSubmit }: AddCo
   }
 
   const handleGitHubConnect = async () => {
-    window.location.href = "https://github.com/apps/digger-pro";
+    window.location.href = githubAppUrl;
   };
 
   return (
@@ -64,7 +65,7 @@ export function AddConnectionDialog({ onBitbucketSubmit, onGitlabSubmit }: AddCo
 
         {connectionType === "github" && (
           <div className="mt-4 space-y-4">
-            <p>To connect your GitHub repository, you need to install our <a href="https://github.com/apps/digger-pro" target="_blank" rel="noopener noreferrer">GitHub App</a>.</p>
+            <p>To connect your GitHub repository, you need to install our <a href={githubAppUrl} target="_blank" rel="noopener noreferrer">GitHub App</a>.</p>
             <GithubConnectButton source="add_connection_dialog" onClick={handleGitHubConnect} />
           </div>
         )}

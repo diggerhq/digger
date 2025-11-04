@@ -49,6 +49,7 @@ async function handler({ request }) {
   if (!token) {
     return new Response('Unauthorized: No token provided', { status: 401 })
   }
+
   
   // Verify token against TOKEN SERVICE and extract user context
   let userId, userEmail, orgId;
@@ -125,9 +126,9 @@ async function handler({ request }) {
   }
 
   // Use webhook auth to forward to internal TFE routes
-  const webhookSecret = process.env.OPENTACO_ENABLE_INTERNAL_ENDPOINTS;
+  const webhookSecret = process.env.STATESMAN_BACKEND_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error('OPENTACO_ENABLE_INTERNAL_ENDPOINTS not configured');
+    console.error('STATESMAN_BACKEND_WEBHOOK_SECRET not configured');
     return new Response('Internal configuration error', { status: 500 });
   }
 

@@ -17,7 +17,7 @@ kubectl create namespace opentaco
 kubectl create secret generic ui-secrets \
   --from-env-file=.secrets/ui.env -n opentaco
 
-kubectl create secret generic backend-secrets \
+kubectl create secret generic taco-orchestrator-secrets \
   --from-env-file=.secrets/digger-backend.env -n opentaco
 
 kubectl create secret generic statesman-secrets \
