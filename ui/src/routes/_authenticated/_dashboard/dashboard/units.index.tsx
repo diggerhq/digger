@@ -31,8 +31,22 @@ export const Route = createFileRoute(
   component: RouteComponent,
   pendingComponent: PageLoading,
   loader: async ({ context }) => {
+    const startLoad = Date.now();
     const { user, organisationId } = context;
-    const unitsData = await listUnitsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || ''}})
+    
+    const unitsData = await listUnitsFn({
+      data: {
+        organisationId: organisationId || '', 
+        userId: user?.id || '', 
+        email: user?.email || ''
+      }
+    });
+    
+    const loadTime = Date.now() - startLoad;
+    if (loadTime > 1000) {
+      console.log(`⚠️  Units loader took ${loadTime}ms (listUnits call)`);
+    }
+    
     return { unitsData: unitsData, user, organisationId } 
   }
 })

@@ -134,10 +134,24 @@ export const ensureOrgExists = createServerFn({method: 'GET'})
 export const getWidgetsAuthToken = createServerFn({method: 'GET'})
     .inputValidator((args: {userId: string, organizationId: string, scopes?: WidgetScope[]}) => args)
     .handler(async ({data: {userId, organizationId, scopes}}) : Promise<string> => {
-  return getWorkOS().widgets.getToken({
+  // Check cache first
+  const cached = serverCache.getWidgetToken(userId, organizationId);
+  if (cached) {
+    console.log(`✅ Widget token cache hit for ${userId}:${organizationId}`);
+    return cached;
+  }
+  
+  // Cache miss - generate new token
+  console.log(`❌ Widget token cache miss, generating new token for ${userId}:${organizationId}`);
+  const token = await getWorkOS().widgets.getToken({
     userId: userId,
     organizationId: organizationId,
     scopes: scopes ?? ['widgets:users-table:manage'] as WidgetScope[],
   });
+  
+  // Store in cache
+  serverCache.setWidgetToken(userId, organizationId, token);
+  
+  return token;
 })
 

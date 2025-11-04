@@ -77,9 +77,11 @@ const server = createServer(async (req, res) => {
     const ssrTime = Date.now() - ssrStart;
     
     // Log SSR timing with request details for profiling
-    if (ssrTime > 1000) {
+    if (ssrTime > 2000) {
+      console.log(`🔥 VERY SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms`);
+    } else if (ssrTime > 1000) {
       console.log(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms`);
-    } else if (ssrTime > 200) {
+    } else if (ssrTime > 500) {
       console.log(`⏱️  SSR: ${req.method} ${pathname} took ${ssrTime}ms`);
     } else if (process.env.DEBUG === 'true') {
       console.log(`✅ SSR: ${req.method} ${pathname} took ${ssrTime}ms`);

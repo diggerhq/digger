@@ -23,9 +23,21 @@ export async function createOrgForUser(userId: string, orgName: string) {
 
 export async function listUserOrganizationMemberships(userId: string) {
   try {
+    // Check cache first
+    const cachedMemberships = serverCache.getUserMemberships(userId);
+    if (cachedMemberships) {
+      console.log(`✅ User memberships cache hit for ${userId}`);
+      return cachedMemberships;
+    }
+    
+    // Cache miss - fetch from WorkOS
+    console.log(`❌ User memberships cache miss, fetching from WorkOS for ${userId}`);
     const memberships = await getWorkOS().userManagement.listOrganizationMemberships({
       userId,
     });
+    
+    // Store full membership objects in cache
+    serverCache.setUserMemberships(userId, memberships.data);
     
     return memberships.data;
   } catch (error) {
@@ -55,9 +67,22 @@ export async function getOrganisationDetails(orgId: string) {
 
 export async function getOranizationsForUser(userId: string) {
   try {
+    // Check cache first
+    const cachedMemberships = serverCache.getUserMemberships(userId);
+    if (cachedMemberships) {
+      console.log(`✅ Organizations cache hit for ${userId}`);
+      return cachedMemberships;
+    }
+    
+    // Cache miss - fetch from WorkOS
+    console.log(`❌ Organizations cache miss, fetching from WorkOS for ${userId}`);
     const memberships = await getWorkOS().userManagement.listOrganizationMemberships({
       userId: userId,
     });
+    
+    // Store full membership objects in cache
+    serverCache.setUserMemberships(userId, memberships.data);
+    
     return memberships.data;
   } catch (error) {
     console.error('Error fetching user organizations:', error);

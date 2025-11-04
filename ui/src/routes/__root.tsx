@@ -13,9 +13,26 @@ import { getPublicServerConfig, type Env } from '@/lib/env.server';
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const { auth, organisationId } = await getAuth();
-    const organisationDetails = organisationId ? await getOrganisationDetails({data: {organizationId: organisationId}}) : null;
-    const publicServerConfig : Env = await getPublicServerConfig()
+    const startRootLoad = Date.now();
+    
+    // Run auth and config in parallel (they don't depend on each other)
+    const [authResult, publicServerConfig] = await Promise.all([
+      getAuth(),
+      getPublicServerConfig()
+    ]);
+    
+    const { auth, organisationId } = authResult;
+    
+    // Get org details if we have an orgId (this depends on auth)
+    const organisationDetails = organisationId 
+      ? await getOrganisationDetails({data: {organizationId: organisationId}}) 
+      : null;
+    
+    const totalTime = Date.now() - startRootLoad;
+    if (totalTime > 500) {
+      console.log(`⚠️  Root loader took ${totalTime}ms`);
+    }
+    
     return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };
   },
   head: () => ({

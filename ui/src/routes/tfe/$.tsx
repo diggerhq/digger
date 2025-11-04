@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { tokenCache } from '@/lib/token-cache.server'
 
 async function handler({ request }) {
   const url = new URL(request.url);
@@ -51,60 +52,76 @@ async function handler({ request }) {
   
   // Verify token against TOKEN SERVICE and extract user context
   let userId, userEmail, orgId;
-  try {
-    const verifyResponse = await fetch(`${process.env.TOKENS_SERVICE_BACKEND_URL}/api/v1/tokens/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: token,
-      }),
-    });
-    
-    if (!verifyResponse.ok) {
-      console.error('Token verification failed:', verifyResponse.status);
-      return new Response('Unauthorized: Invalid token', { status: 401 })
-    }
-    
-    const tokenInfo = await verifyResponse.json();
-    if (!tokenInfo.valid) {
-      return new Response('Unauthorized: Invalid token', { status: 401 })
-    }
-    
-    // Extract user info from token service response
-    const tokenData = tokenInfo.token || {};
-    userId = tokenData.user_id || tokenInfo.user_id || 'anonymous';
-    orgId = tokenData.org_id || tokenInfo.org_id || 'default';
-    
-    console.log('Verified token for user:', userId, 'org:', orgId);
-    
-    // Get email from statesman (token service doesn't store email)
+  
+  // Check cache first
+  const cached = tokenCache.get(token);
+  if (cached) {
+    userId = cached.userId;
+    userEmail = cached.userEmail;
+    orgId = cached.orgId;
+    console.log(`✅ Token cache hit for ${userId}`);
+  } else {
+    // Cache miss - verify token
     try {
-      const userResponse = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
-          'X-Org-ID': orgId,
-          'X-User-ID': userId,
-          'X-Email': '',
-        },
+      const startVerify = Date.now();
+      
+      const verifyResponse = await fetch(`${process.env.TOKENS_SERVICE_BACKEND_URL}/api/v1/tokens/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
       });
       
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        userEmail = userData.email || '';
-        console.log('Got user email from statesman:', userEmail);
-      } else {
-        console.warn('Could not fetch user from statesman:', userResponse.status);
-        userEmail = '';
+      if (!verifyResponse.ok) {
+        console.error('Token verification failed:', verifyResponse.status);
+        return new Response('Unauthorized: Invalid token', { status: 401 })
       }
+      
+      const tokenInfo = await verifyResponse.json();
+      const verifyTime = Date.now() - startVerify;
+      
+      if (!tokenInfo.valid) {
+        return new Response('Unauthorized: Invalid token', { status: 401 })
+      }
+      
+      // Extract user info from token service response
+      const tokenData = tokenInfo.token || {};
+      userId = tokenData.user_id || tokenInfo.user_id || 'anonymous';
+      orgId = tokenData.org_id || tokenInfo.org_id || 'default';
+      userEmail = tokenData.email || tokenInfo.email || '';
+      
+      // Only fetch email if not in token AND if we need it
+      if (!userEmail) {
+        try {
+          const startEmail = Date.now();
+          const emailResponse = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/users/${userId}`, {
+            headers: {
+              'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
+              'X-Org-ID': orgId,
+              'X-User-ID': userId,
+              'X-Email': '',
+            },
+          });
+          
+          if (emailResponse.ok) {
+            const userData = await emailResponse.json();
+            userEmail = userData.email || '';
+            console.log(`Email lookup: ${Date.now() - startEmail}ms`);
+          } else {
+            userEmail = '';
+          }
+        } catch (error) {
+          console.error('Error fetching user email:', error);
+          userEmail = '';
+        }
+      }
+      
+      // Cache the verified token
+      tokenCache.set(token, userId, userEmail, orgId);
+      console.log(`❌ Token cache miss - verified in ${verifyTime}ms, user: ${userId}, org: ${orgId}`);
     } catch (error) {
-      console.error('Error fetching user email:', error);
-      userEmail = '';
+      console.error('Error verifying token:', error);
+      return new Response('Unauthorized: Token verification failed', { status: 401 })
     }
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    return new Response('Unauthorized: Token verification failed', { status: 401 })
   }
 
   // Use webhook auth to forward to internal TFE routes
@@ -133,12 +150,15 @@ async function handler({ request }) {
   });
 
   // Forward to internal TFE routes with webhook auth
+  const startProxy = Date.now();
   const internalPath = url.pathname.replace('/tfe/api/v2', '/internal/tfe/api/v2');
   const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}${internalPath}${url.search}`, {
     method: request.method,
     headers: outgoingHeaders,
     body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.blob() : undefined
   });
+
+  const proxyTime = Date.now() - startProxy;
 
   // important, remove all encoding headers since the fetch already decompresses the gzip
   // the removal of headeres avoids gzip errors in the client
@@ -148,8 +168,7 @@ async function handler({ request }) {
   headers.delete('transfer-encoding');
   headers.delete('connection');
 
-
-  console.log(response.status, request.url)
+  console.log(`${response.status} ${request.method} ${url.pathname} - Backend: ${proxyTime}ms`);
   return new Response(response.body, { headers });
 }
 
