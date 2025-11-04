@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"fmt"
+	"log"
+	"time"
+
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/labstack/echo/v4"
-	"log"
 )
 
 const DefaultOrgID = "default"
@@ -44,10 +47,17 @@ func JWTOrgResolverMiddleware(resolver domain.IdentifierResolver) echo.Middlewar
 func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			startMiddleware := time.Now()
 			path := c.Request().URL.Path
 			method := c.Request().Method
 			
-			log.Printf("[WebhookOrgResolver] MIDDLEWARE INVOKED for path: %s, method: %s", path, method)
+			// Extract request ID for correlation with handler logs
+			requestID := c.Request().Header.Get("X-Request-ID")
+			if requestID == "" {
+				requestID = fmt.Sprintf("mw-%d", time.Now().UnixNano())
+			}
+			
+			log.Printf("[%s] 🔷 MIDDLEWARE: Starting org resolution for %s %s", requestID, method, path)
 			
 			// Skip org resolution for endpoints that create/list orgs
 			// These endpoints don't require an existing org context
@@ -57,30 +67,28 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 				(method == "GET" && path == "/internal/api/orgs/user")
 			
 			if skipOrgResolution {
-				log.Printf("[WebhookOrgResolver] Skipping org resolution for endpoint: %s %s", method, path)
+				log.Printf("[%s] ⏭️  MIDDLEWARE: Skipping org resolution for endpoint: %s %s", requestID, method, path)
 				return next(c)
 			}
 			
 			// Get org name from echo context (set by WebhookAuth)
 			orgName, ok := c.Get("organization_id").(string)
 			if !ok {
-				log.Printf("[WebhookOrgResolver] WARNING: organization_id not found in context, defaulting to 'default'")
+				log.Printf("[%s] ⚠️  MIDDLEWARE: organization_id not found in context, defaulting to 'default'", requestID)
 				orgName = DefaultOrgID
 			} else if orgName == "" {
-				log.Printf("[WebhookOrgResolver] WARNING: organization_id is empty, defaulting to 'default'")
+				log.Printf("[%s] ⚠️  MIDDLEWARE: organization_id is empty, defaulting to 'default'", requestID)
 				orgName = DefaultOrgID
 			} else {
-				log.Printf("[WebhookOrgResolver] Found organization_id in context: '%s'", orgName)
+				log.Printf("[%s] 📋 MIDDLEWARE: Found organization_id: '%s'", requestID, orgName)
 			}
 			
-			log.Printf("[WebhookOrgResolver] Resolving org name '%s' to UUID", orgName)
-			
 			// Resolve org name to UUID and get full org info
+			resolveStart := time.Now()
 			orgUUID, err := resolver.ResolveOrganization(c.Request().Context(), orgName)
+			resolveTime := time.Since(resolveStart)
 			if err != nil {
-				log.Printf("[WebhookOrgResolver] ERROR: Failed to resolve organization '%s': %v", orgName, err)
-				log.Printf("[WebhookOrgResolver] ERROR: This likely means the organization doesn't exist in the database yet or the external_org_id doesn't match")
-				log.Printf("[WebhookOrgResolver] ERROR: Check if the organization was created successfully with external_org_id='%s'", orgName)
+				log.Printf("[%s] ❌ MIDDLEWARE: Failed to resolve org '%s' after %dms: %v", requestID, orgName, resolveTime.Milliseconds(), err)
 				return echo.NewHTTPError(500, map[string]interface{}{
 					"error": "Failed to resolve organization",
 					"detail": err.Error(),
@@ -89,12 +97,14 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 				})
 			}
 			
-			log.Printf("[WebhookOrgResolver] SUCCESS: Resolved '%s' to UUID: %s", orgName, orgUUID)
+			log.Printf("[%s] ✅ MIDDLEWARE: Resolved '%s' → UUID %s (%dms)", requestID, orgName, orgUUID, resolveTime.Milliseconds())
 			
 			// Get full org info to populate context (avoids repeated queries)
+			getOrgStart := time.Now()
 			orgInfo, err := resolver.GetOrganization(c.Request().Context(), orgUUID)
+			getOrgTime := time.Since(getOrgStart)
 			if err != nil {
-				log.Printf("[WebhookOrgResolver] WARNING: Failed to get org details for %s: %v", orgUUID, err)
+				log.Printf("[%s] ⚠️  MIDDLEWARE: Failed to get org details for %s after %dms: %v - falling back to basic context", requestID, orgUUID, getOrgTime.Milliseconds(), err)
 				// Fall back to basic context if org lookup fails
 				ctx := domain.ContextWithOrg(c.Request().Context(), orgUUID)
 				c.SetRequest(c.Request().WithContext(ctx))
@@ -102,7 +112,16 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 				// Add full org info to domain context to avoid repeated queries
 				ctx := domain.ContextWithOrgFull(c.Request().Context(), orgInfo.ID, orgInfo.Name, orgInfo.DisplayName)
 				c.SetRequest(c.Request().WithContext(ctx))
-				log.Printf("[WebhookOrgResolver] Domain context updated with full org info: %s (%s)", orgInfo.Name, orgInfo.DisplayName)
+				log.Printf("[%s] ✅ MIDDLEWARE: Got org details for %s (%dms)", requestID, orgInfo.Name, getOrgTime.Milliseconds())
+			}
+			
+			totalMiddlewareTime := time.Since(startMiddleware)
+			
+			// Log timing breakdown if middleware is slow
+			if totalMiddlewareTime.Milliseconds() > 500 {
+				log.Printf("[%s] ⚠️  MIDDLEWARE: SLOW - total: %dms (resolve: %dms, getOrg: %dms)", requestID, totalMiddlewareTime.Milliseconds(), resolveTime.Milliseconds(), getOrgTime.Milliseconds())
+			} else {
+				log.Printf("[%s] ✅ MIDDLEWARE: Complete - total: %dms (resolve: %dms, getOrg: %dms)", requestID, totalMiddlewareTime.Milliseconds(), resolveTime.Milliseconds(), getOrgTime.Milliseconds())
 			}
 			
 			return next(c)
