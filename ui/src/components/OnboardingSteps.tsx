@@ -33,6 +33,7 @@ interface OnboardingStepsProps {
   email: string
   organisationId: string
   publicHostname: string
+  githubAppUrl: string
 }
 
 interface WorkflowConfig {
@@ -42,7 +43,7 @@ interface WorkflowConfig {
   iacVersion: string
 }
 
-export default function OnboardingSteps({ repoName, repoOwner, onComplete, userId, email, organisationId, publicHostname }: OnboardingStepsProps) {
+export default function OnboardingSteps({ repoName, repoOwner, onComplete, userId, email, organisationId, publicHostname , githubAppUrl}: OnboardingStepsProps) {
   const [currentStep, setCurrentStep] = useState(() => {
     if (typeof window !== 'undefined') {
       const step = new URLSearchParams(window.location.search).get('step')
@@ -183,7 +184,7 @@ jobs:
 
 
   const handleGithubConnect = () => {
-    window.open("https://github.com/apps/digger-pro", "_blank")
+    window.open(githubAppUrl, "_blank")
     setCurrentStep("workflow")
     setSteps(prev => ({ ...prev, githubConnected: true }))
   }
