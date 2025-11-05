@@ -147,9 +147,22 @@ const server = createServer(async (req, res) => {
     });
     
     // Enable HTML caching with must-revalidate for versioned builds
+    // BUT: Disable caching for sensitive pages (settings, tokens)
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/html')) {
-      res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const isSensitivePage = url.pathname.includes('/settings') || 
+                              url.pathname.includes('/tokens');
+      
+      if (isSensitivePage) {
+        // No caching for sensitive pages
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else {
+        // Cache non-sensitive pages
+        res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
+      }
     }
 
     // Check if client accepts gzip and response is compressible

@@ -6,7 +6,11 @@ export const getTokens = async (organizationId: string, userId: string) => {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
         },
+        // Disable browser caching for token requests
+        cache: 'no-store',
     })
     if (!response.ok) {
         throw new Error(`Failed to get tokens: ${response.statusText}`);

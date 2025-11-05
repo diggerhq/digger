@@ -18,7 +18,10 @@ export const Route = createFileRoute(
     const { user, organisationId } = context;
     const tokens = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
     return { tokens, user, organisationId }
-  }
+  },
+  // Disable caching for token data - always fetch fresh
+  staleTime: 0,
+  gcTime: 0,
 })
 
 function RouteComponent() {
