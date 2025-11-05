@@ -295,6 +295,12 @@ func (m *RBACManager) Can(ctx context.Context, principal Principal, action Actio
 		return false, fmt.Errorf("organization context required for RBAC")
 	}
 	
+	// Allow system principals (e.g., signed URLs, internal services)
+	// System principals are pre-authorized and bypass RBAC checks
+	if strings.HasPrefix(principal.Subject, "system:") {
+		return true, nil
+	}
+	
 	enabled, err := m.IsEnabled(ctx)
 	if err != nil {
 		return false, err
