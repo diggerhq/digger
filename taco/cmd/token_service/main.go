@@ -40,7 +40,6 @@ func main() {
 	log.Printf("Connecting to database backend: %s", queryCfg.Backend)
 
 	// Connect directly to database without using QueryStore
-	// (QueryStore tries to create views that reference tables we don't have)
 	var db *gorm.DB
 	switch queryCfg.Backend {
 	case "postgres":
@@ -65,7 +64,6 @@ func main() {
 	defer sqlDB.Close()
 
 	// Auto-migrate Token table only (token service doesn't need users, orgs, units, etc.)
-	// This is safe because the token service has its own dedicated database
 	if err := db.AutoMigrate(&types.Token{}); err != nil {
 		log.Fatalf("Failed to migrate Token table: %v", err)
 	}
