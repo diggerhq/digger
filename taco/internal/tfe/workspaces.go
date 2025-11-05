@@ -1209,12 +1209,8 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "Failed to read state data"})
 	}
 
-	// Extract unit UUID from state ID (format: orgID/unitUUID)
-	parts := strings.SplitN(stateID, "/", 2)
-	if len(parts) < 2 {
-		return c.JSON(400, map[string]string{"error": "Invalid state ID format"})
-	}
-	unitUUID := parts[1]
+	// Extract unit UUID from state ID - repository expects just the UUID
+	unitUUID := extractUnitUUID(stateID)
 
 	// Use directStateStore for signed URL operations (pre-authorized, no RBAC checks)
 	// Check if state exists (no auto-creation)
