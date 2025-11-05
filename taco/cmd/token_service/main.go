@@ -11,12 +11,16 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/query"
-	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
-	"github.com/diggerhq/digger/opentaco/internal/repositories"
+	"github.com/diggerhq/digger/opentaco/internal/query/types"
 	"github.com/diggerhq/digger/opentaco/internal/token_service"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // change this random number to bump version of token service: 1
@@ -33,22 +37,39 @@ func main() {
 		log.Fatalf("Failed to process configuration: %v", err)
 	}
 
-	// --- Initialize Stores ---
+	log.Printf("Connecting to database backend: %s", queryCfg.Backend)
 
-	// Create the database query store using the dedicated factory.
-	queryStore, err := queryfactory.NewQueryStore(queryCfg)
+	// Connect directly to database without using QueryStore
+	// (QueryStore tries to create views that reference tables we don't have)
+	var db *gorm.DB
+	switch queryCfg.Backend {
+	case "postgres":
+		db, err = connectPostgres(queryCfg.Postgres)
+	case "mysql":
+		db, err = connectMySQL(queryCfg.MySQL)
+	case "sqlite", "":
+		db, err = connectSQLite(queryCfg.SQLite)
+	default:
+		log.Fatalf("Unsupported database backend: %s", queryCfg.Backend)
+	}
+	
 	if err != nil {
-		log.Fatalf("Failed to initialize query backend: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer queryStore.Close()
-
-	log.Printf("Query backend initialized: %s", queryCfg.Backend)
-
-	// Get the underlying *gorm.DB from the query store
-	db := repositories.GetDBFromQueryStore(queryStore)
-	if db == nil {
-		log.Fatalf("Query store does not provide GetDB method")
+	
+	// Ensure proper cleanup
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("Failed to get underlying sql.DB: %v", err)
 	}
+	defer sqlDB.Close()
+
+	// Auto-migrate Token table only (token service doesn't need users, orgs, units, etc.)
+	// This is safe because the token service has its own dedicated database
+	if err := db.AutoMigrate(&types.Token{}); err != nil {
+		log.Fatalf("Failed to migrate Token table: %v", err)
+	}
+	log.Println("Token table migrated successfully")
 
 	// Create token repository
 	tokenRepo := token_service.NewTokenRepository(db)
@@ -93,5 +114,74 @@ func main() {
 	}
 
 	log.Println("Server shutdown complete")
+}
+
+// Database connection helpers (direct connections without QueryStore overhead)
+
+func connectPostgres(cfg query.PostgresConfig) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
+		cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
+	
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+		PrepareStmt: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
+	}
+	
+	// Configure connection pool
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+	
+	return db, nil
+}
+
+func connectMySQL(cfg query.MySQLConfig) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
+	
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+		PrepareStmt: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
+	}
+	
+	// Configure connection pool
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+	
+	return db, nil
+}
+
+func connectSQLite(cfg query.SQLiteConfig) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("%s?cache=%s&_busy_timeout=%d&_journal_mode=%s&_foreign_keys=%s",
+		cfg.Path, cfg.Cache, int(cfg.BusyTimeout.Milliseconds()), 
+		cfg.PragmaJournalMode, cfg.PragmaForeignKeys)
+	
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+		PrepareStmt: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to sqlite: %w", err)
+	}
+	
+	// Configure connection pool for SQLite
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+	
+	return db, nil
 }
 
