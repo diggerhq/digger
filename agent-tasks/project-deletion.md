@@ -1,15 +1,12 @@
-# Project Deletion: Implementation Plan (Essentials)
+# Project Deletion: Backend-Only Plan
 
 ## Scope
-- Add a Delete Project action on the Project Details screen.
-- Add backend support to soft-delete a project.
+- Add backend support to soft-delete a project via a new API endpoint.
+- UI work is out of scope (lives in a separate repo).
 
 ## Current State
-- UI files: `projects.$projectid.tsx`, `projects.index.tsx`.
-- UI API: `UI/src/api/orchestrator_projects.ts` has get/update; no delete.
-- ServerFns: `UI/src/api/orchestrator_serverFunctions.ts` has `getProjectFn`, `getProjectsFn`, `updateProjectFn`.
-- Backend routes: `backend/bootstrap/main.go` exposes GET, PUT for projects; no DELETE.
-- Model: `Project` uses `gorm.Model` (soft-delete supported).
+- Backend exposes GET, PUT for projects; no DELETE yet (`backend/bootstrap/main.go`).
+- Model `Project` uses `gorm.Model` (has `DeletedAt`) so soft-delete is supported by default.
 
 ## API
 - Method: DELETE
@@ -18,41 +15,33 @@
 - Responses: 204 on success; 404 not found; 403 forbidden; 500 on error.
 
 ## Backend Steps
-1) Add route in `backend/bootstrap/main.go`:
-   - `projectsApiGroup.DELETE("/:project_id/", controllers.DeleteProjectApi)`
-2) Implement `DeleteProjectApi` in `backend/controllers/projects.go`:
-   - Resolve org from headers; fetch project by `org.ID` and `project_id`.
-   - `models.DB.GormDB.Delete(&project)` to soft-delete.
-   - Return 204.
-3) Migrations: none (soft-delete already present).
+1) Route: In `backend/bootstrap/main.go`, register `projectsApiGroup.DELETE("/:project_id/", controllers.DeleteProjectApi)` inside the `if enableApi` block.
+2) Controller: In `backend/controllers/projects.go`, add `DeleteProjectApi`:
+   - Resolve org from headers (`ORGANISATION_ID_KEY`, `ORGANISATION_SOURCE_KEY`).
+   - Load org by `external_id` + `external_source`.
+   - Load project by `projects.organisation_id = org.ID AND projects.id = :project_id`.
+   - Soft delete via `models.DB.GormDB.Delete(&project)` and return `204`.
+3) Migrations: none (soft-delete already present and indexed).
 
-## UI Steps
-1) Add `deleteProject` to `UI/src/api/orchestrator_projects.ts` (DELETE request with existing headers). Return empty object on 204.
-2) Add `deleteProjectFn` to `UI/src/api/orchestrator_serverFunctions.ts` wrapping `deleteProject`.
-3) Update `projects.$projectid.tsx`:
-   - Import `useRouter`, `useToast`, `deleteProjectFn`, and `AlertDialog` components; add a destructive Delete button.
-   - On confirm: call `deleteProjectFn({ data: { projectId, organisationId, userId } })`, toast success, navigate to `/dashboard/projects`.
-   - On error: toast destructive.
+## Out of Scope
+- Any UI wiring or server functions in the UI repo.
 
 ## Security
-- Endpoint protected by existing API middleware; UI invokes via server function to keep secrets server-side.
+- Endpoint is protected by existing API middleware (`InternalApiAuth`, `HeadersApiAuth`).
 
 ## Acceptance Criteria
-- Delete button shows on Project Details; confirmation dialog appears.
-- Confirm deletes the project (soft-delete), redirects to Projects list, and shows success toast.
-- Deleted project no longer appears in list; details by ID returns 404.
+- DELETE `/api/projects/:project_id/` returns 204 on success.
+- After deletion, `GET /api/projects/` no longer lists the project (GORM soft-delete filtering applies).
+- `GET /api/projects/:project_id/` returns 404 for the deleted project.
 
 ## Test Plan
-- API: DELETE with valid headers → 204; repeat → 404; missing headers → 403.
-- UI: Confirm delete redirects to list; failure shows error toast.
+- API: DELETE with valid headers → 204; repeat → 404; missing/invalid headers → 403.
+- API: Verify project disappears from list endpoint; details endpoint returns 404 post-delete.
 
 ## Estimate
-- Backend: 1–2 hours; UI: ~1 hour; total: ~2–3 hours.
+- Backend: 1–2 hours.
 
 ## Pointers
 - Routes: `backend/bootstrap/main.go`
 - Controller: `backend/controllers/projects.go`
 - Model: `backend/models/orgs.go`
-- UI API: `UI/src/api/orchestrator_projects.ts`
-- ServerFn: `UI/src/api/orchestrator_serverFunctions.ts`
-- Screen: `UI/src/routes/_authenticated/_dashboard/dashboard/projects.$projectid.tsx`
