@@ -9,17 +9,18 @@ import SignInButton from '@/components/sign-in-button';
 import type { ReactNode } from 'react';
 import { Sidebar, SidebarMenuButton, SidebarGroupContent, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarTrigger, SidebarProvider, SidebarMenu, SidebarMenuItem } from '../components/ui/sidebar';
 import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
-import globalCssUrl from '@/styles/global.css?url'
+import globalCssUrl from '@/styles/global.css?url';
 import { Toaster } from '@/components/ui/toaster';
 import { getPublicServerConfig, type Env } from '@/lib/env.server';
 
-
+// PostHog integration
+import { PostHogProvider } from 'posthog-js/react';
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
     const { auth, organisationId } = await getAuth();
     const organisationDetails = organisationId ? await getOrganisationDetails({data: {organizationId: organisationId}}) : null;
-    const publicServerConfig : Env = await getPublicServerConfig()
+    const publicServerConfig : Env = await getPublicServerConfig();
     return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };
   },
   head: () => ({
@@ -73,9 +74,27 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
         <link rel="apple-touch-icon" href="/favicon.png" />
       </head>
       <body>
-        {children}
-        <Toaster />
-        <Scripts />
+        {import.meta.env.VITE_PUBLIC_POSTHOG_KEY ? (
+          <PostHogProvider
+            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+            options={{
+              api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+              defaults: '2025-05-24',
+              capture_exceptions: true,
+              debug: import.meta.env.MODE === 'development',
+            }}
+          >
+            {children}
+            <Toaster />
+            <Scripts />
+          </PostHogProvider>
+        ) : (
+          <>
+            {children}
+            <Toaster />
+            <Scripts />
+          </>
+        )}
       </body>
     </html>
   );

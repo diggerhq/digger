@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { trackProjectDriftToggled } from '@/lib/analytics'
 
 
 export const Route = createFileRoute(
@@ -33,7 +34,7 @@ function RouteComponent() {
     const [projectList, setProjectList] = useState<Project[]>(projects)
 
     const handleDriftToggle = async (project: Project) => {
-        // trackProjectDriftToggled(user, organisationId, project.id.toString(), !project.drift_enabled ? 'enabled' : 'disabled')
+        trackProjectDriftToggled(user, organisationId, project.id.toString(), !project.drift_enabled ? 'enabled' : 'disabled')
 
         try {
             // Optimistically update UI

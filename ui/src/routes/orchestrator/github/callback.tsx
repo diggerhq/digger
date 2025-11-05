@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { WorkOS } from '@workos-inc/node';
-import { sendGithubInstallationEvent } from "../../../lib/analytics-server";
 import { getWorkOS } from '../../../authkit/ssr/workos';
+import { sendGithubInstallationEvent } from '../../../lib/analytics';
 import { getAuth } from '../../../authkit/serverFunctions';
 
 
@@ -22,8 +22,7 @@ export const Route = createFileRoute('/orchestrator/github/callback')({
 
           const requestUrl = new URL(request.url);
           const installationId = requestUrl.searchParams.get('installation_id');
-          
-        //   await sendGithubInstallationEvent(installationId || 'unknown', user, organizationId || 'unknown');
+          await sendGithubInstallationEvent(installationId || 'unknown', user, organizationId || 'unknown');
           
           // Forward to backend
           const postResponse = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/github/link`, {

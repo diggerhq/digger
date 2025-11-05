@@ -35,6 +35,12 @@ export default function UnitCreateForm({ userId, email, organisationId, onCreate
           name: unitName.trim(),
         },
       })
+      // analytics: track unit creation
+      try {
+        const user = { id: userId, email }
+        const { trackUnitCreated } = await import('@/lib/analytics')
+        trackUnitCreated(user, organisationId, { id: unit.id, name: unit.name })
+      } catch {}
       onCreated({ id: unit.id, name: unit.name })
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create unit')
