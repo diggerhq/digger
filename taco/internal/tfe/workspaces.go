@@ -960,6 +960,10 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "Invalid request format"})
 	}
 	attributes, _ := data["attributes"].(map[string]any)
+	if !ok {
+		fmt.Printf("CreateStateVersion: ERROR - Invalid request format, missing attributes\n")
+		return c.JSON(400, map[string]string{"error": "Invalid request format"})
+	}
 
 	// INLINE STATE (Terraform <=1.5.x path) ------ upload directly in this case
 	if enc, ok := attributes["state"].(string); ok && enc != "" {
@@ -968,12 +972,10 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		if decErr != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid base64 in json-state"})
 		}
-		fmt.Printf("CreateStateVersion: Body is not JSON, treating as direct state upload\n")
+		fmt.Printf("CreateStateVersion: found state b64 bytes in JSON, treating as direct upload\n")
 		// For direct upload without JSON wrapper, handle as raw state data
 		return h.CreateStateVersionDirect(c, workspaceID, stateID, stateBytes)
 	}
-	fmt.Printf("CreateStateVersion: Parsed JSON request: %+v\n", request)
-
 
 
 	// Look for the actual state content - it might be base64 encoded or in a specific field
