@@ -3,6 +3,7 @@ import { decodeJwt } from 'jose'
 import { getWorkOS } from '@/authkit/ssr/workos'
 import { getSessionFromCookie, saveSession } from '@/authkit/ssr/session'
 import type { AccessToken } from '@workos-inc/node'
+import { serverCache } from '@/lib/cache.server'
 
 export const Route = createFileRoute('/api/auth/workos/switch-org')({
   server: {
@@ -31,6 +32,12 @@ export const Route = createFileRoute('/api/auth/workos/switch-org')({
             })
 
             await saveSession(refreshResult)
+            
+            // Invalidate cache for this user when switching orgs
+            if (session.user?.id) {
+              serverCache.invalidateUser(session.user.id);
+              console.log(`🔄 Cache invalidated for user ${session.user.id} (org switch)`);
+            }
           } catch (err: any) {
             const code = err?.error
             if (code === 'sso_required' || code === 'mfa_enrollment') {

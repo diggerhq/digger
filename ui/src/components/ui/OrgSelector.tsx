@@ -1,11 +1,10 @@
-import { Card, DropdownMenu, Flex } from "@radix-ui/themes";
+import { Flex } from "@radix-ui/themes";
+// Commented out - legacy file, not currently used
 // import { getApiProps } from "@repo/env";
 // import { UsersManagement, WorkOsWidgets } from "@workos-inc/widgets";
 // import { OrganizationSwitcher } from "@workos-inc/widgets/organization-switcher";
 // import { WorkOS } from '@workos-inc/node';
 // import { switchToOrganization } from "@/server-functions/switch-to-organization";
-import '@radix-ui/themes/styles.css';
-import '@workos-inc/widgets/styles.css';
 
 // export function getApiProps() {
 //     if (typeof process === "undefined") {

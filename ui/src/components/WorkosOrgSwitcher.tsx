@@ -5,9 +5,6 @@ import { useToast } from '@/hooks/use-toast'
 import { OrganizationSwitcher, WorkOsWidgets } from '@workos-inc/widgets'
 import { DropdownMenu } from '@radix-ui/themes'
 
-import '@workos-inc/widgets/styles.css'
-import '@radix-ui/themes/styles.css'
-
 type WorkosOrgSwitcherProps = {
   userId: string
   organisationId: string

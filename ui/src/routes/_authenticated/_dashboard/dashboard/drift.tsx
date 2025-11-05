@@ -12,12 +12,14 @@ import { useToast } from '@/hooks/use-toast'
 import { getOrgSettingsFn, updateOrgSettingsFn } from '@/api/orchestrator_serverFunctions'
 import { testSlackWebhookFn } from '@/api/drift_serverFunctions'
 import { ToastAction } from '@/components/ui/toast'
+import { PageLoading } from '@/components/LoadingSkeleton'
 
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/drift',
 )({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
     const settings = await getOrgSettingsFn({data: {userId: user?.id || '', organisationId: organisationId || ''}})

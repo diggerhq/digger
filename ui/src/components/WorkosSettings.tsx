@@ -10,8 +10,7 @@ import {
   UsersManagement,
 } from '@workos-inc/widgets';
 
-import '@workos-inc/widgets/styles.css';
-import '@radix-ui/themes/styles.css';
+// CSS imports moved to __root.tsx to avoid duplicates
 import CreateOrganizationBtn from './CreateOrganisationButtonWOS';
 import WorkosOrgSwitcher from './WorkosOrgSwitcher';
 

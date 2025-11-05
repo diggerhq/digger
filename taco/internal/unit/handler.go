@@ -90,11 +90,13 @@ type CreateUnitResponse struct {
 func (h *Handler) CreateUnit(c echo.Context) error {
 	var req CreateUnitRequest
 	if err := c.Bind(&req); err != nil {
+		c.Logger().Errorf("Failed to bind request body: %v", err)
 		analytics.SendEssential("unit_create_failed_invalid_request")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 	}
 
 	if err := domain.ValidateUnitID(req.Name); err != nil {
+		c.Logger().Errorf("Invalid unit name '%s': %v", req.Name, err)
 		analytics.SendEssential("unit_create_failed_invalid_name")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -104,6 +106,7 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 	ctx := c.Request().Context()
 	orgCtx, ok := domain.OrgFromContext(ctx)
 	if !ok {
+		c.Logger().Error("Organization context missing")
 		analytics.SendEssential("unit_create_failed_no_org_context")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
 	}
@@ -117,10 +120,8 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 				"detail": fmt.Sprintf("A unit with name '%s' already exists in this organization", name),
 			})
 		}
-		// Log the actual error for debugging
-		c.Logger().Errorf("Failed to create unit '%s' in org '%s': %v", name, orgCtx.OrgID, err)
+		c.Logger().Errorf("Repository error: %v", err)
 		analytics.SendEssential("unit_create_failed_storage_error")
-		// Surface the actual error message to help with debugging
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to create unit",
 			"detail": err.Error(),
@@ -138,15 +139,16 @@ func (h *Handler) ListUnits(c echo.Context) error {
 	// Get org UUID from domain context (set by middleware for both JWT and webhook routes)
 	orgCtx, ok := domain.OrgFromContext(ctx)
 	if !ok {
+		c.Logger().Error("Organization context missing")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
 	}
 
 	unitsMetadata, err := h.store.List(ctx, orgCtx.OrgID, prefix)
 	if err != nil {
+		c.Logger().Errorf("Repository error: %v", err)
 		if err.Error() == "unauthorized" || err.Error() == "forbidden" {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
 		}
-		c.Logger().Errorf("Failed to list units for org '%s' with prefix '%s': %v", orgCtx.OrgID, prefix, err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to list units",
 			"detail": err.Error(),

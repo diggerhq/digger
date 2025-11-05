@@ -23,14 +23,24 @@ import {
 import { useState } from "react"
 import UnitCreateForm from "@/components/UnitCreateForm"
 import { listUnitsFn } from '@/api/statesman_serverFunctions'
+import { PageLoading } from '@/components/LoadingSkeleton'
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/',
 )({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const unitsData = await listUnitsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || ''}})
+    
+    const unitsData = await listUnitsFn({
+      data: {
+        organisationId: organisationId || '', 
+        userId: user?.id || '', 
+        email: user?.email || ''
+      }
+    });
+    
     return { unitsData: unitsData, user, organisationId } 
   }
 })
@@ -53,7 +63,11 @@ function formatDate(date: Date) {
   })
 }
 
-function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
+function CreateUnitModal({ onUnitCreated, onUnitOptimistic, onUnitFailed }: { 
+  onUnitCreated: () => void,
+  onUnitOptimistic: (unit: any) => void,
+  onUnitFailed: () => void
+}) {
   const [open, setOpen] = useState(false)
   const { user, organisationId } = Route.useLoaderData()
   const navigate = Route.useNavigate()
@@ -78,7 +92,17 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
             userId={user?.id || ''}
             email={user?.email || ''}
             organisationId={organisationId}
-            onCreated={() => { setOpen(false); onUnitCreated(); }}
+            onCreatedOptimistic={(tempUnit) => {
+              onUnitOptimistic(tempUnit)
+              setOpen(false)
+            }}
+            onCreated={() => { 
+              setOpen(false)
+              onUnitCreated()
+            }}
+            onCreatedFailed={() => {
+              onUnitFailed()
+            }}
             onBringOwnState={() => { setOpen(false); navigate({ to: '/dashboard/onboarding' }); }}
             showBringOwnState={false}
           />
@@ -94,9 +118,26 @@ function RouteComponent() {
   const navigate = Route.useNavigate()
   const router = useRouter()
   
+  // Handle optimistic update - add immediately
+  function handleUnitOptimistic(tempUnit: any) {
+    setUnits(prev => [{
+      ...tempUnit,
+      locked: false,
+      size: 0,
+      updatedAt: new Date(),
+      isOptimistic: true
+    }, ...prev])
+  }
+  
+  // Handle actual creation - refresh from server
   async function handleUnitCreated() {
     const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
     setUnits(unitsData.units)
+  }
+  
+  // Handle failure - remove optimistic unit
+  function handleUnitFailed() {
+    setUnits(prev => prev.filter((u: any) => !u.isOptimistic))
   }
   
   return (<>
@@ -120,7 +161,11 @@ function RouteComponent() {
             <Button variant="outline" asChild>
               <Link to="/dashboard/onboarding">Show onboarding flow</Link>
             </Button>
-            <CreateUnitModal onUnitCreated={handleUnitCreated} />
+            <CreateUnitModal 
+              onUnitOptimistic={handleUnitOptimistic}
+              onUnitCreated={handleUnitCreated} 
+              onUnitFailed={handleUnitFailed}
+            />
           </div>)}
         </CardHeader>
         <CardContent>
@@ -151,20 +196,25 @@ function RouteComponent() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {units.map((unit) => (
-            <TableRow key={unit.id}>
+          {units.map((unit: any) => (
+            <TableRow key={unit.id} className={unit.isOptimistic ? 'opacity-60' : ''}>
               <TableCell>
                 {unit.locked ? <Lock className="h-5 w-5 text-destructive" /> : <Unlock className="h-5 w-5 text-muted-foreground" />}
               </TableCell>
-              <TableCell className="font-medium">{unit.name}</TableCell>
+              <TableCell className="font-medium">
+                {unit.name}
+                {unit.isOptimistic && <span className="ml-2 text-xs text-muted-foreground">(Creating...)</span>}
+              </TableCell>
               <TableCell>{formatBytes(unit.size)}</TableCell>
               <TableCell>{formatDate(unit.updatedAt || new Date())}</TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" asChild className="justify-end">
-                  <Link to={`/dashboard/units/$unitId`} params={{ unitId: unit.id }}>
-                    View Details <ExternalLink className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                {!unit.isOptimistic && (
+                  <Button variant="ghost" asChild className="justify-end">
+                    <Link to={`/dashboard/units/$unitId`} params={{ unitId: unit.id }}>
+                      View Details <ExternalLink className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}

@@ -1,4 +1,5 @@
 import { getWorkOS } from "./workos";
+import { serverCache } from "@/lib/cache.server";
 
 export async function createOrgForUser(userId: string, orgName: string) {
   try {
@@ -22,9 +23,21 @@ export async function createOrgForUser(userId: string, orgName: string) {
 
 export async function listUserOrganizationMemberships(userId: string) {
   try {
+    // Check cache first
+    const cachedMemberships = serverCache.getUserMemberships(userId);
+    if (cachedMemberships) {
+      console.log(`✅ User memberships cache hit for ${userId}`);
+      return cachedMemberships;
+    }
+    
+    // Cache miss - fetch from WorkOS
+    console.log(`❌ User memberships cache miss, fetching from WorkOS for ${userId}`);
     const memberships = await getWorkOS().userManagement.listOrganizationMemberships({
       userId,
     });
+    
+    // Store full membership objects in cache
+    serverCache.setUserMemberships(userId, memberships.data);
     
     return memberships.data;
   } catch (error) {
@@ -35,7 +48,16 @@ export async function listUserOrganizationMemberships(userId: string) {
 
 export async function getOrganisationDetails(orgId: string) {
   try {
+    // Check cache first
+    const cached = serverCache.getOrg(orgId);
+    if (cached) {
+      return cached;
+    }
+    
+    // Cache miss - fetch from WorkOS
     const org = await getWorkOS().organizations.getOrganization(orgId);
+    serverCache.setOrg(orgId, org);
+    
     return org;
   } catch (error) {
     console.error('Error fetching organization details:', error);
@@ -45,9 +67,22 @@ export async function getOrganisationDetails(orgId: string) {
 
 export async function getOranizationsForUser(userId: string) {
   try {
+    // Check cache first
+    const cachedMemberships = serverCache.getUserMemberships(userId);
+    if (cachedMemberships) {
+      console.log(`✅ Organizations cache hit for ${userId}`);
+      return cachedMemberships;
+    }
+    
+    // Cache miss - fetch from WorkOS
+    console.log(`❌ Organizations cache miss, fetching from WorkOS for ${userId}`);
     const memberships = await getWorkOS().userManagement.listOrganizationMemberships({
       userId: userId,
     });
+    
+    // Store full membership objects in cache
+    serverCache.setUserMemberships(userId, memberships.data);
+    
     return memberships.data;
   } catch (error) {
     console.error('Error fetching user organizations:', error);
