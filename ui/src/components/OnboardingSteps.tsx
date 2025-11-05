@@ -171,6 +171,9 @@ jobs:
       description: "Workflow content copied to clipboard",
       action: <ToastAction altText="OK">OK</ToastAction>,
     })
+    // analytics
+    const user = { id: userId, email }
+    import('@/lib/analytics').then(({ trackWorkflowFileAdded }) => trackWorkflowFileAdded(user, organisationId))
   }
 
   const handleCopyDigger = () => {
@@ -180,6 +183,9 @@ jobs:
       description: "digger.yml content copied to clipboard",
       action: <ToastAction altText="OK">OK</ToastAction>,
     })
+    // analytics
+    const user = { id: userId, email }
+    import('@/lib/analytics').then(({ trackDiggerYmlAdded }) => trackDiggerYmlAdded(user, organisationId))
   }
 
 
@@ -252,7 +258,12 @@ jobs:
                   Install the Digger GitHub App to connect your repository
                 </p>
 
-                  <GithubConnectButton source="onboarding" onClick={handleGithubConnect} />
+                  <GithubConnectButton
+                    source="onboarding"
+                    onClick={handleGithubConnect}
+                    user={{ id: userId, email }}
+                    organizationId={organisationId}
+                  />
               </div>
             </TabsContent>
 

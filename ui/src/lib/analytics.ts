@@ -1,8 +1,10 @@
 import posthog from 'posthog-js'
 
+const isPosthogReady = () => typeof window !== 'undefined' && (posthog as any)?.__loaded === true
+
 // Analytics event tracking utility functions
 export const trackEvent = (eventName: string, properties?: Record<string, any>) => {
-  if (typeof window !== 'undefined' && posthog) {
+  if (isPosthogReady()) {
     let res = posthog.capture(eventName, properties)
     console.log("trackEventResult", res)
   }
@@ -10,7 +12,7 @@ export const trackEvent = (eventName: string, properties?: Record<string, any>) 
 
 // Analytics event tracking with user identification
 export const trackEventWithUser = (eventName: string, user: any, organizationId?: string, properties?: Record<string, any>) => {
-  if (typeof window !== 'undefined' && posthog) {
+  if (isPosthogReady()) {
     // Identify user if we have the data
     if (user?.id) {
       posthog.identify(user.id, {
@@ -101,4 +103,19 @@ export const trackBillingModalAccepted = (user?: any, organizationId?: string) =
   trackEventWithUser('billing_modal_accepted', user, organizationId, {
     action: 'billing_modal_accepted'
   })
+}
+
+// Units events
+export const trackUnitCreated = (user?: any, organizationId?: string, unit?: { id?: string; name?: string }) => {
+  trackEventWithUser('unit_created', user, organizationId, {
+    unit_id: unit?.id || null,
+    unit_name: unit?.name || null,
+  })
+}
+
+export async function sendGithubInstallationEvent(installationId: string, user: any, organizationId: string) {
+  trackEventWithUser('github_app_installation_complete', user, organizationId, {
+    installation_id: installationId,
+    status: 'success'
+  });
 }

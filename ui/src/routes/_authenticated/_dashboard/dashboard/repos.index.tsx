@@ -5,6 +5,7 @@ import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { ArrowLeft, Github, Gitlab, GithubIcon as Bitbucket, ExternalLink, PlusCircle } from "lucide-react"
 import { getReposFn } from '@/api/orchestrator_serverFunctions'
 import { Repo } from '@/api/orchestrator_types'
+import { trackConnectMoreRepositories } from '@/lib/analytics'
 
 
 export const Route = createFileRoute('/_authenticated/_dashboard/dashboard/repos/')({
@@ -26,7 +27,7 @@ function RouteComponent() {
     gitlab: Gitlab,
     bitbucket: Bitbucket,
   }
-  const { repos } = Route.useLoaderData();
+  const { repos, user, organisationId } = Route.useLoaderData();
   return (
   <>
   <div className="container mx-auto p-4">
@@ -53,7 +54,11 @@ function RouteComponent() {
               Connect your first repository to start running Terraform with Digger.
             </p>
             <Button asChild>
-              <Link to="/dashboard/onboarding" search={{ step: 'github' } as any}>
+              <Link
+                to="/dashboard/onboarding"
+                search={{ step: 'github' } as any}
+                onClick={() => trackConnectMoreRepositories(user, organisationId)}
+              >
                 Connect your first repository <PlusCircle className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -103,7 +108,7 @@ function RouteComponent() {
               </TableBody>
             </Table>
             <div className="mt-4">
-              <ConnectMoreRepositoriesButton />
+              <ConnectMoreRepositoriesButton user={user} organisationId={organisationId} />
             </div>
           </>
         )}
@@ -114,10 +119,14 @@ function RouteComponent() {
   </>)
 }
 
-const ConnectMoreRepositoriesButton = () => {
+const ConnectMoreRepositoriesButton = ({ user, organisationId }: { user: any, organisationId: string }) => {
   return (
     <Button variant="ghost" asChild>
-      <Link to="/dashboard/onboarding" search={{ step: 'github' } as any}>
+      <Link
+        to="/dashboard/onboarding"
+        search={{ step: 'github' } as any}
+        onClick={() => trackConnectMoreRepositories(user, organisationId)}
+      >
         Connect More Repositories <PlusCircle className="ml-2 h-4 w-4" />
       </Link>
     </Button>
