@@ -23,35 +23,46 @@ FROM ubuntu:24.04 AS runner
 ARG COMMIT_SHA
 WORKDIR /app
 
-# Install ca-certificates for HTTPS requests
+# Install ca-certificates, curl, jq for HTTPS requests and URL encoding
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl && \
+    apt-get install -y ca-certificates curl jq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 RUN echo "commit sha: ${COMMIT_SHA}"
 
+# Install Atlas CLI for migrations
+RUN curl -sSf https://atlasgo.sh | sh
+
 # Copy the binary from builder stage
 COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/token_service/token_service /app/token_service
 
-# Make the binary executable
-RUN chmod +x /app/token_service
+# Copy migration files for token service
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/token_service/migrations /app/migrations
+
+# Copy entrypoint script for token service
+COPY cmd/token_service/scripts/entrypoint.sh /app/entrypoint.sh
+
+# Copy atlas.hcl for reference (token service specific)
+COPY --from=builder /go/src/github.com/diggerhq/digger/taco/cmd/token_service/atlas.hcl /app/atlas.hcl
+
+# Make scripts executable
+RUN chmod +x /app/token_service /app/entrypoint.sh
+
+# Create data directory
+RUN mkdir -p /app/data
 
 # Expose the port that token service runs on
 EXPOSE 8081
 
 # Set environment variables with defaults
-ENV OPENTACO_PORT=8081
-ENV OPENTACO_QUERY_BACKEND=sqlite
-ENV OPENTACO_SQLITE_DB_PATH=/app/data/tokens.db
-
-# Create data directory
-RUN mkdir -p /app/data
+ENV OPENTACO_TOKEN_QUERY_BACKEND=sqlite
+ENV OPENTACO_TOKEN_SQLITE_DB_PATH=/app/data/token_service.db
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/healthz || exit 1
 
-# Run the token service binary
-ENTRYPOINT ["/app/token_service"]
+# Run via entrypoint script (applies migrations then starts token service)
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
 
