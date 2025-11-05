@@ -4,12 +4,13 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-r
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { getAuth, getOrganisationDetails, getSignInUrl } from '@/authkit/serverFunctions';
 import type { ReactNode } from 'react';
-import globalCssUrl from '@/styles/global.css?url'
+import globalCssUrl from '@/styles/global.css?url';
 import { Toaster } from '@/components/ui/toaster';
 import { getPublicServerConfig } from '@/lib/env.server';
 import type { Organization } from '@workos-inc/node';
 
-
+// PostHog integration
+import { PostHogProvider } from 'posthog-js/react';
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
@@ -26,7 +27,7 @@ export const Route = createRootRoute({
     if (organisationId) {
       organisationDetails = await getOrganisationDetails({data: {organizationId: organisationId}});
     }
-    
+    ;
     return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };
   },
   head: () => ({
@@ -83,9 +84,27 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
         <link rel="apple-touch-icon" href="/favicon.png" />
       </head>
       <body>
-        {children}
-        <Toaster />
-        <Scripts />
+        {import.meta.env.VITE_PUBLIC_POSTHOG_KEY ? (
+          <PostHogProvider
+            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+            options={{
+              api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+              defaults: '2025-05-24',
+              capture_exceptions: true,
+              debug: import.meta.env.MODE === 'development',
+            }}
+          >
+            {children}
+            <Toaster />
+            <Scripts />
+          </PostHogProvider>
+        ) : (
+          <>
+            {children}
+            <Toaster />
+            <Scripts />
+          </>
+        )}
       </body>
     </html>
   );
