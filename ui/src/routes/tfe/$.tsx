@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { tokenCache } from '@/lib/token-cache.server'
+import { getUserEmail } from '@/api/statesman_users'
 
 async function handler({ request }) {
   const url = new URL(request.url);
@@ -94,28 +95,7 @@ async function handler({ request }) {
       
       // Only fetch email if not in token AND if we need it
       if (!userEmail) {
-        try {
-          const startEmail = Date.now();
-          const emailResponse = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/users/${userId}`, {
-            headers: {
-              'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
-              'X-Org-ID': orgId,
-              'X-User-ID': userId,
-              'X-Email': '',
-            },
-          });
-          
-          if (emailResponse.ok) {
-            const userData = await emailResponse.json();
-            userEmail = userData.email || '';
-            console.log(`Email lookup: ${Date.now() - startEmail}ms`);
-          } else {
-            userEmail = '';
-          }
-        } catch (error) {
-          console.error('Error fetching user email:', error);
-          userEmail = '';
-        }
+        userEmail = await getUserEmail(userId, orgId);
       }
       
       // Cache the verified token
@@ -177,8 +157,7 @@ async function handler({ request }) {
   headers.delete('transfer-encoding');
   headers.delete('connection');
 
-  const compressionInfo = wasCompressed ? ` (gzip, ${contentLength} bytes)` : '';
-  console.log(`${response.status} ${request.method} ${url.pathname} - Backend: ${proxyTime}ms${compressionInfo}`);
+
   return new Response(response.body, { headers });
 }
 
