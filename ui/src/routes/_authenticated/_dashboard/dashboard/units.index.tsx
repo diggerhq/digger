@@ -53,8 +53,11 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-function formatDate(date: Date) {
-  return date.toLocaleDateString('en-US', {
+function formatDate(value: any) {
+  if (!value) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -124,7 +127,7 @@ function RouteComponent() {
       ...tempUnit,
       locked: false,
       size: 0,
-      updatedAt: new Date(),
+      updated: new Date(),
       isOptimistic: true
     }, ...prev])
   }
@@ -206,7 +209,7 @@ function RouteComponent() {
                 {unit.isOptimistic && <span className="ml-2 text-xs text-muted-foreground">(Creating...)</span>}
               </TableCell>
               <TableCell>{formatBytes(unit.size)}</TableCell>
-              <TableCell>{formatDate(unit.updatedAt || new Date())}</TableCell>
+              <TableCell>{formatDate(unit.updated)}</TableCell>
               <TableCell className="text-right">
                 {!unit.isOptimistic && (
                   <Button variant="ghost" asChild className="justify-end">
