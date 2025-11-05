@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/diggerhq/digger/opentaco/internal/auth"
-	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 
 	"io"
@@ -1179,21 +1178,8 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 
 // UploadStateVersion handles PUT /tfe/api/v2/state-versions/:id/upload
 func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
-	fmt.Printf("UploadStateVersion: START - Method=%s, URI=%s\n", c.Request().Method, c.Request().RequestURI)
-
-	// Debug: Check if Authorization header is present
-	authHeader := c.Request().Header.Get("Authorization")
-	fmt.Printf("UploadStateVersion: Authorization header present: %t\n", authHeader != "")
-	if authHeader != "" {
-		// Don't log the full token for security, just whether it looks like a Bearer token
-		fmt.Printf("UploadStateVersion: Authorization header format: %s\n",
-			strings.SplitN(authHeader, " ", 2)[0])
-	}
-
 	stateVersionID := c.Param("id")
-	fmt.Printf("UploadStateVersion: stateVersionID=%s\n", stateVersionID)
 	if stateVersionID == "" {
-		fmt.Printf("UploadStateVersion: ERROR - state_version_id required\n")
 		return c.JSON(400, map[string]string{"error": "state_version_id required"})
 	}
 
@@ -1210,90 +1196,42 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	if err := h.checkWorkspacePermission(c, "unit.write", workspaceID); err != nil {
 		// Only enforce RBAC if we have a real auth error, not just missing headers
 		if !strings.Contains(err.Error(), "no authorization header") {
-			fmt.Printf("UploadStateVersion: RBAC permission denied: %v\n", err)
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "insufficient permissions to upload state",
 				"hint":  "contact your administrator to grant unit.write permission",
 			})
 		}
-		// If no auth header, allow but log for security monitoring
-		fmt.Printf("UploadStateVersion: No auth header - allowing upload based on lock validation\n")
 	}
 
 	// Read the state data from request body
 	stateData, err := io.ReadAll(c.Request().Body)
-	fmt.Printf("UploadStateVersion: Read %d bytes from body, err=%v\n", len(stateData), err)
 	if err != nil {
-		fmt.Printf("UploadStateVersion: ERROR - Failed to read state data: %v\n", err)
 		return c.JSON(400, map[string]string{"error": "Failed to read state data"})
 	}
-	if len(stateData) > 0 {
-		fmt.Printf("UploadStateVersion: Body preview: %s\n", string(stateData))
-	}
 
-	// Extract organization ID and unit UUID from state ID (format: orgID/unitUUID)
+	// Extract unit UUID from state ID (format: orgID/unitUUID)
 	parts := strings.SplitN(stateID, "/", 2)
 	if len(parts) < 2 {
 		return c.JSON(400, map[string]string{"error": "Invalid state ID format"})
 	}
-	orgID := parts[0]
 	unitUUID := parts[1]
-	fmt.Printf("UploadStateVersion: [STEP 1] Extracted orgID=%s, unitUUID=%s from stateID=%s\n", orgID, unitUUID, stateID)
 
-	// Create a context with synthetic principal and organization for signed URL operations
-	// Signed URLs are pre-authorized, so we add a system principal
-	ctx := rbac.ContextWithPrincipal(c.Request().Context(), rbac.Principal{
-		Subject: "system:signed-url",
-		Email:   "signed-url@opentaco",
-	})
-	fmt.Printf("UploadStateVersion: [STEP 2] Added synthetic principal to context\n")
-	
-	// Add organization context required for RBAC
-	ctx = domain.ContextWithOrg(ctx, orgID)
-	fmt.Printf("UploadStateVersion: [STEP 3] Added organization context (orgID=%s)\n", orgID)
-	
-	// Verify context has both principal and org
-	if principal, ok := rbac.PrincipalFromContext(ctx); ok {
-		fmt.Printf("UploadStateVersion: [STEP 4] Context has principal: subject=%s, email=%s\n", principal.Subject, principal.Email)
-	} else {
-		fmt.Printf("UploadStateVersion: [STEP 4] WARNING - No principal in context!\n")
-	}
-	
-	if orgCtx, ok := domain.OrgFromContext(ctx); ok {
-		fmt.Printf("UploadStateVersion: [STEP 5] Context has org: orgID=%s, orgName=%s\n", orgCtx.OrgID, orgCtx.OrgName)
-	} else {
-		fmt.Printf("UploadStateVersion: [STEP 5] WARNING - No org context!\n")
-	}
-
+	// Use directStateStore for signed URL operations (pre-authorized, no RBAC checks)
 	// Check if state exists (no auto-creation)
-	// Repository expects just the UUID, not the full path
-	fmt.Printf("UploadStateVersion: [STEP 6] Calling h.stateStore.Get(ctx, unitUUID=%s)\n", unitUUID)
-	meta, err := h.stateStore.Get(ctx, unitUUID)
-	fmt.Printf("UploadStateVersion: [STEP 7] h.stateStore.Get returned: meta=%+v, err=%v\n", meta, err)
-	
+	_, err = h.directStateStore.Get(c.Request().Context(), unitUUID)
 	if err == storage.ErrNotFound {
-		fmt.Printf("UploadStateVersion: [ERROR] Unit not found in database - no auto-creation\n")
 		return c.JSON(404, map[string]string{
 			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	} else if err != nil {
-		fmt.Printf("UploadStateVersion: [ERROR] Failed to check state existence: type=%T, err=%v\n", err, err)
 		return c.JSON(500, map[string]string{
 			"error": "Failed to check state existence",
 		})
 	}
-	
-	fmt.Printf("UploadStateVersion: [STEP 8] Unit exists in database: ID=%s, Name=%s, OrgID=%s, Size=%d\n", 
-		meta.ID, meta.Name, meta.OrgID, meta.Size)
 
 	// Get the current lock to extract lock ID for state upload
-	// Repository expects just the UUID, not the full path
-	fmt.Printf("UploadStateVersion: [STEP 9] Calling h.stateStore.GetLock(ctx, unitUUID=%s)\n", unitUUID)
-	currentLock, lockErr := h.stateStore.GetLock(ctx, unitUUID)
-	fmt.Printf("UploadStateVersion: [STEP 10] GetLock returned: lock=%+v, err=%v\n", currentLock, lockErr)
-	
+	currentLock, lockErr := h.directStateStore.GetLock(c.Request().Context(), unitUUID)
 	if lockErr != nil && lockErr != storage.ErrNotFound {
-		fmt.Printf("UploadStateVersion: [ERROR] Failed to get lock status: %v\n", lockErr)
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
 
@@ -1301,31 +1239,21 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	lockID := ""
 	if currentLock != nil {
 		lockID = currentLock.ID
-		fmt.Printf("UploadStateVersion: [STEP 11] State is locked: lockID=%s\n", lockID)
-	} else {
-		fmt.Printf("UploadStateVersion: [STEP 11] State is NOT locked\n")
 	}
 
 	// Upload the state with proper lock ID
-	// Repository expects just the UUID, not the full path
-	fmt.Printf("UploadStateVersion: [STEP 12] Calling h.stateStore.Upload(ctx, unitUUID=%s, dataLen=%d, lockID=%s)\n", 
-		unitUUID, len(stateData), lockID)
-	err = h.stateStore.Upload(ctx, unitUUID, stateData, lockID)
-	fmt.Printf("UploadStateVersion: [STEP 13] Upload returned: err=%v (type=%T)\n", err, err)
+	err = h.directStateStore.Upload(c.Request().Context(), unitUUID, stateData, lockID)
 	if err != nil {
 		if err == storage.ErrLockConflict {
-			fmt.Printf("UploadStateVersion: ERROR - Workspace is locked\n")
 			return c.JSON(423, map[string]string{
 				"error": "Workspace is locked",
 			})
 		}
-		fmt.Printf("UploadStateVersion: ERROR - Failed to upload state: %v\n", err)
 		return c.JSON(500, map[string]string{
 			"error": "Failed to upload state",
 		})
 	}
 
-	fmt.Printf("UploadStateVersion: SUCCESS - State uploaded successfully\n")
 	// Return 204 No Content as expected by Terraform
 	return c.NoContent(204)
 }
