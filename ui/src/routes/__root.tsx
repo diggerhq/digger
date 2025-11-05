@@ -45,28 +45,30 @@ export const Route = createRootRoute({
     ],
   }),
   loader: async ({ context }) => {
-    const { user } = context;
+    const { user, publicServerConfig } = context as any;
     // Only fetch sign-in URL if user is not authenticated
     const url = !user ? await getSignInUrl() : null;
     return {
       user,
       url,
-    };
+      publicServerConfig,
+    } as any;
   },
   component: DashboardRootComponent,
   notFoundComponent: () => <div>Not Found</div>,
 });
 
 function DashboardRootComponent() {
+  const data = (Route as any).useLoaderData?.() || {};
   return (
-    <DashboardRootDocument>
+    <DashboardRootDocument publicServerConfig={data.publicServerConfig}>
       <Outlet />
       <TanStackRouterDevtools position="bottom-right" />
     </DashboardRootDocument>
   );
 }
 
-function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) {
+function DashboardRootDocument({ children, publicServerConfig }: Readonly<{ children: ReactNode, publicServerConfig?: any }>) {
   return (
     <html>
       <head>
@@ -84,14 +86,14 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
         <link rel="apple-touch-icon" href="/favicon.png" />
       </head>
       <body>
-        {import.meta.env.VITE_PUBLIC_POSTHOG_KEY ? (
+        {publicServerConfig?.POSTHOG_KEY ? (
           <PostHogProvider
-            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+            apiKey={publicServerConfig.POSTHOG_KEY}
             options={{
-              api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+              api_host: publicServerConfig.POSTHOG_HOST,
               defaults: '2025-05-24',
               capture_exceptions: true,
-              debug: import.meta.env.MODE === 'development',
+              debug: false,
             }}
           >
             {children}
