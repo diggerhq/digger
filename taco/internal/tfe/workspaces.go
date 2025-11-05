@@ -1178,21 +1178,8 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 
 // UploadStateVersion handles PUT /tfe/api/v2/state-versions/:id/upload
 func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
-	fmt.Printf("UploadStateVersion: START - Method=%s, URI=%s\n", c.Request().Method, c.Request().RequestURI)
-
-	// Debug: Check if Authorization header is present
-	authHeader := c.Request().Header.Get("Authorization")
-	fmt.Printf("UploadStateVersion: Authorization header present: %t\n", authHeader != "")
-	if authHeader != "" {
-		// Don't log the full token for security, just whether it looks like a Bearer token
-		fmt.Printf("UploadStateVersion: Authorization header format: %s\n",
-			strings.SplitN(authHeader, " ", 2)[0])
-	}
-
 	stateVersionID := c.Param("id")
-	fmt.Printf("UploadStateVersion: stateVersionID=%s\n", stateVersionID)
 	if stateVersionID == "" {
-		fmt.Printf("UploadStateVersion: ERROR - state_version_id required\n")
 		return c.JSON(400, map[string]string{"error": "state_version_id required"})
 	}
 
@@ -1209,47 +1196,37 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	if err := h.checkWorkspacePermission(c, "unit.write", workspaceID); err != nil {
 		// Only enforce RBAC if we have a real auth error, not just missing headers
 		if !strings.Contains(err.Error(), "no authorization header") {
-			fmt.Printf("UploadStateVersion: RBAC permission denied: %v\n", err)
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "insufficient permissions to upload state",
 				"hint":  "contact your administrator to grant unit.write permission",
 			})
 		}
-		// If no auth header, allow but log for security monitoring
-		fmt.Printf("UploadStateVersion: No auth header - allowing upload based on lock validation\n")
 	}
 
 	// Read the state data from request body
 	stateData, err := io.ReadAll(c.Request().Body)
-	fmt.Printf("UploadStateVersion: Read %d bytes from body, err=%v\n", len(stateData), err)
 	if err != nil {
-		fmt.Printf("UploadStateVersion: ERROR - Failed to read state data: %v\n", err)
 		return c.JSON(400, map[string]string{"error": "Failed to read state data"})
-	}
-	if len(stateData) > 0 {
-		fmt.Printf("UploadStateVersion: Body preview: %s\n", string(stateData))
 	}
 
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
-	fmt.Printf("UploadStateVersion: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
 
+	// Use directStateStore for signed URL operations (pre-authorized, no RBAC checks)
 	// Check if state exists (no auto-creation)
-	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
+	_, err = h.directStateStore.Get(c.Request().Context(), unitUUID)
 	if err == storage.ErrNotFound {
-		fmt.Printf("UploadStateVersion: Unit not found - no auto-creation\n")
 		return c.JSON(404, map[string]string{
 			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	} else if err != nil {
-		fmt.Printf("UploadStateVersion: ERROR - Failed to check state existence: %v\n", err)
 		return c.JSON(500, map[string]string{
 			"error": "Failed to check state existence",
 		})
 	}
 
 	// Get the current lock to extract lock ID for state upload
-	currentLock, lockErr := h.stateStore.GetLock(c.Request().Context(), unitUUID)
+	currentLock, lockErr := h.directStateStore.GetLock(c.Request().Context(), unitUUID)
 	if lockErr != nil && lockErr != storage.ErrNotFound {
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
@@ -1261,23 +1238,18 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	}
 
 	// Upload the state with proper lock ID
-	fmt.Printf("UploadStateVersion: Uploading to storage with lockID=%s\n", lockID)
-	err = h.stateStore.Upload(c.Request().Context(), unitUUID, stateData, lockID)
-	fmt.Printf("UploadStateVersion: Upload result, err=%v\n", err)
+	err = h.directStateStore.Upload(c.Request().Context(), unitUUID, stateData, lockID)
 	if err != nil {
 		if err == storage.ErrLockConflict {
-			fmt.Printf("UploadStateVersion: ERROR - Workspace is locked\n")
 			return c.JSON(423, map[string]string{
 				"error": "Workspace is locked",
 			})
 		}
-		fmt.Printf("UploadStateVersion: ERROR - Failed to upload state: %v\n", err)
 		return c.JSON(500, map[string]string{
 			"error": "Failed to upload state",
 		})
 	}
 
-	fmt.Printf("UploadStateVersion: SUCCESS - State uploaded successfully\n")
 	// Return 204 No Content as expected by Terraform
 	return c.NoContent(204)
 }
