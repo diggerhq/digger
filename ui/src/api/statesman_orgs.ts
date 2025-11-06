@@ -1,14 +1,14 @@
 
 
-export async function syncOrgToStatesman(orgId: string, orgName: string, displayName: string, userId: string, adminEmail: string) {
+export async function syncOrgToStatesman(orgId: string, orgName: string, displayName: string, userId: string | null, adminEmail: string | null) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/orgs`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': "",
-            'X-User-ID': userId,
-            'X-Email': adminEmail,
+            'X-User-ID': userId ?? '',
+            'X-Email': adminEmail ?? '',
         },
         body: JSON.stringify({ 
             "external_org_id": orgId,
