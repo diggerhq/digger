@@ -1178,7 +1178,7 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 	unitUUID := extractUnitUUID(stateID)
 	
 	// Download the state data
-	stateData, err := h.stateStore.Download(c.Request().Context(), unitUUID)
+	stateData, err := h.directStateStore.Download(c.Request().Context(), unitUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(404, map[string]string{"error": "State version not found"})
