@@ -2,6 +2,10 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Digger",
+  "banner": {
+    "content": "🚀 We have rebranded to opentaco [see here](https://opentaco.dev) for details.",
+    "dismissible": true
+  },
   "colors": {
     "primary": "#8101E4",
     "light": "#AF48FF",
