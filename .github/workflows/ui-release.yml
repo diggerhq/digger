@@ -15,7 +15,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-larger
     steps:
       - uses: actions/checkout@v4
         with:
