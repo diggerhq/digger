@@ -17,8 +17,12 @@ async function handler({ request }) {
     /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/upload$/.test(url.pathname) ||
     /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/json-upload$/.test(url.pathname);
 
+  const isDownloadPath =
+    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/download$/.test(url.pathname);
+  
+
   // OAuth and upload paths: forward directly to public statesman endpoints
-  if (isOAuthPath || isUploadPath) {
+  if (isOAuthPath || isUploadPath || isDownloadPath) {
     const outgoingHeaders = new Headers(request.headers);
     const originalHost = outgoingHeaders.get('host') ?? '';
     if (originalHost) outgoingHeaders.set('x-forwarded-host', originalHost);
