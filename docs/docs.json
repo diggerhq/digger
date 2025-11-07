@@ -29,9 +29,15 @@
           {
             "group": "Getting Started",
             "pages": [
-              "ce/getting-started/with-terraform",
-              "ce/getting-started/with-opentofu",
-              "ce/getting-started/with-terragrunt"
+              "ce/getting-started/state-management",
+              {
+                "group": "PR Automation",
+                "pages": [
+                  "ce/getting-started/with-terraform",
+                  "ce/getting-started/with-opentofu",
+                  "ce/getting-started/with-terragrunt"
+                ]
+              }
             ]
           },
           {
