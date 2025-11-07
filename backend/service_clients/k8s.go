@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"log/slog"
@@ -16,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+
 
 func newInClusterClient() (*kubernetes.Clientset, error) {
 	config, err := rest.InClusterConfig()
@@ -122,7 +123,7 @@ func (k K8sJobClient) triggerJob(ctx context.Context, opt JobOptions) (*Backgrou
 		"app.kubernetes.io/managed-by": "digger-jobs",
 	}
 	for k, v := range opt.Labels {
-		labels[k] = v
+		labels[k] = sanitizeLabel(v)
 	}
 
 	job := &batchv1.Job{
@@ -197,7 +198,6 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 	if projectsServiceImage := os.Getenv("PROJECTS_REFRESH_SERVICE_DOCKER_IMAGE"); projectsServiceImage != "" {
 		image = projectsServiceImage
 	}
-	sanitizedRepoName := strings.ReplaceAll(repoFullName, "/", "-")
 	return k.triggerJob(context.Background(), JobOptions{
 		NamePrefix:         "projects-refresh",
 		ContainerName:      "projects-refresh",
@@ -206,7 +206,7 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 		Labels: map[string]string{
 			"app":           "projects-refresh-service",
 			"orgId":         orgId,
-			"repoFullName":  sanitizedRepoName,
+			"repoFullName":  repoFullName,
 			"triggerSource": "orchestrator-api",
 		},
 		Env: map[string]string{
