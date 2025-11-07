@@ -20,7 +20,7 @@ In this architecture we will rely only on the bucket. Multiple services will get
 
 # With managed postgres
 
-![Managed_Postgres_Image](images/Managedpostres.png)
+![Managed_Postgres_Image](images/Managedpostgres.png)
 
 Decisions to be made:
 
