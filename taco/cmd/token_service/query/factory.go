@@ -56,6 +56,14 @@ func NewDB(cfg Config) (*gorm.DB, error) {
 			return nil, fmt.Errorf("failed to connect to postgres: %w", err)
 		}
 
+		// Configure connection pool
+		sqlDB, err := db.DB()
+		if err != nil {
+			return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+		}
+		sqlDB.SetMaxOpenConns(cfg.Postgres.MaxOpenConns)
+		sqlDB.SetMaxIdleConns(cfg.Postgres.MaxIdleConns)
+
 	case "mysql":
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
 			cfg.MySQL.User, cfg.MySQL.Password, cfg.MySQL.Host,
@@ -65,6 +73,14 @@ func NewDB(cfg Config) (*gorm.DB, error) {
 			return nil, fmt.Errorf("failed to connect to mysql: %w", err)
 		}
 
+		// Configure connection pool
+		sqlDB, err := db.DB()
+		if err != nil {
+			return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+		}
+		sqlDB.SetMaxOpenConns(cfg.MySQL.MaxOpenConns)
+		sqlDB.SetMaxIdleConns(cfg.MySQL.MaxIdleConns)
+
 	case "mssql":
 		dsn := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s",
 			cfg.MSSQL.User, cfg.MSSQL.Password, cfg.MSSQL.Host,
@@ -73,6 +89,14 @@ func NewDB(cfg Config) (*gorm.DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to mssql: %w", err)
 		}
+
+		// Configure connection pool
+		sqlDB, err := db.DB()
+		if err != nil {
+			return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+		}
+		sqlDB.SetMaxOpenConns(cfg.MSSQL.MaxOpenConns)
+		sqlDB.SetMaxIdleConns(cfg.MSSQL.MaxIdleConns)
 
 	default:
 		return nil, fmt.Errorf("unsupported database backend: %s", cfg.Backend)
