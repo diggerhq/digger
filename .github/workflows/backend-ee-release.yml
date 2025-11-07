@@ -52,6 +52,7 @@ jobs:
       - uses: depot/build-push-action@v1
         with:
           project: kcld4zgwzx
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: ./Dockerfile_backend_ee
           push: true
