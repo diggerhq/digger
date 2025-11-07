@@ -187,7 +187,10 @@ func main() {
 	// Middleware
 	e.Use(echomiddleware.Logger())
 	e.Use(echomiddleware.Recover())
-	e.Use(echomiddleware.RequestID())
+	// Use incoming X-Request-ID if provided, otherwise generate new one
+	e.Use(echomiddleware.RequestIDWithConfig(echomiddleware.RequestIDConfig{
+		TargetHeader: echo.HeaderXRequestID,
+	}))
 	e.Use(echomiddleware.Gzip())
 	e.Use(echomiddleware.Secure())
 	e.Use(echomiddleware.CORS())
