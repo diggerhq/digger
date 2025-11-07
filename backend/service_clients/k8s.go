@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"log/slog"
@@ -196,6 +197,7 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 	if projectsServiceImage := os.Getenv("PROJECTS_REFRESH_SERVICE_DOCKER_IMAGE"); projectsServiceImage != "" {
 		image = projectsServiceImage
 	}
+	sanitizedRepoName := strings.ReplaceAll(repoFullName, "/", "-")
 	return k.triggerJob(context.Background(), JobOptions{
 		NamePrefix:         "projects-refresh",
 		ContainerName:      "projects-refresh",
@@ -204,7 +206,7 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 		Labels: map[string]string{
 			"app":           "projects-refresh-service",
 			"orgId":         orgId,
-			"repoFullName":  repoFullName,
+			"repoFullName":  sanitizedRepoName,
 			"triggerSource": "orchestrator-api",
 		},
 		Env: map[string]string{
