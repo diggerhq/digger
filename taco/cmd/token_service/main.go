@@ -10,8 +10,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/query"
-	"github.com/diggerhq/digger/opentaco/internal/query/types"
+	"github.com/diggerhq/digger/opentaco/cmd/token_service/query"
+	querytypes "github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
 	"github.com/diggerhq/digger/opentaco/internal/token_service"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
@@ -23,51 +23,43 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// change this random number to bump version of token service: 1
+// change this random number to bump version of token service: 2
 func main() {
 	var (
 		port = flag.String("port", "8081", "Server port")
 	)
 	flag.Parse()
 
-	// Load configuration from environment variables into our struct.
-	var queryCfg query.Config
-	err := envconfig.Process("opentaco", &queryCfg) // The prefix "OPENTACO" will be used for all vars.
+	// Load configuration from environment variables with "opentaco_token" prefix
+	var dbCfg query.Config
+	err := envconfig.Process("opentaco_token", &dbCfg)
 	if err != nil {
-		log.Fatalf("Failed to process configuration: %v", err)
+		log.Fatalf("Failed to process token service database configuration: %v", err)
 	}
 
-	log.Printf("Connecting to database backend: %s", queryCfg.Backend)
+	// --- Initialize Token Service Database ---
 
-	// Connect directly to database without using QueryStore
-	var db *gorm.DB
-	switch queryCfg.Backend {
-	case "postgres":
-		db, err = connectPostgres(queryCfg.Postgres)
-	case "mysql":
-		db, err = connectMySQL(queryCfg.MySQL)
-	case "sqlite", "":
-		db, err = connectSQLite(queryCfg.SQLite)
-	default:
-		log.Fatalf("Unsupported database backend: %s", queryCfg.Backend)
-	}
-	
+	// Create the database connection for token service
+	db, err := query.NewDB(dbCfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to initialize token service database: %v", err)
 	}
-	
-	// Ensure proper cleanup
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatalf("Failed to get underlying sql.DB: %v", err)
 	}
 	defer sqlDB.Close()
 
-	// Auto-migrate Token table only (token service doesn't need users, orgs, units, etc.)
-	if err := db.AutoMigrate(&types.Token{}); err != nil {
-		log.Fatalf("Failed to migrate Token table: %v", err)
+	log.Printf("Token service database initialized: %s", dbCfg.Backend)
+
+	// Auto-migrate token models (ensures schema exists)
+	// Note: In Docker, migrations are applied via Atlas in entrypoint.sh
+	// This AutoMigrate is primarily for local development convenience
+	if err := db.AutoMigrate(querytypes.TokenModels...); err != nil {
+		log.Fatalf("Failed to auto-migrate token models: %v", err)
 	}
-	log.Println("Token table migrated successfully")
+	log.Println("Token service database schema verified")
 
 	// Create token repository
 	tokenRepo := token_service.NewTokenRepository(db)

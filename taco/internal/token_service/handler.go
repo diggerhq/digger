@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/query/types"
+	"github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
 	"github.com/labstack/echo/v4"
 )
 
