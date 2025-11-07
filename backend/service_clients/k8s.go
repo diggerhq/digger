@@ -12,30 +12,31 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-func newInClusterBatchClient() (typedbatchv1.BatchV1Interface, error) {
+func newInClusterClient() (*kubernetes.Clientset, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
-	return typedbatchv1.NewForConfig(config)
+	return kubernetes.NewForConfig(config)
 }
 
-type K8sJobClient struct {
-	batch     typedbatchv1.BatchV1Interface
-	namespace string
+type  K8sJobClient struct {
+		clientset *kubernetes.Clientset
+		namespace string
 }
+
 
 type JobOptions struct {
 	// Identity
-	NamePrefix    string            // e.g. "projects-refresh"
-	ContainerName string            // e.g. "projects-refresh"
-	Image         string            // container image (fallback to k.image if empty)
-	Labels        map[string]string // extra labels to place on Job/Pod
-	Annotations   map[string]string // annotations on Pod template
+	NamePrefix         string            // e.g. "projects-refresh"
+	ContainerName      string            // e.g. "projects-refresh"
+	Image              string            // container image (fallback to k.image if empty)
+	Labels             map[string]string // extra labels to place on Job/Pod
+	Annotations        map[string]string // annotations on Pod template
 
 	// Runtime / Pod
 	ServiceAccountName string
@@ -70,6 +71,7 @@ func (k K8sJobClient) triggerJob(ctx context.Context, opt JobOptions) (*Backgrou
 	if opt.Image == "" {
 		return nil, fmt.Errorf("image must be provided (no default set on client)")
 	}
+
 	if opt.CPU == "" {
 		opt.CPU = "1"
 	}
@@ -177,7 +179,7 @@ func (k K8sJobClient) triggerJob(ctx context.Context, opt JobOptions) (*Backgrou
 		ctx = c
 	}
 
-	created, err := k.batch.Jobs(k.namespace).Create(ctx, job, metav1.CreateOptions{})
+	created, err := k.clientset.BatchV1().Jobs(k.namespace).Create(job)
 	if err != nil {
 		slog.Error("error creating k8s job", "error", err)
 		return nil, err

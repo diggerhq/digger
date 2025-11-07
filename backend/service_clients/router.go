@@ -8,13 +8,13 @@ import (
 func GetBackgroundJobsClient() (BackgroundJobsClient, error) {
 	clientType := os.Getenv("BACKGROUND_JOBS_CLIENT_TYPE")
 	if clientType == "k8s" {
-		batchClient, err := newInClusterBatchClient()
+		clientSet, err := newInClusterClient()
 		if err != nil {
 			return nil, fmt.Errorf("error creating k8s client: %v", err)
 		}
 		return K8sJobClient{
-			batch:     batchClient,
-			namespace: "opentaco",
+			clientset:         clientSet,
+			namespace:          "opentaco",
 		}, nil
 	} else {
 		return FlyIOMachineJobClient{}, nil
