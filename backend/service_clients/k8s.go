@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+
+
 func newInClusterClient() (*kubernetes.Clientset, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -121,7 +123,7 @@ func (k K8sJobClient) triggerJob(ctx context.Context, opt JobOptions) (*Backgrou
 		"app.kubernetes.io/managed-by": "digger-jobs",
 	}
 	for k, v := range opt.Labels {
-		labels[k] = v
+		labels[k] = sanitizeLabel(v)
 	}
 
 	job := &batchv1.Job{
