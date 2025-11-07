@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/labstack/echo/v4"
 )
@@ -51,11 +52,12 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	// Get user context from webhook middleware
+	logger := logging.FromContext(c)
 	userID := c.Get("user_id")
 	email := c.Get("email")
 
 	if userID == nil || email == nil {
-		slog.Error("Missing user context in create org request")
+		logger.Error("Missing user context in create org request")
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "user context required",
 		})
@@ -63,7 +65,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 
 	userIDStr, ok := userID.(string)
 	if !ok || userIDStr == "" {
-		slog.Error("Invalid user_id type in context")
+		logger.Error("Invalid user_id type in context")
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "invalid user context - webhook middleware misconfigured",
 		})
@@ -71,7 +73,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 
 	emailStr, ok := email.(string)
 	if !ok || emailStr == "" {
-		slog.Error("Invalid email type in context")
+		logger.Error("Invalid email type in context")
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "invalid email context - webhook middleware misconfigured",
 		})
@@ -80,7 +82,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	// Parse request
 	var req CreateOrgRequest
 	if err := c.Bind(&req); err != nil {
-		slog.Error("Failed to bind create org request", "error", err)
+		logger.Error("Failed to bind create org request", "error", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "invalid request body",
 		})
@@ -92,7 +94,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		})
 	}
 
-	slog.Info("Creating organization",
+	logger.Info("Creating organization",
 		"name", req.Name,
 		"displayName", req.DisplayName,
 		"externalOrgID", req.ExternalOrgID,
@@ -134,7 +136,8 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 			})
 		}
 
-		slog.Error("Failed to create organization",
+		logger := logging.FromContext(c)
+		logger.Error("Failed to create organization",
 			"name", req.Name,
 			"externalOrgID", req.ExternalOrgID,
 			"error", err,
@@ -146,8 +149,9 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	}
 
 	// Initialize RBAC after org creation (outside transaction for SQLite compatibility)
+	logger := logging.FromContext(c)
 	if h.rbacManager != nil {
-		slog.Info("Initializing RBAC for new organization",
+		logger.Info("Initializing RBAC for new organization",
 			"orgName", req.Name,
 			"orgID", org.ID,
 			"adminUser", userIDStr,
@@ -156,7 +160,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 		if err := h.rbacManager.InitializeRBAC(ctx, org.ID, userIDStr, emailStr); err != nil {
 			// Org was created but RBAC failed - log warning but don't fail the request
 			// User can retry RBAC initialization or assign roles manually
-			slog.Warn("Organization created but RBAC initialization failed",
+			logger.Warn("Organization created but RBAC initialization failed",
 				"orgName", req.Name,
 				"orgID", org.ID,
 				"error", err,
@@ -164,7 +168,7 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 			)
 			// Continue with success response - org was created
 		} else {
-			slog.Info("RBAC initialized successfully",
+			logger.Info("RBAC initialized successfully",
 				"orgName", req.Name,
 				"orgID", org.ID,
 				"adminUser", userIDStr,
@@ -246,7 +250,7 @@ func (h *OrgHandler) SyncExternalOrg(c echo.Context) error {
 	existingOrg, err := h.orgRepo.GetByExternalID(ctx, req.ExternalOrgID)
 	if err == nil {
 		// External org ID exists, return existing org
-		slog.Info("External organization already exists",
+		logger.Info("External organization already exists",
 			"externalOrgID", req.ExternalOrgID,
 			"orgID", existingOrg.ID,
 		)
@@ -257,7 +261,7 @@ func (h *OrgHandler) SyncExternalOrg(c echo.Context) error {
 	}
 
 	if err != domain.ErrOrgNotFound {
-		slog.Error("Failed to check existing external org ID",
+		logger.Error("Failed to check existing external org ID",
 			"externalOrgID", req.ExternalOrgID,
 			"error", err,
 		)
@@ -296,7 +300,7 @@ func (h *OrgHandler) SyncExternalOrg(c echo.Context) error {
 			})
 		}
 
-		slog.Error("Failed to create organization during sync",
+		logger.Error("Failed to create organization during sync",
 			"name", req.Name,
 			"externalOrgID", req.ExternalOrgID,
 			"error", err,
@@ -307,7 +311,7 @@ func (h *OrgHandler) SyncExternalOrg(c echo.Context) error {
 		})
 	}
 
-	slog.Info("External organization synced successfully",
+	logger.Info("External organization synced successfully",
 		"name", req.Name,
 		"externalOrgID", req.ExternalOrgID,
 		"orgID", org.ID,
@@ -337,7 +341,8 @@ func (h *OrgHandler) GetOrganization(c echo.Context) error {
 				"error": "organization not found",
 			})
 		}
-		slog.Error("Failed to get organization",
+		logger := logging.FromContext(c)
+		logger.Error("Failed to get organization",
 			"orgID", orgID,
 			"error", err,
 		)
@@ -360,9 +365,10 @@ func (h *OrgHandler) GetOrganization(c echo.Context) error {
 func (h *OrgHandler) ListOrganizations(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	logger := logging.FromContext(c)
 	orgs, err := h.orgRepo.List(ctx)
 	if err != nil {
-		slog.Error("Failed to list organizations", "error", err)
+		logger.Error("Failed to list organizations", "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "failed to list organizations",
 		})
@@ -434,7 +440,7 @@ func (h *OrgHandler) CreateUser(c echo.Context) error {
 	// Create or get user (idempotent)
 	user, err := h.userRepo.EnsureUser(ctx, req.Subject, req.Email)
 	if err != nil {
-		slog.Error("Failed to ensure user",
+		logger.Error("Failed to ensure user",
 			"subject", req.Subject,
 			"error", err,
 		)
@@ -445,14 +451,14 @@ func (h *OrgHandler) CreateUser(c echo.Context) error {
 
 	// Optionally assign RBAC role
 	if req.RoleID != "" && h.rbacManager != nil {
-		slog.Info("Assigning role to user",
+		logger.Info("Assigning role to user",
 			"subject", req.Subject,
 			"email", req.Email,
 			"roleID", req.RoleID,
 		)
 
 		if err := h.rbacManager.AssignRole(ctx, req.Subject, req.Email, req.RoleID); err != nil {
-			slog.Error("Failed to assign role to user",
+			logger.Error("Failed to assign role to user",
 				"subject", req.Subject,
 				"roleID", req.RoleID,
 				"error", err,
@@ -460,7 +466,7 @@ func (h *OrgHandler) CreateUser(c echo.Context) error {
 			// Don't fail the request, just log the error
 			// User was created successfully, role assignment can be retried
 		} else {
-			slog.Info("Role assigned successfully",
+			logger.Info("Role assigned successfully",
 				"subject", req.Subject,
 				"roleID", req.RoleID,
 			)
@@ -498,7 +504,8 @@ func (h *OrgHandler) GetUser(c echo.Context) error {
 				"error": "user not found",
 			})
 		}
-		slog.Error("Failed to get user",
+		logger := logging.FromContext(c)
+		logger.Error("Failed to get user",
 			"subject", subject,
 			"error", err,
 		)
@@ -528,9 +535,10 @@ func (h *OrgHandler) GetUser(c echo.Context) error {
 func (h *OrgHandler) ListUsers(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	logger := logging.FromContext(c)
 	users, err := h.userRepo.List(ctx)
 	if err != nil {
-		slog.Error("Failed to list users", "error", err)
+		logger.Error("Failed to list users", "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "failed to list users",
 		})

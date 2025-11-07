@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"log"
-
 	"github.com/diggerhq/digger/opentaco/internal/domain"
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/labstack/echo/v4"
 )
 
@@ -23,7 +22,8 @@ func JWTOrgResolverMiddleware(resolver domain.IdentifierResolver) echo.Middlewar
 			// Resolve org name to UUID
 			orgUUID, err := resolver.ResolveOrganization(c.Request().Context(), orgName)
 			if err != nil {
-				log.Printf("[JWTOrgResolver] Failed to resolve organization '%s': %v", orgName, err)
+				logger := logging.FromContext(c)
+				logger.Error("Failed to resolve organization", "org_name", orgName, "error", err, "source", "JWTOrgResolver")
 				return echo.NewHTTPError(500, "Failed to resolve organization")
 			}
 			
@@ -62,9 +62,10 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 			}
 			
 			// Resolve org name to UUID and get full org info
+			logger := logging.FromContext(c)
 			orgUUID, err := resolver.ResolveOrganization(c.Request().Context(), orgName)
 			if err != nil {
-				log.Printf("[WebhookOrgResolver] Failed to resolve organization '%s': %v", orgName, err)
+				logger.Error("Failed to resolve organization", "org_name", orgName, "error", err, "source", "WebhookOrgResolver")
 				return echo.NewHTTPError(500, map[string]interface{}{
 					"error": "Failed to resolve organization",
 					"detail": err.Error(),
@@ -76,7 +77,7 @@ func ResolveOrgContextMiddleware(resolver domain.IdentifierResolver) echo.Middle
 			// Get full org info to populate context (avoids repeated queries)
 			orgInfo, err := resolver.GetOrganization(c.Request().Context(), orgUUID)
 			if err != nil {
-				log.Printf("[WebhookOrgResolver] Failed to get org details for %s: %v - using basic context", orgUUID, err)
+				logger.Warn("Failed to get org details - using basic context", "org_uuid", orgUUID, "error", err, "source", "WebhookOrgResolver")
 				// Fall back to basic context if org lookup fails
 				ctx := domain.ContextWithOrg(c.Request().Context(), orgUUID)
 				c.SetRequest(c.Request().WithContext(ctx))
