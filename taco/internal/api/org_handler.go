@@ -149,7 +149,6 @@ func (h *OrgHandler) CreateOrganization(c echo.Context) error {
 	}
 
 	// Initialize RBAC after org creation (outside transaction for SQLite compatibility)
-	logger := logging.FromContext(c)
 	if h.rbacManager != nil {
 		logger.Info("Initializing RBAC for new organization",
 			"orgName", req.Name,
@@ -204,6 +203,7 @@ type SyncExternalOrgResponse struct {
 // Creates a new organization with external mapping or returns existing one
 func (h *OrgHandler) SyncExternalOrg(c echo.Context) error {
 	ctx := c.Request().Context()
+	logger := logging.FromContext(c)
 
 	// Get user context from webhook middleware
 	userID := c.Get("user_id")
@@ -415,6 +415,7 @@ type CreateUserResponse struct {
 // Optionally assigns an RBAC role
 func (h *OrgHandler) CreateUser(c echo.Context) error {
 	ctx := c.Request().Context()
+	logger := logging.FromContext(c)
 
 	// Parse request
 	var req CreateUserRequest
