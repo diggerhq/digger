@@ -25,6 +25,11 @@ type DetectionRun struct {
     SourceMappingJSON    datatypes.JSON
 }
 
+// TableName ensures GORM uses the same table name as the SQL migration
+func (DetectionRun) TableName() string {
+    return "digger_detection_runs"
+}
+
 // CreateDetectionRun inserts an append-only detection run row.
 func (db *Database) CreateDetectionRun(run *DetectionRun) error {
     return db.GormDB.Create(run).Error
@@ -127,4 +132,3 @@ func NewDetectionRun(
     }
     return dr, nil
 }
-
