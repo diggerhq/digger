@@ -244,6 +244,46 @@ func TriggerDiggerJobs(ciBackend ci_backends.CiBackend, repoFullName string, rep
 	return nil
 }
 
+// recordDetectionRun persists a detection run for any trigger (PR or issue comment).
+func recordDetectionRun(
+    organisationId uint,
+    repoFullName string,
+    number int,
+    triggerType string,   // e.g. "pull_request" | "issue_comment"
+    triggerAction string, // e.g. PR action or "comment"
+    commitSha string,
+    defaultBranch string,
+    targetBranch string,
+    labels []string,
+    changedFiles []string,
+    impactedProjects []digger_config.Project,
+    impactedProjectsSourceMapping map[string]digger_config.ProjectToSourceMapping,
+) {
+    dr, derr := models.NewDetectionRun(
+        organisationId,
+        repoFullName,
+        number,
+        triggerType,
+        triggerAction,
+        commitSha,
+        defaultBranch,
+        targetBranch,
+        labels,
+        changedFiles,
+        impactedProjects,
+        impactedProjectsSourceMapping,
+    )
+    if derr != nil {
+        slog.Error("Failed to build detection run payload", "number", number, "trigger", triggerType, "error", derr)
+        return
+    }
+    if err := models.DB.CreateDetectionRun(dr); err != nil {
+        slog.Error("Failed to persist detection run", "number", number, "trigger", triggerType, "error", err)
+        return
+    }
+    slog.Debug("Persisted detection run", "number", number, "trigger", triggerType, "projects", len(impactedProjects))
+}
+
 func GenerateTerraformFromCode(payload *github.IssueCommentEvent, commentReporterManager utils.CommentReporterManager, config *digger_config.DiggerConfig, defaultBranch string, ghService *github2.GithubService, repoOwner string, repoName string, commitSha *string, issueNumber int, branch *string) error {
 	if !strings.HasPrefix(*payload.Comment.Body, "digger generate") {
 		return nil
@@ -934,4 +974,3 @@ generate_projects:
 	slog.Info("Created Digger repo", "repoId", repo.ID, "diggerRepoName", diggerRepoName)
 	return repo, org, nil
 }
-
