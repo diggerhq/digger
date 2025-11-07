@@ -4,11 +4,11 @@ import "time"
 
 // Config holds database configuration for the token service
 type Config struct {
-	Backend  string         `envconfig:"TOKEN_QUERY_BACKEND" default:"sqlite"`
-	SQLite   SQLiteConfig   `envconfig:"TOKEN_SQLITE"`
-	Postgres PostgresConfig `envconfig:"TOKEN_POSTGRES"`
-	MSSQL    MSSQLConfig    `envconfig:"TOKEN_MSSQL"`
-	MySQL    MySQLConfig    `envconfig:"TOKEN_MYSQL"`
+	Backend  string         `envconfig:"QUERY_BACKEND" default:"sqlite"`
+	SQLite   SQLiteConfig   `envconfig:"SQLITE"`
+	Postgres PostgresConfig `envconfig:"POSTGRES"`
+	MSSQL    MSSQLConfig    `envconfig:"MSSQL"`
+	MySQL    MySQLConfig    `envconfig:"MYSQL"`
 }
 
 type SQLiteConfig struct {
