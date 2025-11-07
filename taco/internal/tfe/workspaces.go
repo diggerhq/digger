@@ -864,7 +864,11 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 	stateVersionID := generateStateVersionID(stateID, stateMeta.Updated.Unix())
 
 	baseURL := getBaseURL(c)
-	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, stateVersionID)
+	// Sign the download URL for Terraform 1.5.x compatibility (doesn't send auth headers)
+	downloadURL, err := auth.SignURL(baseURL, fmt.Sprintf("/tfe/api/v2/state-versions/%s/download", stateVersionID), time.Now().Add(10*time.Minute))
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to sign download URL"})
+	}
 
 	// Return current state version info
 	return c.JSON(200, map[string]interface{}{
@@ -1174,7 +1178,7 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 	unitUUID := extractUnitUUID(stateID)
 	
 	// Download the state data
-	stateData, err := h.stateStore.Download(c.Request().Context(), unitUUID)
+	stateData, err := h.directStateStore.Download(c.Request().Context(), unitUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(404, map[string]string{"error": "State version not found"})
@@ -1359,7 +1363,11 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 	}
 
 	baseURL := getBaseURL(c)
-	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, id)
+	// Sign the download URL for Terraform 1.5.x compatibility
+	downloadURL, err := auth.SignURL(baseURL, fmt.Sprintf("/tfe/api/v2/state-versions/%s/download", id), time.Now().Add(10*time.Minute))
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to sign download URL"})
+	}
 
 	resp := map[string]interface{}{
 		"data": map[string]interface{}{

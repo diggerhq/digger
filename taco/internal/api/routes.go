@@ -274,14 +274,14 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeGroup.POST("/workspaces/:workspace_id/actions/force-unlock", tfeHandler.ForceUnlockWorkspace)
 	tfeGroup.GET("/workspaces/:workspace_id/current-state-version", tfeHandler.GetCurrentStateVersion)
 	tfeGroup.POST("/workspaces/:workspace_id/state-versions", tfeHandler.CreateStateVersion)
-	tfeGroup.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
 	tfeGroup.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
 
-	// Upload endpoints exempt from auth middleware (Terraform doesn't send auth headers)
-	// Security: These validate lock ownership and have RBAC checks in handlers
-	// Upload URLs can only be obtained from authenticated CreateStateVersion calls
+	// Upload/Download endpoints use signed URLs instead of auth middleware
+	// Reason: Terraform 1.5.x doesn't send Authorization headers for downloads
+	// Security: URLs are signed with expiration and can only be obtained from authenticated calls
 	tfeSignedUrlsGroup := e.Group("/tfe/api/v2")
 	tfeSignedUrlsGroup.Use(middleware.VerifySignedURL)
+	tfeSignedUrlsGroup.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/upload", tfeHandler.UploadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
 
