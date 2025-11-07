@@ -25,6 +25,10 @@ async function handler({ request }) {
     outgoingHeaders.set('x-forwarded-proto', url.protocol.replace(':', ''));
     if (url.port) outgoingHeaders.set('x-forwarded-port', url.port);
     
+    // Ensure X-Request-ID is forwarded for request tracing
+    const requestId = request.headers.get('x-request-id');
+    if (requestId) outgoingHeaders.set('x-request-id', requestId);
+    
     // Drop hop-by-hop headers (but KEEP accept-encoding for compression)
     ['host','content-length','connection','keep-alive','proxy-connection','transfer-encoding','upgrade','te','trailer']
       .forEach(h => outgoingHeaders.delete(h));
@@ -124,6 +128,10 @@ async function handler({ request }) {
   if (originalHost) outgoingHeaders.set('x-forwarded-host', originalHost);
   outgoingHeaders.set('x-forwarded-proto', url.protocol.replace(':', ''));
   if (url.port) outgoingHeaders.set('x-forwarded-port', url.port);
+  
+  // Forward X-Request-ID for request tracing across services
+  const requestId = request.headers.get('x-request-id');
+  if (requestId) outgoingHeaders.set('x-request-id', requestId);
   
   // Copy other relevant headers - INCLUDE accept-encoding for compression!
   // Without accept-encoding, backend sends uncompressed data (5-10x larger = slow)

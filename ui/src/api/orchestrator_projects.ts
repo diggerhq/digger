@@ -1,3 +1,7 @@
+// Helper to generate request IDs for tracing
+function generateRequestId(): string {
+    return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export async function fetchProject(projectId: string, organizationId: string, userId: string) {
     const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/projects/${projectId}/`, {
@@ -7,6 +11,7 @@ export async function fetchProject(projectId: string, organizationId: string, us
         'DIGGER_ORG_ID': organizationId,
         'DIGGER_USER_ID': userId,
         'DIGGER_ORG_SOURCE': 'workos',
+        'X-Request-ID': generateRequestId(),
       },
     });
   
@@ -26,6 +31,7 @@ export async function fetchProjects(organizationId: string, userId: string) {
         'DIGGER_ORG_ID': organizationId,
         'DIGGER_USER_ID': userId,
         'DIGGER_ORG_SOURCE': 'workos',
+        'X-Request-ID': generateRequestId(),
       },
     });
   
@@ -44,6 +50,7 @@ export async function updateProject(projectId: string, driftEnabled: boolean, or
             'DIGGER_ORG_ID': organizationId,
             'DIGGER_USER_ID': userId,
             'DIGGER_ORG_SOURCE': 'workos',
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             drift_enabled: driftEnabled,
