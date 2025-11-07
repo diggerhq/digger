@@ -23,7 +23,7 @@ export async function syncOrgToStatesman(orgId: string, orgName: string, display
     }
 
     if (!response.ok) {
-        throw new Error(`Failed to sync organization to statesman: ${response.statusText}`);
+        throw new Error(`Failed to sync organization to statesman: ${response.statusText}`, { cause: await response.text() });
     }
 
     return response.json();
