@@ -14,8 +14,8 @@ var (
 	ErrInvalidOrgID = errors.New("invalid organization ID format")
 )
 
-// OrgIDPattern defines valid organization ID format: alphanumeric, hyphens, underscores, spaces, colons
-var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_\- :]*[a-zA-Z0-9]$`)
+// OrgIDPattern defines valid organization ID format: alphanumeric, hyphens, underscores, spaces, colons, periods
+var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_\- :.]*[a-zA-Z0-9]$`)
 
 // ============================================
 // Domain Models
@@ -92,11 +92,11 @@ func ValidateOrgID(orgID string) error {
 	if len(orgID) < 3 {
 		return fmt.Errorf("%w: must be at least 3 characters", ErrInvalidOrgID)
 	}
-	if len(orgID) > 50 {
-		return fmt.Errorf("%w: must be at most 50 characters", ErrInvalidOrgID)
+	if len(orgID) > 255 {
+		return fmt.Errorf("%w: must be at most 255 characters", ErrInvalidOrgID)
 	}
 	if !OrgIDPattern.MatchString(orgID) {
-		return fmt.Errorf("%w: must contain only letters, numbers, hyphens, underscores, spaces, and colons", ErrInvalidOrgID)
+		return fmt.Errorf("%w: must contain only letters, numbers, hyphens, underscores, spaces, colons, and periods", ErrInvalidOrgID)
 	}
 	return nil
 }
