@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/labstack/echo/v4"
 )
 
@@ -15,6 +16,11 @@ const (
 )
 
 func (h *TfeHandler) MessageOfTheDay(c echo.Context) error {
+	logger := logging.FromContext(c)
+	logger.Debug("TFE message of the day",
+		"operation", "tfe_motd",
+	)
+	
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
@@ -25,6 +31,11 @@ func (h *TfeHandler) MessageOfTheDay(c echo.Context) error {
 
 // Update GetWellKnownJson to use real OAuth endpoints and client ID
 func (h *TfeHandler) GetWellKnownJson(c echo.Context) error {
+	logger := logging.FromContext(c)
+	logger.Info("TFE well-known discovery",
+		"operation", "tfe_well_known",
+	)
+	
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
@@ -59,10 +70,18 @@ func (h *TfeHandler) GetWellKnownJson(c echo.Context) error {
 
 // Delegate auth endpoints to real handlers
 func (h *TfeHandler) AuthLogin(c echo.Context) error {
+	logger := logging.FromContext(c)
+	logger.Info("TFE OAuth authorize delegation",
+		"operation", "tfe_auth_login",
+	)
 	return h.authHandler.OAuthAuthorize(c)
 }
 
 func (h *TfeHandler) AuthTokenExchange(c echo.Context) error {
+	logger := logging.FromContext(c)
+	logger.Info("TFE OAuth token exchange delegation",
+		"operation", "tfe_auth_token",
+	)
 	return h.authHandler.OAuthToken(c)
 }
 

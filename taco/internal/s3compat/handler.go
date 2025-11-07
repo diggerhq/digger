@@ -22,6 +22,7 @@ import (
     authpkg "github.com/diggerhq/digger/opentaco/internal/auth"
     "github.com/diggerhq/digger/opentaco/internal/deps"
     "github.com/diggerhq/digger/opentaco/internal/domain"
+    "github.com/diggerhq/digger/opentaco/internal/logging"
     "github.com/diggerhq/digger/opentaco/internal/rbac"
     "github.com/diggerhq/digger/opentaco/internal/sts"
     "github.com/diggerhq/digger/opentaco/internal/storage"
@@ -43,11 +44,20 @@ func NewHandler(store domain.StateOperations, signer *authpkg.Signer, stsIssuer 
 
 // Handle routes GET/HEAD/PUT/DELETE for both tfstate and lock objects.
 func (h *Handler) Handle(c echo.Context) error {
+    logger := logging.FromContext(c)
     // Handle bucket-level ListObjectsV2 (Terraform probes workspaces under env:/)
     if isListObjectsV2(c.Request()) {
+        logger.Info("S3 list objects request",
+            "operation", "s3_list_objects",
+            "method", c.Request().Method,
+        )
         // Verify SigV4 first
         _, err := h.verifySigV4(c)
         if err != nil {
+            logger.Warn("S3 auth failed for list objects",
+                "operation", "s3_list_objects",
+                "error", err,
+            )
             var ae *authError
             if errors.As(err, &ae) && ae.code == http.StatusForbidden {
                 return c.JSON(http.StatusForbidden, map[string]string{"error":"signature_mismatch"})
@@ -61,12 +71,29 @@ func (h *Handler) Handle(c echo.Context) error {
     // Parse object path
     obj, err := parsePath(c.Request().URL.Path)
     if err != nil {
+        logger.Warn("Invalid S3 path",
+            "operation", "s3_handle",
+            "path", c.Request().URL.Path,
+            "error", err,
+        )
         return c.NoContent(http.StatusNotFound)
     }
+
+    logger.Info("S3 request",
+        "operation", "s3_handle",
+        "method", c.Request().Method,
+        "unit_id", obj.unitID,
+        "is_lock", obj.isLock,
+    )
 
     // Verify SigV4 with OT stateless STS creds
     _, err = h.verifySigV4(c)
     if err != nil {
+        logger.Warn("S3 auth failed",
+            "operation", "s3_handle",
+            "unit_id", obj.unitID,
+            "error", err,
+        )
         // Normalize to 401 on auth errors; 403 on signature mismatch
         var ae *authError
         if errors.As(err, &ae) && ae.code == http.StatusForbidden {
@@ -92,6 +119,11 @@ func (h *Handler) Handle(c echo.Context) error {
         if obj.isLock { return h.deleteLock(c, obj.unitID) }
         return c.NoContent(http.StatusMethodNotAllowed)
     default:
+        logger.Warn("S3 method not allowed",
+            "operation", "s3_handle",
+            "method", c.Request().Method,
+            "unit_id", obj.unitID,
+        )
         return c.NoContent(http.StatusMethodNotAllowed)
     }
 }
@@ -143,23 +175,63 @@ func handleListObjectsV2(c echo.Context) error {
 // --- Handlers ---
 
 func (h *Handler) getState(c echo.Context, id string) error {
+    logger := logging.FromContext(c)
+    logger.Info("S3 get state",
+        "operation", "s3_get_state",
+        "unit_id", id,
+    )
     // If state doesn't exist or is empty, return 404 to signal Terraform to initialize
     meta, err := h.store.Get(c.Request().Context(), id)
     if err != nil {
-        if errors.Is(err, storage.ErrNotFound) { return c.NoContent(http.StatusNotFound) }
+        if errors.Is(err, storage.ErrNotFound) {
+            logger.Info("S3 state not found",
+                "operation", "s3_get_state",
+                "unit_id", id,
+            )
+            return c.NoContent(http.StatusNotFound)
+        }
+        logger.Error("S3 failed to get state metadata",
+            "operation", "s3_get_state",
+            "unit_id", id,
+            "error", err,
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error":"head_failed"})
     }
     if meta == nil || meta.Size == 0 {
+        logger.Info("S3 state empty",
+            "operation", "s3_get_state",
+            "unit_id", id,
+        )
         return c.NoContent(http.StatusNotFound)
     }
     data, err := h.store.Download(c.Request().Context(), id)
     if err != nil {
-        if errors.Is(err, storage.ErrNotFound) { return c.NoContent(http.StatusNotFound) }
+        if errors.Is(err, storage.ErrNotFound) {
+            logger.Info("S3 state not found on download",
+                "operation", "s3_get_state",
+                "unit_id", id,
+            )
+            return c.NoContent(http.StatusNotFound)
+        }
+        logger.Error("S3 failed to download state",
+            "operation", "s3_get_state",
+            "unit_id", id,
+            "error", err,
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error":"download_failed"})
     }
     if len(data) == 0 {
+        logger.Info("S3 state data empty",
+            "operation", "s3_get_state",
+            "unit_id", id,
+        )
         return c.NoContent(http.StatusNotFound)
     }
+    logger.Info("S3 state retrieved",
+        "operation", "s3_get_state",
+        "unit_id", id,
+        "size_bytes", len(data),
+    )
     return c.Blob(http.StatusOK, "application/json", data)
 }
 

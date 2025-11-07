@@ -10,6 +10,7 @@ import (
     "strings"
     "time"
 
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/diggerhq/digger/opentaco/internal/oidc"
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	"github.com/labstack/echo/v4"
@@ -48,28 +49,67 @@ func (h *Handler) SetAPITokenManager(m *APITokenManager) {
 // Request: {"id_token":"..."}
 // Response: {"access_token":"...","refresh_token":"...","expires_in":3600,"token_type":"Bearer"}
 func (h *Handler) Exchange(c echo.Context) error {
+    logger := logging.FromContext(c)
     var req struct{ IDToken string `json:"id_token"` }
     if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil || req.IDToken == "" {
+        logger.Warn("Invalid token exchange request",
+            "operation", "exchange",
+            "error", "invalid_request",
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error":"invalid_request"})
     }
     if h.signer == nil || h.oidcV == nil {
+        logger.Warn("Auth not configured",
+            "operation", "exchange",
+        )
         return c.JSON(http.StatusNotImplemented, map[string]string{
             "error":   "not_implemented",
             "message": "Milestone 1 dummy endpoint",
             "hint":    "This route will be implemented in a later milestone.",
         })
     }
+    
+    logger.Info("Exchanging ID token",
+        "operation", "exchange",
+    )
+    
     sub, groups, err := h.oidcV.VerifyIDToken(req.IDToken)
-    if err != nil { return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_id_token"}) }
+    if err != nil {
+        logger.Warn("Invalid ID token",
+            "operation", "exchange",
+            "error", err,
+        )
+        return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_id_token"})
+    }
     
     // Extract email from ID token if available
     email := extractEmailFromIDToken(req.IDToken)
     
     access, exp, err := h.signer.MintAccessWithEmail(sub, email, nil, groups, []string{"api","s3"})
-    if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"}) }
+    if err != nil {
+        logger.Error("Failed to mint access token",
+            "operation", "exchange",
+            "subject", sub,
+            "error", err,
+        )
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"})
+    }
     rid := randomRID()
     refresh, _, err := h.signer.MintRefresh(sub, rid)
-    if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"}) }
+    if err != nil {
+        logger.Error("Failed to mint refresh token",
+            "operation", "exchange",
+            "subject", sub,
+            "error", err,
+        )
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"})
+    }
+    
+    logger.Info("Token exchange successful",
+        "operation", "exchange",
+        "subject", sub,
+        "email", email,
+    )
     return c.JSON(http.StatusOK, map[string]any{
         "access_token":  access,
         "refresh_token": refresh,
@@ -80,7 +120,11 @@ func (h *Handler) Exchange(c echo.Context) error {
 
 // Token handles POST /v1/auth/token (refresh -> new access)
 func (h *Handler) Token(c echo.Context) error {
-    if h.signer == nil { 
+    logger := logging.FromContext(c)
+    if h.signer == nil {
+        logger.Warn("Auth not configured",
+            "operation", "token_refresh",
+        )
         return c.JSON(http.StatusNotImplemented, map[string]string{
             "error":   "not_implemented",
             "message": "Milestone 1 dummy endpoint",
@@ -89,15 +133,49 @@ func (h *Handler) Token(c echo.Context) error {
     }
     var req struct{ RefreshToken string `json:"refresh_token"` }
     if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil || req.RefreshToken == "" {
+        logger.Warn("Invalid token refresh request",
+            "operation", "token_refresh",
+            "error", "invalid_request",
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error":"invalid_request"})
     }
+    
+    logger.Info("Refreshing token",
+        "operation", "token_refresh",
+    )
+    
     rc, err := h.signer.VerifyRefresh(req.RefreshToken)
-    if err != nil { return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_refresh"}) }
+    if err != nil {
+        logger.Warn("Invalid refresh token",
+            "operation", "token_refresh",
+            "error", err,
+        )
+        return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_refresh"})
+    }
     access, exp, err := h.signer.MintAccess(rc.Subject, nil, nil, []string{"api","s3"})
-    if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"}) }
+    if err != nil {
+        logger.Error("Failed to mint new access token",
+            "operation", "token_refresh",
+            "subject", rc.Subject,
+            "error", err,
+        )
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"})
+    }
     // Rotate refresh: for dev, issue new refresh without tracking revocation list
     refresh, _, err := h.signer.MintRefresh(rc.Subject, randomRID())
-    if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"}) }
+    if err != nil {
+        logger.Error("Failed to mint new refresh token",
+            "operation", "token_refresh",
+            "subject", rc.Subject,
+            "error", err,
+        )
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sign_error"})
+    }
+    
+    logger.Info("Token refresh successful",
+        "operation", "token_refresh",
+        "subject", rc.Subject,
+    )
     return c.JSON(http.StatusOK, map[string]any{
         "access_token":  access,
         "refresh_token": refresh,
@@ -108,7 +186,11 @@ func (h *Handler) Token(c echo.Context) error {
 
 // IssueS3Creds handles POST /v1/auth/issue-s3-creds (STS)
 func (h *Handler) IssueS3Creds(c echo.Context) error {
-    if h.signer == nil || h.sts == nil { 
+    logger := logging.FromContext(c)
+    if h.signer == nil || h.sts == nil {
+        logger.Warn("STS not configured",
+            "operation", "issue_s3_creds",
+        )
         return c.JSON(http.StatusNotImplemented, map[string]string{
             "error":   "not_implemented",
             "message": "Milestone 1 dummy endpoint",
@@ -118,14 +200,42 @@ func (h *Handler) IssueS3Creds(c echo.Context) error {
     // Require Authorization: Bearer <access>
     authz := c.Request().Header.Get("Authorization")
     if !strings.HasPrefix(authz, "Bearer ") {
+        logger.Warn("Missing bearer token for S3 creds",
+            "operation", "issue_s3_creds",
+        )
         return c.JSON(http.StatusUnauthorized, map[string]string{"error":"missing_bearer"})
     }
     tokenStr := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
     ac, err := h.signer.VerifyAccess(tokenStr)
-    if err != nil { return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_access"}) }
+    if err != nil {
+        logger.Warn("Invalid access token for S3 creds",
+            "operation", "issue_s3_creds",
+            "error", err,
+        )
+        return c.JSON(http.StatusUnauthorized, map[string]string{"error":"invalid_access"})
+    }
+    
+    logger.Info("Issuing S3 credentials",
+        "operation", "issue_s3_creds",
+        "subject", ac.Subject,
+    )
+    
     // Issue stateless creds; SessionToken carries the access token
     akid, sk, st, expUnix, err := h.sts.Issue(ac.Subject, tokenStr)
-    if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sts_issue_failed"}) }
+    if err != nil {
+        logger.Error("Failed to issue STS credentials",
+            "operation", "issue_s3_creds",
+            "subject", ac.Subject,
+            "error", err,
+        )
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"sts_issue_failed"})
+    }
+    
+    logger.Info("S3 credentials issued successfully",
+        "operation", "issue_s3_creds",
+        "subject", ac.Subject,
+        "expiration", timeUnixToRFC3339(expUnix),
+    )
     return c.JSON(http.StatusOK, map[string]any{
         "Version":         1,
         "AccessKeyId":     akid,
@@ -137,11 +247,17 @@ func (h *Handler) IssueS3Creds(c echo.Context) error {
 
 // Me handles GET /v1/auth/me (debug)
 func (h *Handler) Me(c echo.Context) error {
+    logger := logging.FromContext(c)
     // Echo principal from bearer if present
     authz := c.Request().Header.Get("Authorization")
     if strings.HasPrefix(authz, "Bearer ") && h.signer != nil {
         tokenStr := strings.TrimSpace(strings.TrimPrefix(authz, "Bearer "))
         if ac, err := h.signer.VerifyAccess(tokenStr); err == nil {
+            logger.Info("Returning user info",
+                "operation", "me",
+                "subject", ac.Subject,
+                "email", ac.Email,
+            )
             return c.JSON(http.StatusOK, map[string]any{
                 "subject": ac.Subject,
                 "email":   ac.Email,
@@ -152,6 +268,9 @@ func (h *Handler) Me(c echo.Context) error {
         }
     }
     // Fallback stub
+    logger.Info("Returning anonymous user info",
+        "operation", "me",
+    )
     return c.JSON(http.StatusOK, map[string]any{
         "subject": "anonymous",
         "email":   "",
@@ -163,9 +282,16 @@ func (h *Handler) Me(c echo.Context) error {
 
 // JWKS handles GET /oidc/jwks.json
 func (h *Handler) JWKS(c echo.Context) error {
+    logger := logging.FromContext(c)
     if h.signer == nil {
+        logger.Warn("JWKS requested but signer not configured",
+            "operation", "jwks",
+        )
         return c.JSON(http.StatusServiceUnavailable, map[string]string{"error":"jwks_unavailable"})
     }
+    logger.Info("Serving JWKS",
+        "operation", "jwks",
+    )
     return c.JSON(http.StatusOK, h.signer.JWKS())
 }
 
@@ -184,6 +310,7 @@ var timeNow = func() time.Time { return time.Now() }
 // GET /v1/auth/config
 // Response: { issuer, client_id, authorization_endpoint?, token_endpoint?, redirect_uris? }
 func (h *Handler) Config(c echo.Context) error {
+    logger := logging.FromContext(c)
     issuer := os.Getenv("OPENTACO_AUTH_ISSUER")
     authURL := os.Getenv("OPENTACO_AUTH_AUTH_URL")
     tokenURL := os.Getenv("OPENTACO_AUTH_TOKEN_URL")
@@ -193,6 +320,11 @@ func (h *Handler) Config(c echo.Context) error {
         if authURL == "" { authURL = "https://api.workos.com/user_management/authorize" }
         if tokenURL == "" { tokenURL = "https://api.workos.com/user_management/token" }
     }
+
+    logger.Info("Serving auth config",
+        "operation", "config",
+        "issuer", issuer,
+    )
 
     cfg := map[string]any{
         "issuer":    issuer,
