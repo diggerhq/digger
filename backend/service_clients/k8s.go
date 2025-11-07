@@ -71,9 +71,7 @@ func (k K8sJobClient) triggerJob(ctx context.Context, opt JobOptions) (*Backgrou
 	if opt.Image == "" {
 		return nil, fmt.Errorf("image must be provided (no default set on client)")
 	}
-	if opt.ServiceAccountName == "" && k.serviceAccountName != "" {
-		opt.ServiceAccountName = k.serviceAccountName
-	}
+
 	if opt.CPU == "" {
 		opt.CPU = "1"
 	}
