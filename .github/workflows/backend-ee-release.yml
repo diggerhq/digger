@@ -47,7 +47,8 @@ jobs:
             type=raw,value=${{ steps.meta.outputs.version }}
             type=ref,event=tag
             type=raw,value=latest
-            
+      
+      - uses: depot/setup-action@v1      
       - uses: depot/build-push-action@v1
         with:
           project: kcld4zgwzx
