@@ -18,18 +18,24 @@ type SQLiteConfig struct {
 	BusyTimeout       time.Duration `envconfig:"BUSY_TIMEOUT" default:"5s"`
 	MaxOpenConns      int           `envconfig:"MAX_OPEN_CONNS" default:"25"`
 	MaxIdleConns      int           `envconfig:"MAX_IDLE_CONNS" default:"10"`
+	ConnMaxLifetime   time.Duration `envconfig:"CONN_MAX_LIFETIME" default:"300s"`
+	ConnMaxIdleTime   time.Duration `envconfig:"CONN_MAX_IDLE_TIME" default:"600s"`
 	PragmaJournalMode string        `envconfig:"PRAGMA_JOURNAL_MODE" default:"WAL"`
 	PragmaForeignKeys string        `envconfig:"PRAGMA_FOREIGN_KEYS" default:"ON"`
 	PragmaBusyTimeout string        `envconfig:"PRAGMA_BUSY_TIMEOUT" default:"5000"`
 }
 
 type PostgresConfig struct { 
-	Host string 	`envconfig:"HOST" default:"localhost"`
-	Port int 		`envconfig:"PORT" default:"5432"`
-	User string 	`envconfig:"USER" default:"postgres"`
-	Password string	`envconfig:"PASSWORD"`
-	DBName string 	`envconfig:"DBNAME" default:"taco"` 
-	SSLMode string	`envconfig:"SSLMODE" default:"disable"`
+	Host             string        `envconfig:"HOST" default:"localhost"`
+	Port             int           `envconfig:"PORT" default:"5432"`
+	User             string        `envconfig:"USER" default:"postgres"`
+	Password         string        `envconfig:"PASSWORD"`
+	DBName           string        `envconfig:"DBNAME" default:"taco"` 
+	SSLMode          string        `envconfig:"SSLMODE" default:"disable"`
+	MaxOpenConns     int           `envconfig:"MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns     int           `envconfig:"MAX_IDLE_CONNS" default:"10"`
+	ConnMaxLifetime  time.Duration `envconfig:"CONN_MAX_LIFETIME" default:"300s"`
+	ConnMaxIdleTime  time.Duration `envconfig:"CONN_MAX_IDLE_TIME" default:"600s"`
 }
 
 type MSSQLConfig struct {
@@ -41,10 +47,14 @@ type MSSQLConfig struct {
 }
 
 type MySQLConfig struct {
-	Host     string `envconfig:"HOST" default:"localhost"`
-	Port     int    `envconfig:"PORT" default:"3306"`
-	User     string `envconfig:"USER" default:"root"`
-	Password string `envconfig:"PASSWORD"`
-	DBName   string `envconfig:"DBNAME" default:"taco"`
-	Charset  string `envconfig:"CHARSET" default:"utf8mb4"`
+	Host            string        `envconfig:"HOST" default:"localhost"`
+	Port            int           `envconfig:"PORT" default:"3306"`
+	User            string        `envconfig:"USER" default:"root"`
+	Password        string        `envconfig:"PASSWORD"`
+	DBName          string        `envconfig:"DBNAME" default:"taco"`
+	Charset         string        `envconfig:"CHARSET" default:"utf8mb4"`
+	MaxOpenConns    int           `envconfig:"MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns    int           `envconfig:"MAX_IDLE_CONNS" default:"10"`
+	ConnMaxLifetime time.Duration `envconfig:"CONN_MAX_LIFETIME" default:"300s"`
+	ConnMaxIdleTime time.Duration `envconfig:"CONN_MAX_IDLE_TIME" default:"600s"`
 }

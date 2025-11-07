@@ -864,7 +864,11 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 	stateVersionID := generateStateVersionID(stateID, stateMeta.Updated.Unix())
 
 	baseURL := getBaseURL(c)
-	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, stateVersionID)
+	// Sign the download URL for Terraform 1.5.x compatibility (doesn't send auth headers)
+	downloadURL, err := auth.SignURL(baseURL, fmt.Sprintf("/tfe/api/v2/state-versions/%s/download", stateVersionID), time.Now().Add(10*time.Minute))
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to sign download URL"})
+	}
 
 	// Return current state version info
 	return c.JSON(200, map[string]interface{}{
@@ -952,20 +956,31 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		// For direct upload without JSON wrapper, handle as raw state data
 		return h.CreateStateVersionDirect(c, workspaceID, stateID, bodyBytes)
 	}
-	fmt.Printf("CreateStateVersion: Parsed JSON request: %+v\n", request)
 
-	// Extract the actual state data from the request
+	// Extract the actual state data from the request (if available)
 	data, ok := request["data"].(map[string]interface{})
 	if !ok {
 		fmt.Printf("CreateStateVersion: ERROR - Invalid request format, missing data\n")
 		return c.JSON(400, map[string]string{"error": "Invalid request format"})
 	}
-
-	attributes, ok := data["attributes"].(map[string]interface{})
+	attributes, _ := data["attributes"].(map[string]any)
 	if !ok {
 		fmt.Printf("CreateStateVersion: ERROR - Invalid request format, missing attributes\n")
 		return c.JSON(400, map[string]string{"error": "Invalid request format"})
 	}
+
+	// INLINE STATE (Terraform <=1.5.x path) ------ upload directly in this case
+	if enc, ok := attributes["state"].(string); ok && enc != "" {
+		// 1) Decode inline JSON state
+		stateBytes, decErr := base64.StdEncoding.DecodeString(enc)
+		if decErr != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid base64 in json-state"})
+		}
+		fmt.Printf("CreateStateVersion: found state b64 bytes in JSON, treating as direct upload\n")
+		// For direct upload without JSON wrapper, handle as raw state data
+		return h.CreateStateVersionDirect(c, workspaceID, stateID, stateBytes)
+	}
+
 
 	// Look for the actual state content - it might be base64 encoded or in a specific field
 	if jsonStateOutputs, exists := attributes["json-state-outputs"]; exists {
@@ -1163,7 +1178,7 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 	unitUUID := extractUnitUUID(stateID)
 	
 	// Download the state data
-	stateData, err := h.stateStore.Download(c.Request().Context(), unitUUID)
+	stateData, err := h.directStateStore.Download(c.Request().Context(), unitUUID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(404, map[string]string{"error": "State version not found"})
@@ -1178,21 +1193,8 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 
 // UploadStateVersion handles PUT /tfe/api/v2/state-versions/:id/upload
 func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
-	fmt.Printf("UploadStateVersion: START - Method=%s, URI=%s\n", c.Request().Method, c.Request().RequestURI)
-
-	// Debug: Check if Authorization header is present
-	authHeader := c.Request().Header.Get("Authorization")
-	fmt.Printf("UploadStateVersion: Authorization header present: %t\n", authHeader != "")
-	if authHeader != "" {
-		// Don't log the full token for security, just whether it looks like a Bearer token
-		fmt.Printf("UploadStateVersion: Authorization header format: %s\n",
-			strings.SplitN(authHeader, " ", 2)[0])
-	}
-
 	stateVersionID := c.Param("id")
-	fmt.Printf("UploadStateVersion: stateVersionID=%s\n", stateVersionID)
 	if stateVersionID == "" {
-		fmt.Printf("UploadStateVersion: ERROR - state_version_id required\n")
 		return c.JSON(400, map[string]string{"error": "state_version_id required"})
 	}
 
@@ -1209,47 +1211,37 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	if err := h.checkWorkspacePermission(c, "unit.write", workspaceID); err != nil {
 		// Only enforce RBAC if we have a real auth error, not just missing headers
 		if !strings.Contains(err.Error(), "no authorization header") {
-			fmt.Printf("UploadStateVersion: RBAC permission denied: %v\n", err)
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "insufficient permissions to upload state",
 				"hint":  "contact your administrator to grant unit.write permission",
 			})
 		}
-		// If no auth header, allow but log for security monitoring
-		fmt.Printf("UploadStateVersion: No auth header - allowing upload based on lock validation\n")
 	}
 
 	// Read the state data from request body
 	stateData, err := io.ReadAll(c.Request().Body)
-	fmt.Printf("UploadStateVersion: Read %d bytes from body, err=%v\n", len(stateData), err)
 	if err != nil {
-		fmt.Printf("UploadStateVersion: ERROR - Failed to read state data: %v\n", err)
 		return c.JSON(400, map[string]string{"error": "Failed to read state data"})
-	}
-	if len(stateData) > 0 {
-		fmt.Printf("UploadStateVersion: Body preview: %s\n", string(stateData))
 	}
 
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
-	fmt.Printf("UploadStateVersion: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
 
+	// Use directStateStore for signed URL operations (pre-authorized, no RBAC checks)
 	// Check if state exists (no auto-creation)
-	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
+	_, err = h.directStateStore.Get(c.Request().Context(), unitUUID)
 	if err == storage.ErrNotFound {
-		fmt.Printf("UploadStateVersion: Unit not found - no auto-creation\n")
 		return c.JSON(404, map[string]string{
 			"error": "Unit not found. Please create the unit first using 'taco unit create " + unitUUID + "' or the opentaco_unit Terraform resource.",
 		})
 	} else if err != nil {
-		fmt.Printf("UploadStateVersion: ERROR - Failed to check state existence: %v\n", err)
 		return c.JSON(500, map[string]string{
 			"error": "Failed to check state existence",
 		})
 	}
 
 	// Get the current lock to extract lock ID for state upload
-	currentLock, lockErr := h.stateStore.GetLock(c.Request().Context(), unitUUID)
+	currentLock, lockErr := h.directStateStore.GetLock(c.Request().Context(), unitUUID)
 	if lockErr != nil && lockErr != storage.ErrNotFound {
 		return c.JSON(500, map[string]string{"error": "Failed to get lock status"})
 	}
@@ -1261,23 +1253,18 @@ func (h *TfeHandler) UploadStateVersion(c echo.Context) error {
 	}
 
 	// Upload the state with proper lock ID
-	fmt.Printf("UploadStateVersion: Uploading to storage with lockID=%s\n", lockID)
-	err = h.stateStore.Upload(c.Request().Context(), unitUUID, stateData, lockID)
-	fmt.Printf("UploadStateVersion: Upload result, err=%v\n", err)
+	err = h.directStateStore.Upload(c.Request().Context(), unitUUID, stateData, lockID)
 	if err != nil {
 		if err == storage.ErrLockConflict {
-			fmt.Printf("UploadStateVersion: ERROR - Workspace is locked\n")
 			return c.JSON(423, map[string]string{
 				"error": "Workspace is locked",
 			})
 		}
-		fmt.Printf("UploadStateVersion: ERROR - Failed to upload state: %v\n", err)
 		return c.JSON(500, map[string]string{
 			"error": "Failed to upload state",
 		})
 	}
 
-	fmt.Printf("UploadStateVersion: SUCCESS - State uploaded successfully\n")
 	// Return 204 No Content as expected by Terraform
 	return c.NoContent(204)
 }
@@ -1376,7 +1363,11 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 	}
 
 	baseURL := getBaseURL(c)
-	downloadURL := fmt.Sprintf("%s/tfe/api/v2/state-versions/%s/download", baseURL, id)
+	// Sign the download URL for Terraform 1.5.x compatibility
+	downloadURL, err := auth.SignURL(baseURL, fmt.Sprintf("/tfe/api/v2/state-versions/%s/download", id), time.Now().Add(10*time.Minute))
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to sign download URL"})
+	}
 
 	resp := map[string]interface{}{
 		"data": map[string]interface{}{

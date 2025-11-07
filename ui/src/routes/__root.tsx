@@ -1,25 +1,33 @@
-import { Box, Button, Card, Container, Flex, Theme } from '@radix-ui/themes';
 import radixCssUrl from '@radix-ui/themes/styles.css?url';
-import { HeadContent, Link, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
+import workosWidgetsCssUrl from '@workos-inc/widgets/styles.css?url';
+import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { Suspense } from 'react';
-import { getAuth, getOrganisationDetails, getSignInUrl, signOut } from '@/authkit/serverFunctions';
-import Footer from '@/components/footer';
-import SignInButton from '@/components/sign-in-button';
+import { getAuth, getOrganisationDetails, getSignInUrl } from '@/authkit/serverFunctions';
 import type { ReactNode } from 'react';
-import { Sidebar, SidebarMenuButton, SidebarGroupContent, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarTrigger, SidebarProvider, SidebarMenu, SidebarMenuItem } from '../components/ui/sidebar';
-import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut } from 'lucide-react';
-import globalCssUrl from '@/styles/global.css?url'
+import globalCssUrl from '@/styles/global.css?url';
 import { Toaster } from '@/components/ui/toaster';
-import { getPublicServerConfig, type Env } from '@/lib/env.server';
+import { getPublicServerConfig } from '@/lib/env.server';
+import type { Organization } from '@workos-inc/node';
 
-
+// PostHog integration
+import { PostHogProvider } from 'posthog-js/react';
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const { auth, organisationId } = await getAuth();
-    const organisationDetails = organisationId ? await getOrganisationDetails({data: {organizationId: organisationId}}) : null;
-    const publicServerConfig : Env = await getPublicServerConfig()
+    // Run auth and config in parallel (they don't depend on each other)
+    const [authResult, publicServerConfig] = await Promise.all([
+      getAuth(),
+      getPublicServerConfig()
+    ]);
+    
+    const { auth, organisationId } = authResult;
+    
+    // Get org details if we have an orgId (this depends on auth)
+    let organisationDetails: Organization | null = null;
+    if (organisationId) {
+      organisationDetails = await getOrganisationDetails({data: {organizationId: organisationId}});
+    }
+    ;
     return { user: auth.user, organisationId, role: auth.role, organisationName: organisationDetails?.name, publicServerConfig };
   },
   head: () => ({
@@ -37,27 +45,30 @@ export const Route = createRootRoute({
     ],
   }),
   loader: async ({ context }) => {
-    const { user } = context;
-    const url = await getSignInUrl();
+    const { user, publicServerConfig } = context as any;
+    // Only fetch sign-in URL if user is not authenticated
+    const url = !user ? await getSignInUrl() : null;
     return {
       user,
       url,
-    };
+      publicServerConfig,
+    } as any;
   },
   component: DashboardRootComponent,
   notFoundComponent: () => <div>Not Found</div>,
 });
 
 function DashboardRootComponent() {
+  const data = (Route as any).useLoaderData?.() || {};
   return (
-    <DashboardRootDocument>
+    <DashboardRootDocument publicServerConfig={data.publicServerConfig}>
       <Outlet />
       <TanStackRouterDevtools position="bottom-right" />
     </DashboardRootDocument>
   );
 }
 
-function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) {
+function DashboardRootDocument({ children, publicServerConfig }: Readonly<{ children: ReactNode, publicServerConfig?: any }>) {
   return (
     <html>
       <head>
@@ -65,6 +76,8 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
         {/* Preload and apply critical CSS to avoid FOUC */}
         <link rel="preload" as="style" href={radixCssUrl} />
         <link rel="stylesheet" href={radixCssUrl} />
+        <link rel="preload" as="style" href={workosWidgetsCssUrl} />
+        <link rel="stylesheet" href={workosWidgetsCssUrl} />
         <link rel="preload" as="style" href={globalCssUrl} />
         <link rel="stylesheet" href={globalCssUrl} />
         {/* App icons */}
@@ -73,9 +86,27 @@ function DashboardRootDocument({ children }: Readonly<{ children: ReactNode }>) 
         <link rel="apple-touch-icon" href="/favicon.png" />
       </head>
       <body>
-        {children}
-        <Toaster />
-        <Scripts />
+        {publicServerConfig?.POSTHOG_KEY ? (
+          <PostHogProvider
+            apiKey={publicServerConfig.POSTHOG_KEY}
+            options={{
+              api_host: publicServerConfig.POSTHOG_HOST,
+              defaults: '2025-05-24',
+              capture_exceptions: true,
+              debug: false,
+            }}
+          >
+            {children}
+            <Toaster />
+            <Scripts />
+          </PostHogProvider>
+        ) : (
+          <>
+            {children}
+            <Toaster />
+            <Scripts />
+          </>
+        )}
       </body>
     </html>
   );

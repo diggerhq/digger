@@ -15,7 +15,7 @@ export async function syncOrgToBackend(orgId: string, orgName: string, adminEmai
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to sync organization: ${response.statusText}`);
+    throw new Error(`Failed to sync organization to backend: ${response.statusText}`);
   }
 
   return response.json();

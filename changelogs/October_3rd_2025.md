@@ -25,14 +25,10 @@ Latest version: **v0.6.127**
       
       This is a PR that was opened as a normal PR following a previous draft PR opened which touches the same project:
       
-    ![Screenshot 2025-10-02 at 18 11 21](https://private-user-images.githubusercontent.com/1627972/496913892-71f13b65-564e-4c50-a500-779187614e15.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTk1MDg2MjksIm5iZiI6MTc1OTUwODMyOSwicGF0aCI6Ii8xNjI3OTcyLzQ5NjkxMzg5Mi03MWYxM2I2NS01NjRlLTRjNTAtYTUwMC03NzkxODc2MTRlMTUucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI1MTAwMyUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNTEwMDNUMTYxODQ5WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NTIxNTViZjBiOGE0Mjk2NmE3YzAyMjViNzFiYTIyYmQ4YWI3NWZkNzAyZmJiMGE3OGFhOTI2MTRkMzIxMTBkOSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QifQ.Z86-D7jkROhBA_iFZu_LHnrRpiJTFbqlZYCCzdbjtWw)
-    
       Expected behaviour is that the pr should plan normally no issues. Current behaviour (digger pro) is that it fails to plan because locked by another pr
       
       This behaviour is for existing PRs that would be opened as drafts and have a dnaling lock present. In current develop branch the "digger unlock" comment on the other PR would be ignored so it would not unlock and the other PR would be stuck and not able to aquire the lock. In this PR we now force unlock even when it is a draft PR configured to be ignored so the digger unlock will allow the user to plan on the other PR that was blocked by the draft PR
       
-
-![Screenshot 2025-10-02 at 18 13 03](https://private-user-images.githubusercontent.com/1627972/496914492-57b8fbd7-9e78-49a9-8f6a-7b589b86799e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTk1MDg2MjksIm5iZiI6MTc1OTUwODMyOSwicGF0aCI6Ii8xNjI3OTcyLzQ5NjkxNDQ5Mi01N2I4ZmJkNy05ZTc4LTQ5YTktOGY2YS03YjU4OWI4Njc5OWUucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI1MTAwMyUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNTEwMDNUMTYxODQ5WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9MDdkMjFkMDExM2E2ZDRjMGUxN2ZhN2YwYTEyYTZmYTkwNTA2YjA2ZjBmY2JlZjYyODBiMTBmNjgyMzI0MThmYyZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QifQ.rj7U34i2CWbPmPMyVBKqudvCayms9M-w7UxKpoxIC0M)
 
 4. Smoother `taco login` with Microsoft/Entra, and copy-pasteable paths to run OpenTaco Statesman on AWS with HTTPS out of the box: More here: [#2284](https://github.com/diggerhq/digger/pull/2284)
 5. GCP (Cloud Run) quickstart guide for deploying Statesman with Artifact Registry + Cloud Run: [#2275](https://github.com/diggerhq/digger/pull/2275)

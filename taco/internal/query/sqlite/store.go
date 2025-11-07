@@ -38,13 +38,15 @@ func Connect(cfg query.SQLiteConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("apply busy_timeout: %w", err)
 	}
 
-	// Configure connection pool settings
+	// Configure connection pool settings from config (use SQLITE_MAX_OPEN_CONNS, etc.)
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("get underlying sql.DB: %w", err)
 	}
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
 
 	return db, nil
 }

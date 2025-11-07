@@ -2,7 +2,7 @@ import { redirect, createFileRoute, Outlet, useLocation } from '@tanstack/react-
 import { getSignInUrl } from '../../authkit/serverFunctions';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
 import { Link } from '@tanstack/react-router';
-import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut, Cuboid} from 'lucide-react';
+import { GitBranch, Folders, Waves, Settings, CreditCard, LogOut, Cuboid, BookOpen } from 'lucide-react';
 import WorkosOrgSwitcher from '@/components/WorkosOrgSwitcher';
 import { WorkOsWidgets } from '@workos-inc/widgets';
 
@@ -94,6 +94,15 @@ function DashboardComponent() {
                           <Settings className="mr-2 h-4 w-4" />
                           <span>Settings</span>
                         </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <a href="https://docs.opentaco.dev" target="_blank" rel="noopener noreferrer">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          <span>Docs</span>
+                        </a>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
 

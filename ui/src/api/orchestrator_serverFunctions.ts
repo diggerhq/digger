@@ -62,7 +62,7 @@ export const getProjectFn = createServerFn({method: 'GET'})
     .inputValidator((data : {projectId: string, organisationId: string, userId: string}) => data)
     .handler(async ({ data }) => {
     const project : any = await fetchProject(data.projectId, data.organisationId, data.userId)
-    return project
+    return project.result
   })
 
 
@@ -87,9 +87,10 @@ export const getRepoDetailsFn = createServerFn({method: 'GET'})
           throw new Error('Failed to fetch jobs');
         }
       
-        const data :any = await response.json();
-        repo = data.repo    
-        allJobs = data.jobs || []
+        const result = await response.json();
+        
+        repo = result.repo    
+        allJobs = result.jobs || []
     
       } catch (error) {
         console.error('Error fetching jobs:', error);

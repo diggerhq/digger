@@ -13,6 +13,7 @@ export async function listUnits(orgId: string, userId: string, email: string) {
     if (!response.ok) {
         throw new Error(`Failed to list units: ${response.statusText}`);
     }
+    
     return response.json();
 }
 

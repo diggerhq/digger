@@ -76,6 +76,11 @@ func (h *Handler) CreateToken(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create token"})
 	}
 
+	// Prevent caching of token creation responses
+	c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.Response().Header().Set("Pragma", "no-cache")
+	c.Response().Header().Set("Expires", "0")
+
 	return c.JSON(http.StatusCreated, toTokenResponse(token))
 }
 
@@ -95,6 +100,11 @@ func (h *Handler) ListTokens(c echo.Context) error {
 		responses[i] = toTokenResponseHidden(token) // Hide token hash
 	}
 
+	// Prevent caching of token list responses
+	c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.Response().Header().Set("Pragma", "no-cache")
+	c.Response().Header().Set("Expires", "0")
+
 	return c.JSON(http.StatusOK, responses)
 }
 
@@ -109,6 +119,11 @@ func (h *Handler) DeleteToken(c echo.Context) error {
 		log.Printf("Failed to delete token: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+
+	// Prevent caching of delete responses
+	c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.Response().Header().Set("Pragma", "no-cache")
+	c.Response().Header().Set("Expires", "0")
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Token deleted successfully"})
 }

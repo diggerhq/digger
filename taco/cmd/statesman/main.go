@@ -201,12 +201,13 @@ func main() {
 
 	// Register routes with interface-based dependencies
 	api.RegisterRoutes(e, api.Dependencies{
-		Repository:  fullRepo,      // RBAC-wrapped repository (used by all routes)
-		BlobStore:   blobStore,     // Direct blob access (for legacy components)
-		QueryStore:  queryStore,    // Direct query access
-		RBACManager: rbacManager,   // RBAC management
-		Signer:      signer,        // JWT signing
-		AuthEnabled: !*authDisable, // Auth flag
+		Repository:          fullRepo,      // RBAC-wrapped repository (used by authenticated routes)
+		UnwrappedRepository: repo,          // Unwrapped repository (for pre-authorized operations like signed URLs)
+		BlobStore:           blobStore,     // Direct blob access (for legacy components)
+		QueryStore:          queryStore,    // Direct query access
+		RBACManager:         rbacManager,   // RBAC management
+		Signer:              signer,        // JWT signing
+		AuthEnabled:         !*authDisable, // Auth flag
 	})
 
 	// Start server

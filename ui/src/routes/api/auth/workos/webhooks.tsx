@@ -47,7 +47,7 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
       
             try {
               console.log("Syncing organization to backend orgName", orgName, "orgId", orgId);
-              await syncOrgToBackend(orgId, orgName, null);
+              await syncOrgToBackend(orgId, orgName, event.data.email);
               await syncOrgToStatesman(orgId, personalOrgDisplayName, personalOrgDisplayName, event.data.id, event.data.email);
             } catch (error) {
               console.error(`Error syncing organization to backend:`, error);
@@ -78,7 +78,7 @@ export const Route = createFileRoute('/api/auth/workos/webhooks')({
                   let orgName = orgDetails.name;
                   console.log(`Syncing organization ${orgName} to backend and statesman`);
                   try {
-                      await syncOrgToBackend(invitation.organizationId!, orgName, null);
+                      await syncOrgToBackend(invitation.organizationId!, orgName, invitation.userEmail);
                       await syncOrgToStatesman(invitation.organizationId!, orgName, orgName, invitation.userId!, invitation.userEmail!);
                   } catch (error) {
                       console.error(`Error syncing organization to backend:`, error);

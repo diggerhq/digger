@@ -62,6 +62,43 @@ func (r *gormIdentifierResolver) ResolveOrganization(ctx context.Context, identi
 	return "", fmt.Errorf("organization not found: %s", lookupValue)
 }
 
+// GetOrganization retrieves full organization details by UUID
+func (r *gormIdentifierResolver) GetOrganization(ctx context.Context, orgID string) (*domain.Organization, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not available")
+	}
+	
+	var org struct {
+		ID            string
+		Name          string
+		DisplayName   string
+		ExternalOrgID *string
+		CreatedBy     string
+	}
+	
+	err := r.db.WithContext(ctx).
+		Table("organizations").
+		Where("id = ?", orgID).
+		First(&org).Error
+	
+	if err != nil {
+		return nil, fmt.Errorf("organization not found: %s", orgID)
+	}
+	
+	externalID := ""
+	if org.ExternalOrgID != nil {
+		externalID = *org.ExternalOrgID
+	}
+	
+	return &domain.Organization{
+		ID:            org.ID,
+		Name:          org.Name,
+		DisplayName:   org.DisplayName,
+		ExternalOrgID: externalID,
+		CreatedBy:     org.CreatedBy,
+	}, nil
+}
+
 // ResolveUnit resolves unit identifier to UUID within an organization
 func (r *gormIdentifierResolver) ResolveUnit(ctx context.Context, identifier, orgID string) (string, error) {
 	return r.resolveResource(ctx, "units", identifier, orgID)

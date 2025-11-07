@@ -13,11 +13,13 @@ import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TfeSplatRouteImport } from './routes/tfe/$'
+import { Route as ManualTerraformWellKnownRouteImport } from './routes/manual/terraformWellKnown'
 import { Route as OrchestratorJob_artefactsRouteImport } from './routes/_orchestrator/job_artefacts'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/_dashboard'
 import { Route as OrchestratorGithubWebhookRouteImport } from './routes/orchestrator/github/webhook'
 import { Route as OrchestratorGithubCallbackRouteImport } from './routes/orchestrator/github/callback'
 import { Route as AppSettingsTokensRouteImport } from './routes/app/settings.tokens'
+import { Route as ApiInternalSyncWorkosOrgsRouteImport } from './routes/api/internal/sync-workos-orgs'
 import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as ApiAuthWorkosWebhooksRouteImport } from './routes/api/auth/workos/webhooks'
 import { Route as ApiAuthWorkosSwitchOrgRouteImport } from './routes/api/auth/workos/switch-org'
@@ -63,6 +65,12 @@ const TfeSplatRoute = TfeSplatRouteImport.update({
   path: '/tfe/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManualTerraformWellKnownRoute =
+  ManualTerraformWellKnownRouteImport.update({
+    id: '/manual/terraformWellKnown',
+    path: '/manual/terraformWellKnown',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OrchestratorJob_artefactsRoute =
   OrchestratorJob_artefactsRouteImport.update({
     id: '/_orchestrator/job_artefacts',
@@ -90,6 +98,12 @@ const AppSettingsTokensRoute = AppSettingsTokensRouteImport.update({
   path: '/app/settings/tokens',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInternalSyncWorkosOrgsRoute =
+  ApiInternalSyncWorkosOrgsRouteImport.update({
+    id: '/api/internal/sync-workos-orgs',
+    path: '/api/internal/sync-workos-orgs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
   id: '/api/auth/callback',
   path: '/api/auth/callback',
@@ -244,8 +258,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/manual/terraformWellKnown': typeof ManualTerraformWellKnownRoute
   '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/internal/sync-workos-orgs': typeof ApiInternalSyncWorkosOrgsRoute
   '/app/settings/tokens': typeof AppSettingsTokensRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
@@ -278,8 +294,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logout': typeof LogoutRoute
   '/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/manual/terraformWellKnown': typeof ManualTerraformWellKnownRoute
   '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/internal/sync-workos-orgs': typeof ApiInternalSyncWorkosOrgsRoute
   '/app/settings/tokens': typeof AppSettingsTokensRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
@@ -313,8 +331,10 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_orchestrator/job_artefacts': typeof OrchestratorJob_artefactsRoute
+  '/manual/terraformWellKnown': typeof ManualTerraformWellKnownRoute
   '/tfe/$': typeof TfeSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/internal/sync-workos-orgs': typeof ApiInternalSyncWorkosOrgsRoute
   '/app/settings/tokens': typeof AppSettingsTokensRoute
   '/orchestrator/github/callback': typeof OrchestratorGithubCallbackRoute
   '/orchestrator/github/webhook': typeof OrchestratorGithubWebhookRoute
@@ -349,8 +369,10 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/job_artefacts'
+    | '/manual/terraformWellKnown'
     | '/tfe/$'
     | '/api/auth/callback'
+    | '/api/internal/sync-workos-orgs'
     | '/app/settings/tokens'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
@@ -383,8 +405,10 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/job_artefacts'
+    | '/manual/terraformWellKnown'
     | '/tfe/$'
     | '/api/auth/callback'
+    | '/api/internal/sync-workos-orgs'
     | '/app/settings/tokens'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
@@ -417,8 +441,10 @@ export interface FileRouteTypes {
     | '/logout'
     | '/_authenticated/_dashboard'
     | '/_orchestrator/job_artefacts'
+    | '/manual/terraformWellKnown'
     | '/tfe/$'
     | '/api/auth/callback'
+    | '/api/internal/sync-workos-orgs'
     | '/app/settings/tokens'
     | '/orchestrator/github/callback'
     | '/orchestrator/github/webhook'
@@ -453,8 +479,10 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LogoutRoute: typeof LogoutRoute
   OrchestratorJob_artefactsRoute: typeof OrchestratorJob_artefactsRoute
+  ManualTerraformWellKnownRoute: typeof ManualTerraformWellKnownRoute
   TfeSplatRoute: typeof TfeSplatRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
+  ApiInternalSyncWorkosOrgsRoute: typeof ApiInternalSyncWorkosOrgsRoute
   AppSettingsTokensRoute: typeof AppSettingsTokensRoute
   OrchestratorGithubCallbackRoute: typeof OrchestratorGithubCallbackRoute
   OrchestratorGithubWebhookRoute: typeof OrchestratorGithubWebhookRoute
@@ -498,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TfeSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manual/terraformWellKnown': {
+      id: '/manual/terraformWellKnown'
+      path: '/manual/terraformWellKnown'
+      fullPath: '/manual/terraformWellKnown'
+      preLoaderRoute: typeof ManualTerraformWellKnownRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_orchestrator/job_artefacts': {
       id: '/_orchestrator/job_artefacts'
       path: '/job_artefacts'
@@ -531,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/app/settings/tokens'
       fullPath: '/app/settings/tokens'
       preLoaderRoute: typeof AppSettingsTokensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/sync-workos-orgs': {
+      id: '/api/internal/sync-workos-orgs'
+      path: '/api/internal/sync-workos-orgs'
+      fullPath: '/api/internal/sync-workos-orgs'
+      preLoaderRoute: typeof ApiInternalSyncWorkosOrgsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/callback': {
@@ -836,8 +878,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LogoutRoute: LogoutRoute,
   OrchestratorJob_artefactsRoute: OrchestratorJob_artefactsRoute,
+  ManualTerraformWellKnownRoute: ManualTerraformWellKnownRoute,
   TfeSplatRoute: TfeSplatRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
+  ApiInternalSyncWorkosOrgsRoute: ApiInternalSyncWorkosOrgsRoute,
   AppSettingsTokensRoute: AppSettingsTokensRoute,
   OrchestratorGithubCallbackRoute: OrchestratorGithubCallbackRoute,
   OrchestratorGithubWebhookRoute: OrchestratorGithubWebhookRoute,
