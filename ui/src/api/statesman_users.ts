@@ -1,3 +1,8 @@
+// Helper to generate request IDs for tracing
+function generateRequestId(): string {
+    return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function getUserEmail(userId: string, orgId: string): Promise<string> {
     try {
         const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/users/${userId}`, {
@@ -6,6 +11,7 @@ export async function getUserEmail(userId: string, orgId: string): Promise<strin
                 'X-Org-ID': orgId,
                 'X-User-ID': userId,
                 'X-Email': '',
+                'X-Request-ID': generateRequestId(),
             },
         });
         
@@ -30,6 +36,7 @@ export async function syncUserToStatesman(userId: string, userEmail: string, org
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': userEmail,
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             subject: userId,

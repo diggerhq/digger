@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +14,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/api"
 	"github.com/diggerhq/digger/opentaco/internal/auth"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
@@ -36,11 +37,16 @@ func main() {
 	)
 	flag.Parse()
 
+	// Initialize structured logging first (before any log statements)
+	logging.Init("opentaco-statesman")
+	slog.Info("Starting OpenTaco Statesman service")
+
 	// Load configuration from environment variables into our struct.
 	var queryCfg query.Config
 	err := envconfig.Process("opentaco", &queryCfg) // The prefix "TACO" will be used for all vars.
 	if err != nil {
-		log.Fatalf("Failed to process configuration: %v", err)
+		slog.Error("Failed to process configuration", "error", err)
+		os.Exit(1)
 	}
 
 	// --- Initialize Stores ---
@@ -48,11 +54,12 @@ func main() {
 	// Create the database index store using the dedicated factory.
 	queryStore, err := queryfactory.NewQueryStore(queryCfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize query backend: %v", err)
+		slog.Error("Failed to initialize query backend", "error", err)
+		os.Exit(1)
 	}
 	defer queryStore.Close()
 
-	log.Printf("Query backend initialized: %s", queryCfg.Backend)
+	slog.Info("Query backend initialized", "backend", queryCfg.Backend)
 
 
 	// Initialize storage
@@ -60,53 +67,55 @@ func main() {
 	switch *storageType {
 	case "s3":
 		if *s3Bucket == "" {
-			log.Printf("WARNING: S3 storage selected but bucket not provided. Falling back to in-memory storage.")
+			slog.Warn("S3 storage selected but bucket not provided. Falling back to in-memory storage.")
 			blobStore = storage.NewMemStore()
-			log.Printf("Using in-memory storage")
+			slog.Info("Using in-memory storage")
 			break
 		}
 		s, err := storage.NewS3Store(context.Background(), *s3Bucket, *s3Prefix, *s3Region)
 		if err != nil {
-			log.Printf("WARNING: failed to initialize S3 store: %v. Falling back to in-memory storage.", err)
+			slog.Warn("Failed to initialize S3 store. Falling back to in-memory storage.", "error", err)
 			blobStore = storage.NewMemStore()
-			log.Printf("Using in-memory storage")
+			slog.Info("Using in-memory storage")
 		} else {
 			blobStore = s
-			log.Printf("Using S3 storage: bucket=%s prefix=%s region=%s", *s3Bucket, *s3Prefix, *s3Region)
-
+			slog.Info("Using S3 storage", 
+				"bucket", *s3Bucket, 
+				"prefix", *s3Prefix, 
+				"region", *s3Region)
  		}
 	default:
 		blobStore = storage.NewMemStore()
-		log.Printf("Using in-memory storage")
+		slog.Info("Using in-memory storage")
 	}
 
 
 	// sync units to query index 
 	existingUnits, err := queryStore.ListUnits(context.Background(), "")
 	if err != nil {
-		log.Printf("Warning: Failed to check for existing units: %v", err)
+		slog.Warn("Failed to check for existing units", "error", err)
 	}
 	
 	if len(existingUnits) == 0 {
-		log.Println("Query backend has no units, syncing from storage...")
+		slog.Info("Query backend has no units, syncing from storage...")
 		units, err := blobStore.List(context.Background(), "")
 		if err != nil {
-			log.Printf("Warning: Failed to list units from storage: %v", err)
+			slog.Warn("Failed to list units from storage", "error", err)
 		} else {
 			for _, unit := range units {
 				if err := queryStore.SyncEnsureUnit(context.Background(), unit.ID); err != nil {
-					log.Printf("Warning: Failed to sync unit %s: %v", unit.ID, err)
+					slog.Warn("Failed to sync unit", "unit_id", unit.ID, "error", err)
 					continue
 				}
 				
 				if err := queryStore.SyncUnitMetadata(context.Background(), unit.ID, unit.Size, unit.Updated); err != nil {
-					log.Printf("Warning: Failed to sync metadata for unit %s: %v", unit.ID, err)
+					slog.Warn("Failed to sync metadata for unit", "unit_id", unit.ID, "error", err)
 				}
 			}
-			log.Printf("Synced %d units from storage to database", len(units))
+			slog.Info("Synced units from storage to database", "count", len(units))
 		}
 	} else {
-		log.Printf("Query backend already has %d units, skipping sync", len(existingUnits))
+		slog.Info("Query backend already has units, skipping sync", "count", len(existingUnits))
 	}
 
 	// create repository
@@ -114,23 +123,26 @@ func main() {
 	// Get the underlying *gorm.DB from the query store
 	db := repositories.GetDBFromQueryStore(queryStore)
 	if db == nil {
-		log.Fatalf("Query store does not provide GetDB method")
+		slog.Error("Query store does not provide GetDB method")
+		os.Exit(1)
 	}
 	
 	// Ensure default organization exists
 	defaultOrgUUID, err := repositories.EnsureDefaultOrganization(context.Background(), db)
 	if err != nil {
-		log.Fatalf("Failed to ensure default organization: %v", err)
+		slog.Error("Failed to ensure default organization", "error", err)
+		os.Exit(1)
 	}
-	log.Printf("Default organization ensured: %s", defaultOrgUUID)
+	slog.Info("Default organization ensured", "org_uuid", defaultOrgUUID)
 	
 	repo := repositories.NewUnitRepository(db, blobStore)
-	log.Println("Repository initialized (database-first with blob storage backend)")
+	slog.Info("Repository initialized (database-first with blob storage backend)")
 	
 	// Create RBAC Manager
 	rbacManager, err := rbac.NewRBACManagerFromQueryStore(queryStore)
 	if err != nil {
-		log.Fatalf("Failed to create RBAC manager: %v", err)
+		slog.Error("Failed to create RBAC manager", "error", err)
+		os.Exit(1)
 	}
 	
 	// --- Create Domain Interfaces with Optional Authorization ---
@@ -139,7 +151,7 @@ func main() {
 	
 	// Wrap with authorization if auth is enabled
 	if !*authDisable {
-		log.Println("Authorization is ENABLED. Wrapping repository with RBAC.")
+		slog.Info("Authorization is ENABLED. Wrapping repository with RBAC.")
 		
 		// Create bootstrap context with default org for RBAC check
 		// During startup, we need org context to check RBAC status
@@ -148,16 +160,17 @@ func main() {
 		// Verify RBAC manager was created successfully (fail closed for security)
 		canInit, err := rbacManager.IsEnabled(bootstrapCtx)
 		if err != nil {
-			log.Fatalf("Failed to verify RBAC manager: %v", err)
+			slog.Error("Failed to verify RBAC manager", "error", err)
+			os.Exit(1)
 		}
 		
 		if !canInit {
-			log.Println("RBAC is NOT initialized. System will operate in permissive mode until RBAC is initialized via /v1/rbac/init")
+			slog.Info("RBAC is NOT initialized. System will operate in permissive mode until RBAC is initialized via /v1/rbac/init")
 		}
 		
 		fullRepo = repositories.NewAuthorizingRepository(repo, rbacManager)
 	} else {
-		log.Println("Authorization is DISABLED via flag. All operations allowed.")
+		slog.Info("Authorization is DISABLED via flag. All operations allowed.")
 	}
 
 	// Initialize analytics with system ID management (always create system ID)
@@ -169,13 +182,13 @@ func main() {
 
 	// Try to preload existing system ID and user email first
 	if err := analytics.PreloadSystemID(ctx); err == nil {
-		log.Printf("System ID and user email loaded from storage")
+		slog.Info("System ID and user email loaded from storage")
 	} else {
 		// If preload fails, create new system ID
 		if systemID, err := analytics.GetOrCreateSystemID(ctx); err == nil {
-			log.Printf("System ID created: %s", systemID)
+			slog.Info("System ID created", "system_id", systemID)
 		} else {
-			log.Printf("System ID not available: %v", err)
+			slog.Warn("System ID not available", "error", err)
 		}
 	}
 	analytics.SendEssential("service_startup")
@@ -187,7 +200,10 @@ func main() {
 	// Middleware
 	e.Use(echomiddleware.Logger())
 	e.Use(echomiddleware.Recover())
-	e.Use(echomiddleware.RequestID())
+	// Use incoming X-Request-ID if provided, otherwise generate new one
+	e.Use(echomiddleware.RequestIDWithConfig(echomiddleware.RequestIDConfig{
+		TargetHeader: echo.HeaderXRequestID,
+	}))
 	e.Use(echomiddleware.Gzip())
 	e.Use(echomiddleware.Secure())
 	e.Use(echomiddleware.CORS())
@@ -196,7 +212,8 @@ func main() {
 	// Create a signer for JWTs (this may need to be configured from env vars)
 	signer, err := auth.NewSignerFromEnv()
 	if err != nil {
-		log.Fatalf("Failed to initialize JWT signer: %v", err)
+		slog.Error("Failed to initialize JWT signer", "error", err)
+		os.Exit(1)
 	}
 
 	// Register routes with interface-based dependencies
@@ -213,11 +230,12 @@ func main() {
 	// Start server
 	go func() {
 		addr := fmt.Sprintf(":%s", *port)
-		log.Printf("Starting OpenTaco service on %s", addr)
+		slog.Info("Starting OpenTaco service", "address", addr, "port", *port)
 		analytics.SendEssential("server_started")
 		if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
 			analytics.SendEssential("server_startup_failed")
-			log.Fatalf("Server startup failed: %v", err)
+			slog.Error("Server startup failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -228,15 +246,17 @@ func main() {
 
 	// Graceful shutdown
 	analytics.SendEssential("server_shutdown_initiated")
+	slog.Info("Shutting down server gracefully...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := e.Shutdown(shutdownCtx); err != nil {
 		analytics.SendEssential("server_shutdown_failed")
-		log.Fatalf("Server shutdown failed: %v", err)
+		slog.Error("Server shutdown failed", "error", err)
+		os.Exit(1)
 	}
 
 	analytics.SendEssential("server_shutdown_complete")
-	log.Println("Server shutdown complete")
+	slog.Info("Server shutdown complete")
 }
 

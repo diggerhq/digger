@@ -1,11 +1,11 @@
 package token_service
 
 import (
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
+	"github.com/diggerhq/digger/opentaco/internal/logging"
+	querytypes "github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
 	"github.com/labstack/echo/v4"
 )
 
@@ -72,7 +72,8 @@ func (h *Handler) CreateToken(c echo.Context) error {
 
 	token, err := h.repo.CreateToken(c.Request().Context(), req.UserID, req.OrgID, req.Name, expiresAt)
 	if err != nil {
-		log.Printf("Failed to create token: %v", err)
+		logger := logging.FromContext(c)
+		logger.Error("Failed to create token", "user_id", req.UserID, "org_id", req.OrgID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create token"})
 	}
 
@@ -91,7 +92,8 @@ func (h *Handler) ListTokens(c echo.Context) error {
 
 	tokens, err := h.repo.ListTokens(c.Request().Context(), userID, orgID)
 	if err != nil {
-		log.Printf("Failed to list tokens: %v", err)
+		logger := logging.FromContext(c)
+		logger.Error("Failed to list tokens", "user_id", userID, "org_id", orgID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list tokens"})
 	}
 
@@ -116,7 +118,8 @@ func (h *Handler) DeleteToken(c echo.Context) error {
 	}
 
 	if err := h.repo.DeleteToken(c.Request().Context(), tokenID); err != nil {
-		log.Printf("Failed to delete token: %v", err)
+		logger := logging.FromContext(c)
+		logger.Error("Failed to delete token", "token_id", tokenID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -159,7 +162,8 @@ func (h *Handler) GetToken(c echo.Context) error {
 
 	token, err := h.repo.GetToken(c.Request().Context(), tokenID)
 	if err != nil {
-		log.Printf("Failed to get token: %v", err)
+		logger := logging.FromContext(c)
+		logger.Error("Failed to get token", "token_id", tokenID, "error", err)
 		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
 	}
 
@@ -173,7 +177,7 @@ func (h *Handler) HealthCheck(c echo.Context) error {
 
 // toTokenResponse converts a token model to a response
 // Note: Token field will be empty for list/get operations (only shown on creation)
-func toTokenResponse(token *types.Token) TokenResponse {
+func toTokenResponse(token *querytypes.Token) TokenResponse {
 	return TokenResponse{
 		ID:         token.ID,
 		UserID:     token.UserID,
@@ -190,7 +194,7 @@ func toTokenResponse(token *types.Token) TokenResponse {
 
 // toTokenResponseHidden converts a token model to a response without showing the token
 // Shows last 5 chars of hash for identification (e.g., "abc12")
-func toTokenResponseHidden(token *types.Token) TokenResponse {
+func toTokenResponseHidden(token *querytypes.Token) TokenResponse {
 	resp := toTokenResponse(token)
 	
 	// Show last 5 chars of hash for identification

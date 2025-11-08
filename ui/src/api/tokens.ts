@@ -1,3 +1,7 @@
+// Helper to generate request IDs for tracing
+function generateRequestId(): string {
+    return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export const getTokens = async (organizationId: string, userId: string) => {
     const query = new URLSearchParams({ org_id: organizationId, user_id: userId });
@@ -8,6 +12,7 @@ export const getTokens = async (organizationId: string, userId: string) => {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
+            'X-Request-ID': generateRequestId(),
         },
         // Disable browser caching for token requests
         cache: 'no-store',
@@ -23,6 +28,7 @@ export const createToken = async (organizationId: string, userId: string, name: 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             org_id: organizationId,
@@ -42,6 +48,7 @@ export const verifyToken = async (token: string) => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             token: token,
@@ -58,6 +65,7 @@ export const deleteToken = async (organizationId: string, userId: string, tokenI
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             org_id: organizationId,
