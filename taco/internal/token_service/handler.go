@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/logging"
-	"github.com/diggerhq/digger/opentaco/internal/query/types"
-	"github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
+	querytypes "github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
 	"github.com/labstack/echo/v4"
 )
 
@@ -178,7 +177,7 @@ func (h *Handler) HealthCheck(c echo.Context) error {
 
 // toTokenResponse converts a token model to a response
 // Note: Token field will be empty for list/get operations (only shown on creation)
-func toTokenResponse(token *types.Token) TokenResponse {
+func toTokenResponse(token *querytypes.Token) TokenResponse {
 	return TokenResponse{
 		ID:         token.ID,
 		UserID:     token.UserID,
@@ -195,7 +194,7 @@ func toTokenResponse(token *types.Token) TokenResponse {
 
 // toTokenResponseHidden converts a token model to a response without showing the token
 // Shows last 5 chars of hash for identification (e.g., "abc12")
-func toTokenResponseHidden(token *types.Token) TokenResponse {
+func toTokenResponseHidden(token *querytypes.Token) TokenResponse {
 	resp := toTokenResponse(token)
 	
 	// Show last 5 chars of hash for identification
