@@ -62,7 +62,7 @@ export const getProjectFn = createServerFn({method: 'GET'})
     .inputValidator((data : {projectId: string, organisationId: string, userId: string}) => data)
     .handler(async ({ data }) => {
     const project : any = await fetchProject(data.projectId, data.organisationId, data.userId)
-    return project.result
+    return project
   })
 
 
