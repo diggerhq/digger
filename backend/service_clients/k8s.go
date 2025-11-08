@@ -232,7 +232,7 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							dbUrlSecretName,
+								Name: dbUrlSecretName,
 						},
 						Key: dbUrlSecretKey,
 					},
