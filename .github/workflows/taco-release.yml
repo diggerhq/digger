@@ -176,9 +176,11 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - uses: depot/setup-action@v1
+      - uses: depot/build-push-action@v1
         with:
+          project: q63j2g84tp
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: ./taco
           file: ./taco/${{ steps.service.outputs.dockerfile }}
           push: true
