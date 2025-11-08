@@ -5,14 +5,19 @@ RUN echo "commit sha: ${COMMIT_SHA}"
 # Set the working directory
 WORKDIR /go/src/github.com/diggerhq/digger/taco
 
-# Copy all source code
+# Copy go.mod/go.sum first for better layer caching
+COPY cmd/token_service/go.mod cmd/token_service/go.sum ./cmd/token_service/
+RUN cd cmd/token_service && go mod download
+
+# Copy source code
 COPY cmd/token_service/ ./cmd/token_service/
 COPY internal/ ./internal/
 
 # Download dependencies and build
 # Note: CGO is required for SQLite support
-RUN cd cmd/token_service && \
-    go mod tidy && \
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    cd cmd/token_service && \
     CGO_ENABLED=1 GOOS=linux go build \
     -ldflags="-X 'main.Version=${COMMIT_SHA}' -s -w" \
     -a \
