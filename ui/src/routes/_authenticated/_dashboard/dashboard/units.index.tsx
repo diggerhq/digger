@@ -20,10 +20,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
  
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import UnitCreateForm from "@/components/UnitCreateForm"
 import { listUnitsFn } from '@/api/statesman_serverFunctions'
 import { PageLoading } from '@/components/LoadingSkeleton'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown, X } from 'lucide-react'
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/',
@@ -53,6 +55,57 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+function LoomBanner() {
+  const [dismissed, setDismissed] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('units_loom_open', String(open))
+  }, [open])
+
+  const handleDismiss = () => {
+    setDismissed(true)
+    try {
+      window.localStorage.setItem('units_loom_dismissed', 'true')
+    } catch {}
+  }
+
+  if (dismissed) return null
+
+  return (
+    <div className="mb-4">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <div className="rounded-md border bg-muted/30">
+          <div className="flex items-center justify-between px-4 py-3">
+            <CollapsibleTrigger className="flex-1 flex items-center justify-between text-left">
+              <span className="font-medium">Watch a quick walkthrough (2 min)</span>
+              <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <button
+              className="ml-3 p-1 rounded hover:bg-muted"
+              aria-label="Dismiss walkthrough"
+              onClick={handleDismiss}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="relative pt-[56.25%]">
+              <iframe
+                src="https://www.loom.com/embed/0f303822db4147b1a0f89eeaa8df18ae"
+                title="OpenTaco Units walkthrough"
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full rounded-md"
+              />
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    </div>
+  )
+}
 function formatDate(value: any) {
   if (!value) return '—'
   const d = value instanceof Date ? value : new Date(value)
@@ -152,6 +205,9 @@ function RouteComponent() {
           </Link>
         </Button>
       </div>
+      
+      {/* Loom walkthrough banner - collapsible and dismissible */}
+      { units.length === 0 && <LoomBanner /> }
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
