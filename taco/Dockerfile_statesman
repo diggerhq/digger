@@ -8,7 +8,7 @@ WORKDIR /go/src/github.com/diggerhq/digger/taco
 # Copy go.mod/go.sum files first for better layer caching
 COPY cmd/statesman/go.mod cmd/statesman/go.sum ./cmd/statesman/
 COPY internal/go.mod internal/go.sum ./internal/
-COPY pkg/sdk/go.mod pkg/sdk/go.sum ./pkg/sdk/
+COPY pkg/sdk/ ./pkg/sdk/
 RUN cd cmd/statesman && go mod download
 
 # Copy source code
