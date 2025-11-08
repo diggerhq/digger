@@ -198,6 +198,16 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 	if projectsServiceImage := os.Getenv("PROJECTS_REFRESH_SERVICE_DOCKER_IMAGE"); projectsServiceImage != "" {
 		image = projectsServiceImage
 	}
+
+	dbUrlSecretName := "taco-orchestrator-secrets"
+	if os.Getenv("TACO_K8S_SECRET_NAME") != "" {
+		dbUrlSecretName = os.Getenv("TACO_K8S_SECRET_NAME")
+	}
+	dbUrlSecretKey := "DATABASE_URL"
+	if os.Getenv("TACO_K8S_SECRET_NAME_DATABASE_URL") != "" {
+		dbUrlSecretKey = os.Getenv("TACO_K8S_SECRET_NAME_DATABASE_URL")
+	}
+
 	return k.triggerJob(context.Background(), JobOptions{
 		NamePrefix:         "projects-refresh",
 		ContainerName:      "projects-refresh",
@@ -215,6 +225,19 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 			"DIGGER_GITHUB_TOKEN":  githubToken,
 			"DIGGER_REPO_FULL_NAME": repoFullName,
 			"DIGGER_ORG_ID":        orgId,
+		},
+		EnvVars: []corev1.EnvVar{
+			{
+				Name: "DATABASE_URL",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							dbUrlSecretName,
+						},
+						Key: dbUrlSecretKey,
+					},
+				},
+			},
 		},
 		// Optionally override defaults:
 		CPU:    "1",
