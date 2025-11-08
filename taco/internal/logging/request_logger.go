@@ -2,9 +2,54 @@ package logging
 
 import (
 	"log/slog"
+	"os"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
+
+// Init sets up structured JSON logging for the application
+// Call this once at application startup before any logging occurs
+func Init(appName string) *slog.Logger {
+	logLevel := os.Getenv("OPENTACO_LOG_LEVEL")
+	var level slog.Leveler
+
+	switch logLevel {
+	case "DEBUG":
+		level = slog.LevelDebug
+	case "WARN":
+		level = slog.LevelWarn
+	case "ERROR":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+
+	// Create JSON handler with consistent format
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			// Use "severity" instead of "level" for consistency with backend and GCP
+			if a.Key == slog.LevelKey {
+				a.Key = "severity"
+			} else if a.Key == slog.TimeKey {
+				// Use RFC3339Nano format for timestamps
+				a.Value = slog.StringValue(a.Value.Time().Format(time.RFC3339Nano))
+			}
+			return a
+		},
+	})
+
+	// Create logger with app name
+	logger := slog.New(handler).With(
+		slog.String("app", appName),
+	)
+
+	// Set as default logger for the process
+	slog.SetDefault(logger)
+	
+	return logger
+}
 
 // RequestLogger provides structured logging with request ID context
 type RequestLogger struct {
