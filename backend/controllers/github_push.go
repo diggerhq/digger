@@ -3,15 +3,16 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/diggerhq/digger/backend/logging"
-	"github.com/diggerhq/digger/backend/services"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/google/go-github/v61/github"
 	"log/slog"
 	"os"
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/logging"
+	"github.com/diggerhq/digger/backend/services"
+	"github.com/diggerhq/digger/backend/utils"
+	"github.com/google/go-github/v61/github"
 )
 
 func handlePushEvent(ctx context.Context, gh utils.GithubClientProvider, payload *github.PushEvent, appId int64) error {

@@ -162,6 +162,22 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error processing event")
 	}
 
+	// Persist detection run (append-only) right after impact calculation
+	recordDetectionRun(
+		organisationId,
+		repoFullName,
+		prNumber,
+		"pull_request",
+		action,
+		commitSha,
+		*payload.Repo.DefaultBranch,
+		payload.PullRequest.Base.GetRef(),
+		prLabelsStr,
+		changedFiles,
+		impactedProjects,
+		impactedProjectsSourceMapping,
+	)
+
 	jobsForImpactedProjects, coverAllImpactedProjects, err := github2.ConvertGithubPullRequestEventToJobs(payload, impactedProjects, nil, *config, false)
 	if err != nil {
 		slog.Error("Error converting event to jobs",

@@ -204,7 +204,6 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
 require (

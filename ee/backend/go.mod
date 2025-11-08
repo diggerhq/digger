@@ -4,6 +4,14 @@ replace github.com/diggerhq/digger/libs => ../../libs
 
 replace github.com/diggerhq/digger/backend => ../../backend
 
+replace k8s.io/api => k8s.io/api v0.17.0
+
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.17.0
+
+replace k8s.io/client-go => k8s.io/client-go v0.17.0
+
+replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.2.2
+
 go 1.24.0
 
 require (
@@ -15,6 +23,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/uuid v1.6.0
+	github.com/googleapis/gnostic v0.5.5 // indirect; for client-go v0.17 OpenAPIv2
 	github.com/robert-nix/ansihtml v1.0.1
 	github.com/samber/lo v1.46.0
 	github.com/xanzy/go-gitlab v0.106.0
@@ -126,6 +135,7 @@ require (
 	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -135,6 +145,7 @@ require (
 	github.com/google/go-github/v35 v35.3.0 // indirect
 	github.com/google/go-github/v72 v72.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
@@ -209,7 +220,7 @@ require (
 	github.com/mitchellh/panicwrap v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
@@ -240,7 +251,7 @@ require (
 	github.com/sourcegraph/jsonrpc2 v0.2.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
@@ -274,6 +285,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc // indirect
@@ -292,7 +304,8 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
 	google.golang.org/grpc v1.67.1 // indirect
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b2c93a // indirect
-	google.golang.org/protobuf v1.35.1 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
+	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
@@ -300,5 +313,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/gorm v1.31.0 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
+	k8s.io/api v0.20.6 // indirect
+	k8s.io/apimachinery v0.20.6 // indirect
+	k8s.io/client-go v10.0.0+incompatible // indirect
+	k8s.io/klog v1.0.0 // indirect
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
+	sigs.k8s.io/yaml v1.6.0 // indirect
 )

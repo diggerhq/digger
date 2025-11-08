@@ -2,6 +2,10 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Digger",
+  "banner": {
+    "content": "🚀 We have rebranded to opentaco [see here](https://opentaco.dev) for details.",
+    "dismissible": true
+  },
   "colors": {
     "primary": "#8101E4",
     "light": "#AF48FF",
@@ -25,9 +29,15 @@
           {
             "group": "Getting Started",
             "pages": [
-              "ce/getting-started/with-terraform",
-              "ce/getting-started/with-opentofu",
-              "ce/getting-started/with-terragrunt"
+              "ce/getting-started/state-management",
+              {
+                "group": "PR Automation",
+                "pages": [
+                  "ce/getting-started/with-terraform",
+                  "ce/getting-started/with-opentofu",
+                  "ce/getting-started/with-terragrunt"
+                ]
+              }
             ]
           },
           {
