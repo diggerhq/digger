@@ -1023,6 +1023,58 @@ generate_projects:
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
+func TestDiggerGenerateProjectsTerragruntBlocksWithIncludeExcludePatterns(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: test-terragrunt
+      terragrunt: true
+      root_dir: infrastructure
+      include_patterns: ["modules/**", "shared/**"]
+      exclude_patterns: ["modules/legacy/**"]
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	dirsToCreate := []string{
+		"infrastructure/env1/app1",
+		"infrastructure/env1/app2",
+		"infrastructure/env2/app1",
+	}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		assert.NoError(t, err, "expected error to be nil")
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+	}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+
+	terragruntProjectsFound := 0
+	for _, project := range dg.Projects {
+		if project.BlockName != "test-terragrunt" || !project.Terragrunt {
+			continue
+		}
+		terragruntProjectsFound++
+
+		assert.NotNil(t, project.IncludePatterns, "IncludePatterns should not be nil for project %s", project.Name)
+		assert.Greater(t, len(project.IncludePatterns), 0, "IncludePatterns should have at least one pattern for project %s", project.Name)
+		assert.Contains(t, project.IncludePatterns, "modules/**")
+		assert.Contains(t, project.IncludePatterns, "shared/**")
+
+		assert.NotNil(t, project.ExcludePatterns, "ExcludePatterns should not be nil for project %s", project.Name)
+		assert.Greater(t, len(project.ExcludePatterns), 0, "ExcludePatterns should have at least one pattern for project %s", project.Name)
+		assert.Contains(t, project.ExcludePatterns, "modules/legacy/**")
+	}
+
+	assert.Greater(t, terragruntProjectsFound, 0, "should have found at least one terragrunt project")
+}
+
 func TestDiggerGenerateProjectsWithOpenTofu(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()

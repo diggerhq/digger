@@ -445,6 +445,26 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								"blockName", b.BlockName)
 							return nil, err
 						}
+						if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 {
+							for _, project := range config.Projects {
+								if project.BlockName == b.BlockName && project.Terragrunt {
+									if len(b.IncludePatterns) > 0 {
+										project.IncludePatterns = append(project.IncludePatterns, b.IncludePatterns...)
+										slog.Debug("merged include_patterns for terragrunt project",
+											"projectName", project.Name,
+											"blockName", b.BlockName,
+											"includePatterns", project.IncludePatterns)
+									}
+									if len(b.ExcludePatterns) > 0 {
+										project.ExcludePatterns = append(project.ExcludePatterns, b.ExcludePatterns...)
+										slog.Debug("merged exclude_patterns for terragrunt project",
+											"projectName", project.Name,
+											"blockName", b.BlockName,
+											"excludePatterns", project.ExcludePatterns)
+									}
+								}
+							}
+						}
 					} else {
 						slog.Debug("skipping block due to no changed files", "blockName", b.BlockName)
 					}
