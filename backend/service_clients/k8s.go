@@ -210,11 +210,11 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 			"triggerSource": "orchestrator-api",
 		},
 		Env: map[string]string{
-			"CloneUrl":     cloneUrl,
-			"Branch":       branch,
-			"GithubToken":  githubToken, // consider moving to SecretKeyRef in production
-			"RepoFullName": repoFullName,
-			"OrgId":        orgId,
+			"DIGGER_GITHUB_REPO_CLONE_URL":     cloneUrl,
+			"DIGGER_GITHUB_REPO_CLONE_BRANCH":       branch,
+			"DIGGER_GITHUB_TOKEN":  githubToken,
+			"DIGGER_REPO_FULL_NAME": repoFullName,
+			"DIGGER_ORG_ID":        orgId,
 		},
 		// Optionally override defaults:
 		CPU:    "1",
