@@ -1,0 +1,50 @@
+---
+title: "State Management"
+---
+
+In this tutorial, you will set up state management and connect it to your local terraform or opentofu.
+
+If you prefer a visual walkthrough you can follow along the following loom tutorial:
+
+<iframe width="640" height="414" src="https://www.loom.com/embed/0f303822db4147b1a0f89eeaa8df18ae" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+
+----
+
+<Steps>
+    <Step title="Create first unit">
+        Create your first unit from the UI. give it a name and hit create
+    </Step>
+    <Step title="Configure cloud block">
+        Configure your terraform cloud block locally by pasting it into the terraform code
+    </Step>
+    <Step title="Authenticate with Opentofu">
+        Using the cli you can run the following command to authenticate:
+
+        ```
+        tofu login otaco.app
+        ```
+
+        Or if using terraform
+
+        ```
+        terraform login otaco.app
+        ```
+
+        You will have to confirm and will then be redirected to a token generation page. This page
+        will allow you to generate a token and you can copy paste it back into the cli. You should see a message saying
+
+        ```
+        Success! Logged in to Terraform Enterprise (otaco.app)
+        ```
+    </Step>
+    <Step title="try to run plan and apply">
+        Using terraform or opentofu run `init`, `plan` and `apply` commands. It should all succeed to be created
+        If this is the case then well done! You have successfully created your first unit
+    </Step>
+</Steps>
+
+
+## Next steps
+
+Try to setup PR automation so that you can collaborate on your opentofu as a team. You can follow the guides for
+[terraform](/ce/getting-started/with-terraform), [opentofu](/ce/getting-started/with-opentofu) or [terragrunt](/ce/getting-started/with-terragrunt) respectively.

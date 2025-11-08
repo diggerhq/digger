@@ -39,7 +39,11 @@ type QueuedResponse struct {
 	Queued string `json:"queued"`
 }
 
-func TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken string, repoFullName string, orgId string) (*MachineResponse, error) {
+type FlyIOMachineJobClient struct {}
+
+
+
+func (f FlyIOMachineJobClient) TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken string, repoFullName string, orgId string) (*BackgroundJobTriggerResponse, error) {
 
 	slog.Debug("awaiting machine fetch")
 
@@ -103,5 +107,5 @@ func TriggerProjectsRefreshService(cloneUrl string, branch string, githubToken s
 
 	slog.Debug("triggered projects refresh service", "machineId", machineResp.ID, "statusCode", resp.StatusCode)
 
-	return &MachineResponse{ID: machineResp.ID}, nil
+	return &BackgroundJobTriggerResponse{ID: machineResp.ID}, nil
 }

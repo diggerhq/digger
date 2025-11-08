@@ -47,10 +47,12 @@ jobs:
             type=raw,value=${{ steps.meta.outputs.version }}
             type=ref,event=tag
             type=raw,value=latest
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      
+      - uses: depot/setup-action@v1      
+      - uses: depot/build-push-action@v1
         with:
+          project: kcld4zgwzx
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: ./Dockerfile_backend_ee
           push: true
@@ -61,6 +63,7 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
             VERSION=${{ steps.meta.outputs.version }}
 
+            
   create-release:
     needs: [build-and-push]
     runs-on: ubuntu-latest

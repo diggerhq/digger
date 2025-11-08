@@ -1,11 +1,26 @@
-<img width="1470" alt="digger-opensource-gitops-banner" src="https://github.com/diggerhq/digger/assets/1280498/7fb44db3-38ca-4021-8714-87a2f1a14982">
-
+<p align="center">
+  <img width="748" height="245" alt="Image" src="https://github.com/user-attachments/assets/13b22a04-4b3b-44fd-b6fe-292afc15ad14" />
+  <br/>
 <h2 align="center">
   <a href="https://bit.ly/diggercommunity">Community Slack</a> |
   <a href="https://calendly.com/diggerdev/diggerdemo">Schedule a call</a> |
-  <a href="https://youtu.be/vPjk3gYSxuE">Demo Video</a> |
+  <a href="https://www.loom.com/share/0f303822db4147b1a0f89eeaa8df18ae">Demo Video</a> |
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
+
+
+---
+
+> Heads-up: We’ve rebranded!
+> Starting from 7th November 2025, the Digger project is now OpenTaco.  
+> The company’s still Digger, same battle-tested engine — just a more apt name and a bigger vision.
+>
+> TL;DR
+> - Before: Best-in-class Terraform PR automation (a solid improvement upon Atlantis)
+> - After: The only piece of software you need to run Terraform or OpenTofu in production <br/> <br/>
+>We'll gradually update all our marketing material to reflect the same!
+
+---
 
 CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialized CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 

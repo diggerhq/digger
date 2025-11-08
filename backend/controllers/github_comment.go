@@ -266,6 +266,26 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	impactedProjectsSourceMapping := processEventResult.ImpactedProjectsSourceMapping
 	allImpactedProjects := processEventResult.AllImpactedProjects
 
+	// Persist detection run (append-only) for issue comment events using full impacted set
+	var csha string
+	if commitSha != nil {
+		csha = *commitSha
+	}
+	recordDetectionRun(
+		orgId,
+		repoFullName,
+		issueNumber,
+		"issue_comment",
+		"comment",
+		csha,
+		defaultBranch,
+		targetBranch,
+		prLabelsStr,
+		changedFiles,
+		allImpactedProjects,
+		impactedProjectsSourceMapping,
+	)
+
 	impactedProjectsForComment, err := generic.FilterOutProjectsFromComment(allImpactedProjects, commentBody)
 	if err != nil {
 		slog.Error("Error filtering out projects from comment",
