@@ -21,7 +21,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": "*Project*"},
+                    {"type": "mrkdwn", "text": "*Repo / Project*"},
 					{"type": "mrkdwn", "text": "*Status*"},
 				},
 			},
@@ -108,7 +108,7 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+                slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%s — %s>", os.Getenv("DIGGER_APP_URL"), project.ID, project.RepoFullName, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_green_circle: No Drift", false, false),
 			},
 			nil,
@@ -118,7 +118,7 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+                slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%s — %s>", os.Getenv("DIGGER_APP_URL"), project.ID, project.RepoFullName, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":white_circle: Acknowledged Drift", false, false),
 			},
 			nil,
@@ -128,7 +128,7 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 		sectionBlock := slack.NewSectionBlock(
 			nil,
 			[]*slack.TextBlockObject{
-				slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%v>", os.Getenv("DIGGER_APP_URL"), project.ID, project.Name), false, false),
+                slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%s — %s>", os.Getenv("DIGGER_APP_URL"), project.ID, project.RepoFullName, project.Name), false, false),
 				slack.NewTextBlockObject("mrkdwn", ":large_yellow_circle: Drift detected", false, false),
 			},
 			nil,
@@ -173,10 +173,10 @@ func (mc MainController) SendRealSlackNotificationForOrg(c *gin.Context) {
 	var messageBlocks []slack.Block
 	fieldsBlock := slack.NewSectionBlock(
 		nil,
-		[]*slack.TextBlockObject{
-			slack.NewTextBlockObject("mrkdwn", "*Project*", false, false),
-			slack.NewTextBlockObject("mrkdwn", "*Status*", false, false),
-		},
+            []*slack.TextBlockObject{
+                slack.NewTextBlockObject("mrkdwn", "*Repo / Project*", false, false),
+                slack.NewTextBlockObject("mrkdwn", "*Status*", false, false),
+            },
 		nil,
 	)
 	messageBlocks = append(messageBlocks, fieldsBlock)
