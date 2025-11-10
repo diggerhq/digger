@@ -29,7 +29,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Dev environment>", os.Getenv("DIGGER_APP_URL"))},
+						{"type": "mrkdwn", "text": fmt.Sprintf("<%v|myorg/myrepo — my-project>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":large_yellow_circle: Drift detected"},
 				},
 			},
@@ -37,7 +37,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Staging environment>", os.Getenv("DIGGER_APP_URL"))},
+						{"type": "mrkdwn", "text": fmt.Sprintf("<%v|myorg/myrepo — my-project>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":white_circle: Acknowledged drift"},
 				},
 			},
@@ -45,7 +45,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": fmt.Sprintf("<%v|Prod environment>", os.Getenv("DIGGER_APP_URL"))},
+						{"type": "mrkdwn", "text": fmt.Sprintf("<%v|myorg/myrepo — my-project>", os.Getenv("DIGGER_APP_URL"))},
 					{"type": "mrkdwn", "text": ":large_green_circle: No drift"},
 				},
 			},
@@ -53,7 +53,7 @@ func sendTestSlackWebhook(webhookURL string) error {
 			{
 				"type": "section",
 				"fields": []map[string]string{
-					{"type": "mrkdwn", "text": ":arrow_right: *Note: This is a test notification*pwd"},
+						{"type": "mrkdwn", "text": ":arrow_right: *Note: This is a test notification*"},
 				},
 			},
 			{"type": "divider"},
