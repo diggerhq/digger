@@ -6,7 +6,7 @@ replace github.com/diggerhq/digger/backend => ../../backend
 
 replace github.com/diggerhq/digger/drift => ../../drift
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/diggerhq/digger/backend v0.0.0-20241111113338-9a40639ab83c

@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/opentaco/cmd/token_service
 
-go 1.24.0
+go 1.25.0
 
 replace github.com/diggerhq/digger/opentaco/internal => ../../internal
 

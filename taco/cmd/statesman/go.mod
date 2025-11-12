@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/opentaco/cmd/statesman
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/diggerhq/digger/opentaco/internal v0.0.0

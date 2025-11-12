@@ -1,3 +1,3 @@
 module github.com/diggerhq/digger/opentaco/pkg/sdk
 
-go 1.24
+go 1.25.0
