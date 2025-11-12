@@ -15,7 +15,7 @@ replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.2.2
 replace github.com/diggerhq/digger/drift => ../drift
 
 // https://github.com/duo-labs/webauthn/issues/44
-replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
+replace github.com/ugorji/go => github.com/ugorji/go v1.2.14
 
 require (
 	ariga.io/atlas-provider-gorm v0.5.0
@@ -281,7 +281,7 @@ require (
 	github.com/terraform-linters/tflint-plugin-sdk v0.17.0 // indirect
 	github.com/terraform-linters/tflint-ruleset-terraform v0.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/ugorji/go/codec v1.2.14 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/urfave/cli/v2 v2.25.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
