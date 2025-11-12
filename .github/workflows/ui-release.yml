@@ -60,6 +60,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.docker-meta.outputs.tags }}
           labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             COMMIT_SHA=${{ github.sha }}
             VERSION=${{ steps.meta.outputs.version }}

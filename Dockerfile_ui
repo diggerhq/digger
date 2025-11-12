@@ -4,18 +4,20 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY ui/package.json ./
+COPY ui/package.json ui/package-lock.json ./
 
 # Install dependencies first
 # npm will automatically install correct platform-specific binaries (amd64 or arm64)
-RUN npm install && \
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci && \
     npm cache clean --force
 
 # Copy source code (node_modules excluded via .dockerignore)
 COPY ui/ ./
 
 # Build the application (with node adapter)
-RUN npm run build
+RUN --mount=type=cache,target=/root/.npm \
+    npm run build
 
 # Production stage
 FROM node:20-alpine
@@ -23,11 +25,12 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package file
-COPY ui/package.json ./
+COPY ui/package.json ui/package-lock.json ./
 
 # Install production dependencies only
 # npm will automatically install correct platform-specific binaries (amd64 or arm64)
-RUN npm install --omit=dev && \
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev && \
     npm cache clean --force
 
 # Copy built application and server entry from builder
