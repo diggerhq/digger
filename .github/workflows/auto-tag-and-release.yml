@@ -1,0 +1,266 @@
+name: Auto Tag and Release
+
+on:
+  # Temporarily manual-only for testing
+  # Uncomment 'push' below to enable automatic tagging on merge
+  # push:
+  #   branches:
+  #     - develop
+  #     - main
+  workflow_dispatch:
+    inputs:
+      force_services:
+        description: 'Force tag these services (comma-separated: backend_ee,drift,ui,statesman,token-service,projects-refresh)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_ee_changed: ${{ steps.changes.outputs.backend_ee }}
+      drift_changed: ${{ steps.changes.outputs.drift }}
+      ui_changed: ${{ steps.changes.outputs.ui }}
+      statesman_changed: ${{ steps.changes.outputs.statesman }}
+      token_service_changed: ${{ steps.changes.outputs.token_service }}
+      projects_refresh_changed: ${{ steps.changes.outputs.projects_refresh }}
+      backend_ee_version: ${{ steps.versions.outputs.backend_ee_version }}
+      drift_version: ${{ steps.versions.outputs.drift_version }}
+      ui_version: ${{ steps.versions.outputs.ui_version }}
+      statesman_version: ${{ steps.versions.outputs.statesman_version }}
+      token_service_version: ${{ steps.versions.outputs.token_service_version }}
+      projects_refresh_version: ${{ steps.versions.outputs.projects_refresh_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect service changes
+        id: changes
+        run: |
+          # Get the previous commit
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.force_services }}" ]; then
+            # Manual trigger with forced services
+            FORCE="${{ github.event.inputs.force_services }}"
+            [[ "$FORCE" == *"backend_ee"* ]] && echo "backend_ee=true" >> $GITHUB_OUTPUT || echo "backend_ee=false" >> $GITHUB_OUTPUT
+            [[ "$FORCE" == *"drift"* ]] && echo "drift=true" >> $GITHUB_OUTPUT || echo "drift=false" >> $GITHUB_OUTPUT
+            [[ "$FORCE" == *"ui"* ]] && echo "ui=true" >> $GITHUB_OUTPUT || echo "ui=false" >> $GITHUB_OUTPUT
+            [[ "$FORCE" == *"statesman"* ]] && echo "statesman=true" >> $GITHUB_OUTPUT || echo "statesman=false" >> $GITHUB_OUTPUT
+            [[ "$FORCE" == *"token-service"* ]] && echo "token_service=true" >> $GITHUB_OUTPUT || echo "token_service=false" >> $GITHUB_OUTPUT
+            [[ "$FORCE" == *"projects-refresh"* ]] && echo "projects_refresh=true" >> $GITHUB_OUTPUT || echo "projects_refresh=false" >> $GITHUB_OUTPUT
+          else
+            # Auto-detect based on changed files
+            PREV_COMMIT="${{ github.event.before }}"
+            
+            # Check backend_ee changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(backend/|ee/backend/|Dockerfile_backend_ee|go.mod|go.sum)'; then
+              echo "backend_ee=true" >> $GITHUB_OUTPUT
+            else
+              echo "backend_ee=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check drift changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(drift/|Dockerfile_drift)'; then
+              echo "drift=true" >> $GITHUB_OUTPUT
+            else
+              echo "drift=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check UI changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(ui/|Dockerfile_ui)'; then
+              echo "ui=true" >> $GITHUB_OUTPUT
+            else
+              echo "ui=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check statesman changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(taco/cmd/statesman/|taco/internal/|taco/pkg/|taco/migrations/|taco/Dockerfile_statesman)'; then
+              echo "statesman=true" >> $GITHUB_OUTPUT
+            else
+              echo "statesman=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check token-service changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(taco/cmd/token_service/|taco/internal/|taco/Dockerfile_token_service)'; then
+              echo "token_service=true" >> $GITHUB_OUTPUT
+            else
+              echo "token_service=false" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check projects-refresh changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(background/projects-refresh-service/|Dockerfile_bg_projects_refresh)'; then
+              echo "projects_refresh=true" >> $GITHUB_OUTPUT
+            else
+              echo "projects_refresh=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+      
+      - name: Calculate new versions
+        id: versions
+        run: |
+          # Function to get latest tag and bump patch version
+          get_next_version() {
+            local prefix=$1
+            local latest_tag=$(git tag -l "${prefix}/v*" | sort -V | tail -n1)
+            
+            if [ -z "$latest_tag" ]; then
+              # No tags exist, start with v0.1.0
+              echo "v0.1.0"
+            else
+              # Extract version and bump patch
+              local version=${latest_tag##*/v}
+              local major=$(echo $version | cut -d. -f1)
+              local minor=$(echo $version | cut -d. -f2)
+              local patch=$(echo $version | cut -d. -f3)
+              local new_patch=$((patch + 1))
+              echo "v${major}.${minor}.${new_patch}"
+            fi
+          }
+          
+          # Calculate versions for each service
+          echo "backend_ee_version=$(get_next_version 'backend-ee')" >> $GITHUB_OUTPUT
+          echo "drift_version=$(get_next_version 'drift')" >> $GITHUB_OUTPUT
+          echo "ui_version=$(get_next_version 'ui')" >> $GITHUB_OUTPUT
+          echo "statesman_version=$(get_next_version 'taco/statesman')" >> $GITHUB_OUTPUT
+          echo "token_service_version=$(get_next_version 'taco/token-service')" >> $GITHUB_OUTPUT
+          echo "projects_refresh_version=$(get_next_version 'projects-refresh')" >> $GITHUB_OUTPUT
+
+  tag-backend-ee:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_ee_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="backend-ee/${{ needs.detect-changes.outputs.backend_ee_version }}"
+          git tag -a "$TAG" -m "Release backend_ee ${{ needs.detect-changes.outputs.backend_ee_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
+  tag-drift:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.drift_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="drift/${{ needs.detect-changes.outputs.drift_version }}"
+          git tag -a "$TAG" -m "Release drift ${{ needs.detect-changes.outputs.drift_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
+  tag-ui:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ui_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="ui/${{ needs.detect-changes.outputs.ui_version }}"
+          git tag -a "$TAG" -m "Release UI ${{ needs.detect-changes.outputs.ui_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
+  tag-statesman:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.statesman_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="taco/statesman/${{ needs.detect-changes.outputs.statesman_version }}"
+          git tag -a "$TAG" -m "Release statesman ${{ needs.detect-changes.outputs.statesman_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
+  tag-token-service:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.token_service_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="taco/token-service/${{ needs.detect-changes.outputs.token_service_version }}"
+          git tag -a "$TAG" -m "Release token-service ${{ needs.detect-changes.outputs.token_service_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
+  tag-projects-refresh:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.projects_refresh_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="projects-refresh/${{ needs.detect-changes.outputs.projects_refresh_version }}"
+          git tag -a "$TAG" -m "Release projects-refresh-service ${{ needs.detect-changes.outputs.projects_refresh_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
+  summary:
+    needs: 
+      - detect-changes
+      - tag-backend-ee
+      - tag-drift
+      - tag-ui
+      - tag-statesman
+      - tag-token-service
+      - tag-projects-refresh
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## Auto-tagging Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Changed | New Version |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| backend_ee | ${{ needs.detect-changes.outputs.backend_ee_changed }} | ${{ needs.detect-changes.outputs.backend_ee_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| drift | ${{ needs.detect-changes.outputs.drift_changed }} | ${{ needs.detect-changes.outputs.drift_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ui | ${{ needs.detect-changes.outputs.ui_changed }} | ${{ needs.detect-changes.outputs.ui_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| statesman | ${{ needs.detect-changes.outputs.statesman_changed }} | ${{ needs.detect-changes.outputs.statesman_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| token-service | ${{ needs.detect-changes.outputs.token_service_changed }} | ${{ needs.detect-changes.outputs.token_service_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| projects-refresh | ${{ needs.detect-changes.outputs.projects_refresh_changed }} | ${{ needs.detect-changes.outputs.projects_refresh_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tags have been created and pushed. Build workflows will trigger automatically." >> $GITHUB_STEP_SUMMARY
+
