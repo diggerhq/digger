@@ -29,7 +29,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.54.11
-	github.com/hashicorp/go-getter v1.7.8
+	github.com/hashicorp/go-getter v1.7.9
 	github.com/hashicorp/hcl/v2 v2.20.1
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20250203082807-efaa306e97b4
 	github.com/hashicorp/terraform-json v0.22.1
