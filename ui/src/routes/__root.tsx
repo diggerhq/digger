@@ -4,10 +4,13 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-r
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { getAuth, getOrganisationDetails, getSignInUrl } from '@/authkit/serverFunctions';
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import globalCssUrl from '@/styles/global.css?url';
 import { Toaster } from '@/components/ui/toaster';
 import { getPublicServerConfig } from '@/lib/env.server';
 import type { Organization } from '@workos-inc/node';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { initClientLogging } from '@/lib/client-logger';
 
 // PostHog integration
 import { PostHogProvider } from 'posthog-js/react';
@@ -69,6 +72,11 @@ function DashboardRootComponent() {
 }
 
 function DashboardRootDocument({ children, publicServerConfig }: Readonly<{ children: ReactNode, publicServerConfig?: any }>) {
+  // Initialize client-side logging once on mount
+  useEffect(() => {
+    initClientLogging();
+  }, []);
+
   return (
     <html>
       <head>
@@ -86,27 +94,29 @@ function DashboardRootDocument({ children, publicServerConfig }: Readonly<{ chil
         <link rel="apple-touch-icon" href="/favicon.png" />
       </head>
       <body>
-        {publicServerConfig?.POSTHOG_KEY ? (
-          <PostHogProvider
-            apiKey={publicServerConfig.POSTHOG_KEY}
-            options={{
-              api_host: publicServerConfig.POSTHOG_HOST,
-              defaults: '2025-05-24',
-              capture_exceptions: true,
-              debug: false,
-            }}
-          >
-            {children}
-            <Toaster />
-            <Scripts />
-          </PostHogProvider>
-        ) : (
-          <>
-            {children}
-            <Toaster />
-            <Scripts />
-          </>
-        )}
+        <ErrorBoundary>
+          {publicServerConfig?.POSTHOG_KEY ? (
+            <PostHogProvider
+              apiKey={publicServerConfig.POSTHOG_KEY}
+              options={{
+                api_host: publicServerConfig.POSTHOG_HOST,
+                defaults: '2025-05-24',
+                capture_exceptions: true,
+                debug: false,
+              }}
+            >
+              {children}
+              <Toaster />
+              <Scripts />
+            </PostHogProvider>
+          ) : (
+            <>
+              {children}
+              <Toaster />
+              <Scripts />
+            </>
+          )}
+        </ErrorBoundary>
       </body>
     </html>
   );

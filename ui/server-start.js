@@ -12,6 +12,26 @@ const PORT = process.env.PORT || 3030;
 const HOST = process.env.HOST || '0.0.0.0';
 const REQUEST_TIMEOUT = 60 * 1000; // 60s timeout for requests
 
+// Force stdout/stderr to be unbuffered for Google Cloud Logging
+// Without this, logs get buffered and may not appear in Cloud Logging immediately
+if (process.stdout._handle && process.stdout._handle.setBlocking) {
+  process.stdout._handle.setBlocking(true);
+}
+if (process.stderr._handle && process.stderr._handle.setBlocking) {
+  process.stderr._handle.setBlocking(true);
+}
+
+// Helper for structured logging (Google Cloud Logging format)
+const log = (message, severity = 'INFO', metadata = {}) => {
+  const entry = {
+    severity,
+    message,
+    timestamp: new Date().toISOString(),
+    ...metadata
+  };
+  console.log(JSON.stringify(entry));
+};
+
 // Configure global fetch with connection pooling for much better performance
 // Without this, every fetch creates a new TCP connection (DNS + handshake overhead)
 import { setGlobalDispatcher, Agent } from 'undici';
@@ -31,7 +51,11 @@ setGlobalDispatcher(new Agent({
   connectTimeout: 10 * 1000,  // 10s to establish connection
 }));
 
-console.log('✅ HTTP connection pooling enabled (100 connections, 60s keep-alive)');
+log('✅ HTTP connection pooling enabled', 'INFO', { 
+  maxConnections: 100, 
+  keepAliveTimeout: 60000,
+  pipelining: 10 
+});
 
 // Helper to convert Node.js readable stream to Web ReadableStream
 function nodeToWebStream(nodeStream) {
@@ -132,9 +156,19 @@ const server = createServer(async (req, res) => {
     
     // Log slow SSR requests
     if (ssrTime > 2000) {
-      console.log(`🔥 VERY SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      log(`🔥 VERY SLOW SSR: ${req.method} ${pathname}`, 'WARNING', {
+        method: req.method,
+        path: pathname,
+        durationMs: ssrTime,
+        requestId
+      });
     } else if (ssrTime > 1000) {
-      console.log(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      log(`⚠️  SLOW SSR: ${req.method} ${pathname}`, 'WARNING', {
+        method: req.method,
+        path: pathname,
+        durationMs: ssrTime,
+        requestId
+      });
     }
 
     // Convert Web Standard Response to Node.js response
@@ -193,7 +227,11 @@ const server = createServer(async (req, res) => {
           }
           gzip.end();
         } catch (err) {
-          console.error(`Stream error [${requestId}]:`, err);
+          log(`Stream error (gzip): ${err.message}`, 'ERROR', {
+            requestId,
+            error: err.message,
+            stack: err.stack
+          });
           gzip.destroy();
           if (!res.headersSent) {
             res.statusCode = 500;
@@ -211,7 +249,11 @@ const server = createServer(async (req, res) => {
           }
           res.end();
         } catch (err) {
-          console.error(`Stream error [${requestId}]:`, err);
+          log(`Stream error: ${err.message}`, 'ERROR', {
+            requestId,
+            error: err.message,
+            stack: err.stack
+          });
           if (!res.headersSent) {
             res.statusCode = 500;
             res.end();
@@ -222,7 +264,13 @@ const server = createServer(async (req, res) => {
       res.end();
     }
   } catch (error) {
-    console.error(`Server error [${requestId}]:`, error);
+    log(`Server error: ${error.message}`, 'ERROR', {
+      requestId,
+      method: req.method,
+      url: req.url,
+      error: error.message,
+      stack: error.stack
+    });
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'text/plain');
@@ -236,10 +284,13 @@ server.keepAliveTimeout = 65 * 1000; // 65s (longer than typical load balancer t
 server.headersTimeout = 66 * 1000;   // Must be > keepAliveTimeout
 
 server.listen(PORT, HOST, () => {
-  console.log(`🚀 Server running at http://${HOST}:${PORT}/`);
-  console.log(`   ✓ Keep-alive: ${server.keepAliveTimeout}ms`);
-  console.log(`   ✓ Request timeout: ${REQUEST_TIMEOUT}ms`);
-  console.log(`   ✓ Gzip compression: enabled`);
-  console.log(`   ✓ Streaming request bodies: enabled`);
+  log(`🚀 Server running at http://${HOST}:${PORT}/`, 'INFO', {
+    host: HOST,
+    port: PORT,
+    keepAliveTimeout: server.keepAliveTimeout,
+    requestTimeout: REQUEST_TIMEOUT,
+    gzipEnabled: true,
+    streamingEnabled: true
+  });
 });
 
