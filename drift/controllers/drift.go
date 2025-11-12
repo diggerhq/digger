@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
 
+	"github.com/diggerhq/digger/backend/models"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
-    services2 "github.com/diggerhq/digger/drift/services"
-    "github.com/diggerhq/digger/drift/utils"
+	services2 "github.com/diggerhq/digger/drift/services"
+	"github.com/diggerhq/digger/drift/utils"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -305,14 +306,14 @@ func (mc MainController) ProcessDriftForOrg(c *gin.Context) {
 			jsonPayload, err := json.Marshal(payload)
 			if err != nil {
 				fmt.Println("Process Drift: error marshaling JSON:", err)
-				return
+				continue
 			}
 
 			// Create a new request
 			req, err := http.NewRequest("POST", triggerDriftUrl, bytes.NewBuffer(jsonPayload))
 			if err != nil {
 				fmt.Println("Process Drift: Error creating request:", err)
-				return
+				continue
 			}
 
 			// Set headers
@@ -324,7 +325,7 @@ func (mc MainController) ProcessDriftForOrg(c *gin.Context) {
 			resp, err := client.Do(req)
 			if err != nil {
 				fmt.Println("Error sending request:", err)
-				return
+				continue
 			}
 			defer resp.Body.Close()
 
