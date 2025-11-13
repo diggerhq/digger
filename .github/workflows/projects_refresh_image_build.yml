@@ -25,7 +25,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build projects-refresh image (no push)
-        uses: depot/build-push-action@v5
+        uses: depot/build-push-action@v1
         with:
           context: .
           file: Dockerfile_bg_projects_refresh
