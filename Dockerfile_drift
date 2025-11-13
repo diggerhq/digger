@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 # Multi-stage build will just copy the binary to an alpine image.
 FROM ubuntu:24.04 AS runner
-ENV ATLAS_VERSION=v0.31.0
+ENV ATLAS_VERSION=v0.38.0
 ARG COMMIT_SHA
 WORKDIR /app
 
