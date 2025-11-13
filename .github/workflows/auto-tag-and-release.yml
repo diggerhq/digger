@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - develop
-      - main
   workflow_dispatch:
     inputs:
       force_services:
