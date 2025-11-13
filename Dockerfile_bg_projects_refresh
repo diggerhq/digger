@@ -1,4 +1,4 @@
-FROM golang:1.24.0 as builder
+FROM 1.25.4 as builder
 ARG COMMIT_SHA
 RUN echo "commit sha: ${COMMIT_SHA}"
 
