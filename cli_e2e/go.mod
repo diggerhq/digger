@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/cli_e2e
 
-go 1.24.0
+go 1.25.0
 
 replace github.com/diggerhq/digger/libs => ../libs
 

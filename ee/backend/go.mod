@@ -12,7 +12,7 @@ replace k8s.io/client-go => k8s.io/client-go v0.17.16
 
 replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.2.2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.16.0

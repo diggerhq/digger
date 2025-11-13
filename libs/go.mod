@@ -1,6 +1,6 @@
 module github.com/diggerhq/digger/libs
 
-go 1.24.0
+go 1.25.0
 
 exclude google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b2c93a
 
