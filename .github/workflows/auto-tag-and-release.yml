@@ -116,10 +116,6 @@ jobs:
               local patch=$(echo $version | cut -d. -f3)
               local build=$(echo $version | cut -d. -f4)
               
-              # If no 4th digit exists (old format), add .0 and bump to .1
-              if [ -z "$build" ]; then
-                build=0
-              fi
               
               local new_build=$((build + 1))
               echo "v${major}.${minor}.${patch}.${new_build}"
