@@ -5,6 +5,7 @@ on:
     paths:
       - background/projects-refresh-service/**
       - Dockerfile_bg_projects_refresh
+      - .github/workflows/projects_refresh_image_build.yml
   workflow_dispatch: {}
 
 permissions:
@@ -24,12 +25,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - uses: depot/setup-action@v1
       - name: Build projects-refresh image (no push)
-        uses: depot/build-push-action@v5
+        uses: depot/build-push-action@v1
         with:
+          project: p9zgmm1k3n
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: Dockerfile_bg_projects_refresh
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: false
           tags: ghcr.io/diggerhq/digger/projects-refresh-service:ci-test
           build-args: |

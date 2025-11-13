@@ -48,9 +48,13 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+
+      - uses: depot/setup-action@v1
+      - name: Build projects-refresh image (no push)
+        uses: depot/build-push-action@v1
         with:
+          project: p9zgmm1k3n
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: ./Dockerfile_bg_projects_refresh
           push: true
