@@ -24,6 +24,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - uses: depot/setup-action@v1
       - name: Build projects-refresh image (no push)
         uses: depot/build-push-action@v1
         with:
