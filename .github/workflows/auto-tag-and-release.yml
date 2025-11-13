@@ -1,12 +1,10 @@
 name: Auto Tag and Release
 
 on:
-  # Temporarily manual-only for testing
-  # Uncomment 'push' below to enable automatic tagging on merge
-  # push:
-  #   branches:
-  #     - develop
-  #     - main
+  push:
+    branches:
+      - develop
+      - main
   workflow_dispatch:
     inputs:
       force_services:
@@ -102,22 +100,29 @@ jobs:
       - name: Calculate new versions
         id: versions
         run: |
-          # Function to get latest tag and bump patch version
+          # Function to get latest tag and bump build number (4th digit)
           get_next_version() {
             local prefix=$1
             local latest_tag=$(git tag -l "${prefix}/v*" | sort -V | tail -n1)
             
             if [ -z "$latest_tag" ]; then
-              # No tags exist, start with v0.1.0
-              echo "v0.1.0"
+              # No tags exist, start with v0.1.0.0
+              echo "v0.1.0.0"
             else
-              # Extract version and bump patch
+              # Extract version and bump build number (4th digit)
               local version=${latest_tag##*/v}
               local major=$(echo $version | cut -d. -f1)
               local minor=$(echo $version | cut -d. -f2)
               local patch=$(echo $version | cut -d. -f3)
-              local new_patch=$((patch + 1))
-              echo "v${major}.${minor}.${new_patch}"
+              local build=$(echo $version | cut -d. -f4)
+              
+              # If no 4th digit exists (old format), add .0 and bump to .1
+              if [ -z "$build" ]; then
+                build=0
+              fi
+              
+              local new_build=$((build + 1))
+              echo "v${major}.${minor}.${patch}.${new_build}"
             fi
           }
           
