@@ -5,6 +5,7 @@ on:
     paths:
       - background/projects-refresh-service/**
       - Dockerfile_bg_projects_refresh
+      - .github/workflows/projects_refresh_image_build.yml
   workflow_dispatch: {}
 
 permissions:
