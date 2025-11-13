@@ -293,55 +293,81 @@ func (s *s3Store) Download(ctx context.Context, id string) ([]byte, error) {
 }
 
 func (s *s3Store) Upload(ctx context.Context, id string, data []byte, lockID string) error {
+    fmt.Printf("[S3Store.Upload] START - id=%s, dataLen=%d, lockID=%s\n", id, len(data), lockID)
+    
     meta, err := s.Get(ctx, id)
     if err != nil {
+        fmt.Printf("[S3Store.Upload] Get failed: %v\n", err)
         return err
     }
+    fmt.Printf("[S3Store.Upload] Current meta - Size=%d, Locked=%t\n", meta.Size, meta.Locked)
+    
     // Lock checks
     if lockID != "" && meta.LockInfo != nil && meta.LockInfo.ID != lockID {
+        fmt.Printf("[S3Store.Upload] Lock conflict: provided lockID=%s, current lockID=%s\n", lockID, meta.LockInfo.ID)
         return ErrLockConflict
     }
     if lockID == "" && meta.Locked {
+        fmt.Printf("[S3Store.Upload] Lock conflict: no lockID provided but state is locked\n")
         return ErrLockConflict
     }
 
     // Archive current tfstate if it exists and has content
     if meta.Size > 0 {
+        fmt.Printf("[S3Store.Upload] ARCHIVING: Current state size=%d, creating version...\n", meta.Size)
+        
         // Download current tfstate to get its content for hashing
         currentData, err := s.Download(ctx, id)
         if err != nil {
+            fmt.Printf("[S3Store.Upload] ARCHIVING FAILED: Could not download current state: %v\n", err)
             return fmt.Errorf("failed to read current state for archiving: %w", err)
         }
+        fmt.Printf("[S3Store.Upload] ARCHIVING: Downloaded %d bytes\n", len(currentData))
         
         // Generate version key with hash of current content
         timestamp := time.Now().UTC()
         versionKey := s.versionKeyWithHash(id, timestamp, currentData)
+        fmt.Printf("[S3Store.Upload] ARCHIVING: Version key=%s\n", versionKey)
         
         // Copy current to versioned location
+        sourceKey := s.objKey(id)
+        copySource := fmt.Sprintf("%s/%s", s.bucket, sourceKey)
+        fmt.Printf("[S3Store.Upload] ARCHIVING: CopyObject from=%s to=%s\n", copySource, versionKey)
+        
         _, err = s.client.CopyObject(ctx, &s3.CopyObjectInput{
             Bucket:     &s.bucket,
             Key:        aws.String(versionKey),
-            CopySource: aws.String(fmt.Sprintf("%s/%s", s.bucket, s.objKey(id))),
+            CopySource: aws.String(copySource),
         })
         if err != nil {
+            fmt.Printf("[S3Store.Upload] ARCHIVING FAILED: CopyObject error: %v\n", err)
             return fmt.Errorf("failed to archive current version: %w", err)
         }
+        fmt.Printf("[S3Store.Upload] ARCHIVING SUCCESS: Version created at %s\n", versionKey)
         
         // Clean up old versions after successful archiving
         if err := s.cleanupOldVersions(ctx, id); err != nil {
-            fmt.Printf("Warning: failed to cleanup old versions for %s: %v\n", id, err)
+            fmt.Printf("[S3Store.Upload] Warning: failed to cleanup old versions for %s: %v\n", id, err)
         }
+    } else {
+        fmt.Printf("[S3Store.Upload] SKIPPING ARCHIVE: Current state size is 0 (first upload or empty state)\n")
     }
 
     // Upload new tfstate
+    newKey := s.objKey(id)
+    fmt.Printf("[S3Store.Upload] Uploading new state to key=%s, size=%d bytes\n", newKey, len(data))
+    
     if _, err := s.client.PutObject(ctx, &s3.PutObjectInput{
         Bucket: &s.bucket,
-        Key:    aws.String(s.objKey(id)),
+        Key:    aws.String(newKey),
         Body:   bytes.NewReader(data),
         ContentType: aws.String("application/json"),
     }); err != nil {
+        fmt.Printf("[S3Store.Upload] Upload failed: %v\n", err)
         return err
     }
+    
+    fmt.Printf("[S3Store.Upload] SUCCESS: New state uploaded\n")
     return nil
 }
 

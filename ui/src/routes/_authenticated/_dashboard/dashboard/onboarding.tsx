@@ -17,12 +17,13 @@ export const Route = createFileRoute(
   loader: async ({ context }) => {
     const { user, organisationId, publicServerConfig } = context
     const publicHostname = publicServerConfig?.PUBLIC_HOSTNAME || ''
-    return { user, organisationId, publicHostname }
+    const githubAppUrl = publicServerConfig?.ORCHESTRATOR_GITHUB_APP_URL || ''
+    return { user, organisationId, publicHostname, githubAppUrl  }
   },
 })
 
 function RouteComponent() {
-    const { user, organisationId, publicHostname } = Route.useLoaderData()
+    const { user, organisationId, publicHostname, githubAppUrl } = Route.useLoaderData()
     const [repoInfo, setRepoInfo] = useState<RepoInfo | null>(null)
     const router = useRouter()
     const handleOnboardingComplete = () => {
@@ -46,6 +47,7 @@ function RouteComponent() {
         email={user?.email || ''}
         organisationId={organisationId || ''}
         publicHostname={publicHostname}
+        githubAppUrl={githubAppUrl}
         onComplete={handleOnboardingComplete}
       />
     ) : (
@@ -54,6 +56,7 @@ function RouteComponent() {
         email={user?.email || ''}
         organisationId={organisationId || ''}
         publicHostname={publicHostname}
+        githubAppUrl={githubAppUrl}
         onComplete={handleOnboardingComplete}
       />
     )}

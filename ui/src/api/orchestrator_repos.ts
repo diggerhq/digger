@@ -1,9 +1,15 @@
+// Helper to generate request IDs for tracing
+function generateRequestId(): string {
+    return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function syncOrgToBackend(orgId: string, orgName: string, adminEmail: string | null) {
   const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/_internal/api/upsert_org`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`
+      'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
+      'X-Request-ID': generateRequestId(),
     },
     body: JSON.stringify({ 
         org_name: orgName,
@@ -25,7 +31,8 @@ export async function syncUserToBackend(userId: string, userEmail: string, orgId
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`
+            'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({ 
             external_id: userId,
@@ -50,6 +57,7 @@ export async function fetchRepos(organizationId: string, userId: string) {
       'DIGGER_ORG_ID': organizationId,
       'DIGGER_USER_ID': userId,
       'DIGGER_ORG_SOURCE': 'workos',
+      'X-Request-ID': generateRequestId(),
     },
   });
 
@@ -68,6 +76,7 @@ export async function fetchRepoDetails(repoId: string, organisationId: string, u
       'DIGGER_ORG_ID': organisationId,
       'DIGGER_USER_ID': userId,
       'DIGGER_ORG_SOURCE': 'workos',
+      'X-Request-ID': generateRequestId(),
     },
   });
 }

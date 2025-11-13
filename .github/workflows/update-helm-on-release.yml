@@ -1,0 +1,144 @@
+name: Update Helm Chart on Release
+
+on:
+  workflow_run:
+    workflows: 
+      - "EE Backend Publish docker image"
+      - "Drift Docker Release"
+      - "UI Docker Release"
+      - "taco-release"
+      - "Projects Refresh Service Docker Release"
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  update-helm-chart:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine service and version from tag
+        id: parse-tag
+        run: |
+          TAG_NAME="${{ github.event.workflow_run.head_branch }}"
+          echo "Tag name: $TAG_NAME"
+          
+          # Parse tag to determine service and version
+          if [[ $TAG_NAME == backend-ee/v* ]]; then
+            SERVICE="backend-ee"
+            VERSION="${TAG_NAME##backend-ee/}"
+            YAML_PATH=".taco-orchestrator.digger.image.tag"
+          elif [[ $TAG_NAME == drift/v* ]]; then
+            SERVICE="drift"
+            VERSION="${TAG_NAME##drift/}"
+            YAML_PATH=".taco-drift.drift.image.tag"
+          elif [[ $TAG_NAME == ui/v* ]]; then
+            SERVICE="ui"
+            VERSION="${TAG_NAME##ui/}"
+            YAML_PATH=".taco-ui.ui.image.tag"
+          elif [[ $TAG_NAME == taco/statesman/v* ]]; then
+            SERVICE="statesman"
+            VERSION="${TAG_NAME##taco/statesman/}"
+            YAML_PATH=".taco-statesman.taco.image.tag"
+          elif [[ $TAG_NAME == taco/token-service/v* ]]; then
+            SERVICE="token-service"
+            VERSION="${TAG_NAME##taco/token-service/}"
+            YAML_PATH=".taco-token-service.tokenService.image.tag"
+          elif [[ $TAG_NAME == projects-refresh/v* ]]; then
+            SERVICE="projects-refresh"
+            VERSION="${TAG_NAME##projects-refresh/}"
+            # Projects refresh doesn't have a dedicated section yet
+            echo "Projects refresh service detected, skipping helm update (no chart section)"
+            exit 0
+          else
+            echo "Not a recognized release tag, skipping"
+            exit 0
+          fi
+          
+          echo "service=$SERVICE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "yaml_path=$YAML_PATH" >> $GITHUB_OUTPUT
+          echo "Detected: service=$SERVICE, version=$VERSION"
+      
+      - name: Checkout helm charts repo
+        if: steps.parse-tag.outputs.service != ''
+        uses: actions/checkout@v4
+        with:
+          repository: diggerhq/opentaco-helm-charts
+          token: ${{ secrets.HELM_CHARTS_PAT }}
+          ref: main
+      
+      - name: Install yq
+        if: steps.parse-tag.outputs.service != ''
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+      
+      - name: Update values-production.yaml
+        if: steps.parse-tag.outputs.service != ''
+        run: |
+          SERVICE="${{ steps.parse-tag.outputs.service }}"
+          VERSION="${{ steps.parse-tag.outputs.version }}"
+          YAML_PATH="${{ steps.parse-tag.outputs.yaml_path }}"
+          VALUES_FILE="opentaco/values-production.yaml"
+          
+          if [ ! -f "$VALUES_FILE" ]; then
+            echo "Error: $VALUES_FILE not found"
+            exit 1
+          fi
+          
+          echo "Updating $YAML_PATH to $VERSION in $VALUES_FILE"
+          
+          # Update the version using yq
+          yq eval "${YAML_PATH} = \"${VERSION}\"" -i "$VALUES_FILE"
+          
+          echo "Updated successfully!"
+          echo "---"
+          echo "Changed section:"
+          yq eval "$YAML_PATH" "$VALUES_FILE"
+      
+      - name: Commit and push changes
+        if: steps.parse-tag.outputs.service != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          SERVICE="${{ steps.parse-tag.outputs.service }}"
+          VERSION="${{ steps.parse-tag.outputs.version }}"
+          TAG="${{ github.event.workflow_run.head_branch }}"
+          COMMIT="${{ github.event.workflow_run.head_sha }}"
+          
+          git add opentaco/values-production.yaml
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          # Create commit message
+          git commit -m "chore: update $SERVICE to $VERSION" \
+            -m "Automated update from digger repo release." \
+            -m "" \
+            -m "Tag: $TAG" \
+            -m "Commit: $COMMIT"
+          
+          git push
+          
+          echo "✅ Successfully updated helm chart for $SERVICE $VERSION"
+      
+      - name: Create summary
+        if: steps.parse-tag.outputs.service != ''
+        run: |
+          SERVICE="${{ steps.parse-tag.outputs.service }}"
+          VERSION="${{ steps.parse-tag.outputs.version }}"
+          
+          echo "## Helm Chart Updated 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** $SERVICE" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** opentaco/values-production.yaml" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The helm chart has been automatically updated in the [opentaco-helm-charts](https://github.com/diggerhq/opentaco-helm-charts) repository." >> $GITHUB_STEP_SUMMARY
+

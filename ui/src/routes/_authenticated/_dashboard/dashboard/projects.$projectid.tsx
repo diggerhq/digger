@@ -4,6 +4,7 @@ import { createFileRoute, useLoaderData, Link } from '@tanstack/react-router'
 import { AlertTriangle, CheckCircle, Clock, FolderOpen, GitBranch, Calendar, ArrowLeft } from 'lucide-react'
 import { getProjectFn } from '@/api/orchestrator_serverFunctions'
 import { Button } from '@/components/ui/button'
+import { DetailsSkeleton } from '@/components/LoadingSkeleton'
 
 const getDriftStatusBadge = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -37,9 +38,16 @@ export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/projects/$projectid',
 )({
   component: RouteComponent,
+  pendingComponent: () => (
+    <div className="container mx-auto p-4">
+      <div className="mb-6"><div className="h-10 w-32" /></div>
+      <DetailsSkeleton />
+    </div>
+  ),
   loader: async ({ context, params: {projectid} }) => {
     const { user, organisationId } = context;
     const project = await getProjectFn({data: {projectId: projectid, organisationId, userId: user?.id || ''}})
+
     return { project }
   }
 })

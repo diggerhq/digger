@@ -8,12 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { PageLoading } from '@/components/LoadingSkeleton'
+import { trackProjectDriftToggled } from '@/lib/analytics'
 
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/projects/',
 )({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
     try {
@@ -33,7 +36,7 @@ function RouteComponent() {
     const [projectList, setProjectList] = useState<Project[]>(projects)
 
     const handleDriftToggle = async (project: Project) => {
-        // trackProjectDriftToggled(user, organisationId, project.id.toString(), !project.drift_enabled ? 'enabled' : 'disabled')
+        trackProjectDriftToggled(user, organisationId, project.id.toString(), !project.drift_enabled ? 'enabled' : 'disabled')
 
         try {
             // Optimistically update UI
@@ -88,54 +91,69 @@ function RouteComponent() {
           <CardDescription>List of projects detected accross all repositories. Each project represents a statefile and is loaded from digger.yml in the root of the repository.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Repository</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Directory</TableHead>
-                <TableHead>Drift enabled</TableHead>
-                <TableHead>Drift status</TableHead>
-                <TableHead>Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projectList.map((project: Project) => {
-                return (
-                  <TableRow key={project.id}>
-                    <TableCell>
-                      <a href={`https://github.com/${project.repo_full_name}`} target="_blank" rel="noopener noreferrer">
-                        {project.repo_full_name}
-                      </a>
-                    </TableCell>
-
-                    <TableCell>{project.name}</TableCell>
-                    <TableCell>
-                        {project.directory}
-                    </TableCell>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={project.drift_enabled}
-                        onChange={() => handleDriftToggle(project)}
-                        className="h-4 w-4 rounded border-gray-300"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {project.drift_status}
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" asChild size="sm">
-                        <Link to="/dashboard/projects/$projectid" params={{ projectid: String(project.id) }}>
-                          View Details <ExternalLink className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          {projectList.length === 0 ? (
+            <div className="text-center py-12">
+              <h2 className="text-lg font-semibold mb-2">No Projects Found</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto mb-6">
+                Projects represent entries loaded from your <code className="font-mono">digger.yml</code>.
+                They will appear here when you connect repositories that contain a valid <code className="font-mono">digger.yml</code>.
+              </p>
+              <Button asChild>
+                <Link to="/dashboard/onboarding" search={{ step: 'github' } as any}>
+                  Connect repositories
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Repository</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Directory</TableHead>
+                  <TableHead>Drift enabled</TableHead>
+                  <TableHead>Drift status</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projectList.map((project: Project) => {
+                  return (
+                    <TableRow key={project.id}>
+                      <TableCell>
+                        <a href={`https://github.com/${project.repo_full_name}`} target="_blank" rel="noopener noreferrer">
+                          {project.repo_full_name}
+                        </a>
+                      </TableCell>
+  
+                      <TableCell>{project.name}</TableCell>
+                      <TableCell>
+                          {project.directory}
+                      </TableCell>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={project.drift_enabled}
+                          onChange={() => handleDriftToggle(project)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {project.drift_status}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" asChild size="sm">
+                          <Link to="/dashboard/projects/$projectid" params={{ projectid: String(project.id) }}>
+                            View Details <ExternalLink className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

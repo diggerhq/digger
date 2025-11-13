@@ -2,12 +2,13 @@ package services
 
 import (
 	"fmt"
-	"github.com/diggerhq/digger/backend/models"
-	"github.com/diggerhq/digger/backend/service_clients"
-	utils3 "github.com/diggerhq/digger/backend/utils"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/service_clients"
+	utils3 "github.com/diggerhq/digger/backend/utils"
 )
 
 func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId string, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string) error {
@@ -41,7 +42,12 @@ func LoadProjectsFromGithubRepo(gh utils3.GithubClientProvider, installationId s
 		return fmt.Errorf("error getting github service")
 	}
 
-	resp, err := service_clients.TriggerProjectsRefreshService(cloneUrl, branch, *token, repoFullName, strconv.Itoa(int(link.OrganisationId)))
+	bgClient, err := service_clients.GetBackgroundJobsClient()
+	if err != nil || bgClient == nil {
+		slog.Error("getting background jobs client", "error", err)
+		return fmt.Errorf("error getting background jobs client")
+	}
+	resp, err := bgClient.TriggerProjectsRefreshService(cloneUrl, branch, *token, repoFullName, strconv.Itoa(int(link.OrganisationId)))
 	if err != nil {
 		return fmt.Errorf("error triggering projects refresh service: %v", err)
 	}

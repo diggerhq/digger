@@ -4,55 +4,70 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/diggerhq/digger/opentaco/internal/query"
-	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
-	"github.com/diggerhq/digger/opentaco/internal/repositories"
+	"github.com/diggerhq/digger/opentaco/cmd/token_service/query"
+	querytypes "github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/diggerhq/digger/opentaco/internal/token_service"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
-// change this random number to bump version of token service: 1
+// change this random number to bump version of token service: 2
 func main() {
 	var (
 		port = flag.String("port", "8081", "Server port")
 	)
 	flag.Parse()
 
-	// Load configuration from environment variables into our struct.
-	var queryCfg query.Config
-	err := envconfig.Process("opentaco", &queryCfg) // The prefix "OPENTACO" will be used for all vars.
+	// Initialize structured logging first (before any log statements)
+	logging.Init("opentaco-token-service")
+	slog.Info("Starting OpenTaco Token Service")
+
+	// Load configuration from environment variables with "opentaco_token" prefix
+	var dbCfg query.Config
+	err := envconfig.Process("opentaco_token", &dbCfg)
 	if err != nil {
-		log.Fatalf("Failed to process configuration: %v", err)
+		slog.Error("Failed to process token service database configuration", "error", err)
+		os.Exit(1)
 	}
 
-	// --- Initialize Stores ---
+	// --- Initialize Token Service Database ---
 
-	// Create the database query store using the dedicated factory.
-	queryStore, err := queryfactory.NewQueryStore(queryCfg)
+	// Create the database connection for token service
+	db, err := query.NewDB(dbCfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize query backend: %v", err)
+		slog.Error("Failed to initialize token service database", "error", err)
+		os.Exit(1)
 	}
-	defer queryStore.Close()
 
-	log.Printf("Query backend initialized: %s", queryCfg.Backend)
-
-	// Get the underlying *gorm.DB from the query store
-	db := repositories.GetDBFromQueryStore(queryStore)
-	if db == nil {
-		log.Fatalf("Query store does not provide GetDB method")
+	sqlDB, err := db.DB()
+	if err != nil {
+		slog.Error("Failed to get underlying sql.DB", "error", err)
+		os.Exit(1)
 	}
+	defer sqlDB.Close()
+
+	slog.Info("Token service database initialized", "backend", dbCfg.Backend)
+
+	// Auto-migrate token models (ensures schema exists)
+	// Note: In Docker, migrations are applied via Atlas in entrypoint.sh
+	// This AutoMigrate is primarily for local development convenience
+	if err := db.AutoMigrate(querytypes.TokenModels...); err != nil {
+		slog.Error("Failed to auto-migrate token models", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Token service database schema verified")
 
 	// Create token repository
 	tokenRepo := token_service.NewTokenRepository(db)
-	log.Println("Token repository initialized")
+	slog.Info("Token repository initialized")
 
 	// Create Echo instance
 	e := echo.New()
@@ -61,7 +76,10 @@ func main() {
 	// Middleware
 	e.Use(echomiddleware.Logger())
 	e.Use(echomiddleware.Recover())
-	e.Use(echomiddleware.RequestID())
+	// Use incoming X-Request-ID if provided, otherwise generate new one
+	e.Use(echomiddleware.RequestIDWithConfig(echomiddleware.RequestIDConfig{
+		TargetHeader: echo.HeaderXRequestID,
+	}))
 	e.Use(echomiddleware.Gzip())
 	e.Use(echomiddleware.Secure())
 	e.Use(echomiddleware.CORS())
@@ -72,9 +90,10 @@ func main() {
 	// Start server
 	go func() {
 		addr := fmt.Sprintf(":%s", *port)
-		log.Printf("Starting Token Service on %s", addr)
+		slog.Info("Starting Token Service", "address", addr, "port", *port)
 		if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server startup failed: %v", err)
+			slog.Error("Server startup failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -84,14 +103,15 @@ func main() {
 	<-quit
 
 	// Graceful shutdown
-	log.Println("Shutting down server...")
+	slog.Info("Shutting down server gracefully...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := e.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("Server shutdown failed: %v", err)
+		slog.Error("Server shutdown failed", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("Server shutdown complete")
+	slog.Info("Server shutdown complete")
 }
 

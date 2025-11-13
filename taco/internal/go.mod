@@ -1,6 +1,8 @@
 module github.com/diggerhq/digger/opentaco/internal
 
-go 1.24.0
+go 1.25.0
+
+replace github.com/diggerhq/digger/opentaco/cmd/token_service => ../cmd/token_service
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.38.1
@@ -8,10 +10,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.87.1
 	github.com/aws/smithy-go v1.22.5
 	github.com/coreos/go-oidc/v3 v3.11.0
+	github.com/diggerhq/digger/opentaco/cmd/token_service v0.0.0-00010101000000-000000000000
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/jsonapi v1.0.0
 	github.com/google/uuid v1.6.0
-	github.com/labstack/echo/v4 v4.11.4
+	github.com/labstack/echo/v4 v4.13.3
 	github.com/mr-tron/base58 v1.2.0
 	github.com/stretchr/testify v1.10.0
 	gorm.io/driver/mysql v1.6.0

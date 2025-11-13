@@ -15,7 +15,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-larger
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,9 +48,12 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+    
+      - uses: depot/setup-action@v1
+      - uses: depot/build-push-action@v1
         with:
+          project: n4w66j9g6t
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: ./Dockerfile_ui
           push: true

@@ -149,7 +149,8 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	}
 	
 	// Create TFE handler with webhook auth context
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
+	// Pass both wrapped (for authenticated calls) and unwrapped (for signed URLs) repositories
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.UnwrappedRepository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
 	
 	// TFE group with webhook auth (for UI pass-through)
 	tfeInternal := e.Group("/internal/tfe/api/v2")

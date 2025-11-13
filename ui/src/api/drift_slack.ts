@@ -1,3 +1,7 @@
+// Helper to generate request IDs for tracing
+function generateRequestId(): string {
+    return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export async function testSlackWebhook(
     notification_url: string
@@ -6,6 +10,7 @@ export async function testSlackWebhook(
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET}`,
+        'X-Request-ID': generateRequestId(),
       },
       body: JSON.stringify({
         notification_url: notification_url

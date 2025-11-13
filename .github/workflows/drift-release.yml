@@ -48,15 +48,19 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - uses: depot/setup-action@v1
+      - uses: depot/build-push-action@v1
         with:
+          project: f11hp4hlmg
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: ./Dockerfile_drift
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.docker-meta.outputs.tags }}
           labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             COMMIT_SHA=${{ github.sha }}
             VERSION=${{ steps.meta.outputs.version }}

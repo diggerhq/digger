@@ -1,11 +1,16 @@
 package tfe
 
 import (
+	"github.com/diggerhq/digger/opentaco/internal/logging"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 func (h *TfeHandler) AccountDetails(c echo.Context) error {
+	logger := logging.FromContext(c)
+	logger.Info("Getting TFE account details",
+		"operation", "tfe_account_details",
+	)
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"data": map[string]interface{}{
 			"id":   "user-NFJxcpGThdJGBSjT",

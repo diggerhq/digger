@@ -10,6 +10,7 @@ import (
 
     "github.com/diggerhq/digger/opentaco/internal/auth"
     "github.com/diggerhq/digger/opentaco/internal/domain"
+    "github.com/diggerhq/digger/opentaco/internal/logging"
     "github.com/diggerhq/digger/opentaco/internal/query"
     "github.com/labstack/echo/v4"
 )
@@ -62,37 +63,67 @@ func (h *Handler) resolvePermissionIdentifier(c echo.Context, identifier string)
 
 // Init handles POST /v1/rbac/init
 func (h *Handler) Init(c echo.Context) error {
+    logger := logging.FromContext(c)
     var req struct {
         Subject string `json:"subject"`
         Email   string `json:"email"`
     }
     
     if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+        logger.Warn("Invalid RBAC init request",
+            "operation", "rbac_init",
+            "error", err,
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_request"})
     }
     
     if req.Subject == "" || req.Email == "" {
+        logger.Warn("Missing subject or email in RBAC init",
+            "operation", "rbac_init",
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "subject and email required"})
     }
+    
+    logger.Info("Initializing RBAC",
+        "operation", "rbac_init",
+        "subject", req.Subject,
+        "email", req.Email,
+    )
     
     // Check if RBAC is already initialized
     ctx := c.Request().Context()
     enabled, err := h.manager.IsEnabled(ctx)
     if err != nil {
+        logger.Error("Failed to check RBAC status",
+            "operation", "rbac_init",
+            "error", err,
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check RBAC status"})
     }
     
     if enabled {
+        logger.Warn("RBAC already initialized",
+            "operation", "rbac_init",
+        )
         return c.JSON(http.StatusConflict, map[string]string{"error": "RBAC already initialized"})
     }
     
     // Get org UUID from domain context for InitializeRBAC
     orgCtx, ok := domain.OrgFromContext(ctx)
     if !ok {
+        logger.Error("Organization context missing",
+            "operation", "rbac_init",
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
     }
     
     if err := h.manager.InitializeRBAC(ctx, orgCtx.OrgID, req.Subject, req.Email); err != nil {
+        logger.Error("Failed to initialize RBAC",
+            "operation", "rbac_init",
+            "org_id", orgCtx.OrgID,
+            "subject", req.Subject,
+            "error", err,
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to initialize RBAC"})
     }
     
@@ -100,14 +131,24 @@ func (h *Handler) Init(c echo.Context) error {
         h.syncAllRBACData(c.Request().Context())
     }
     
+    logger.Info("RBAC initialized successfully",
+        "operation", "rbac_init",
+        "org_id", orgCtx.OrgID,
+        "subject", req.Subject,
+    )
     return c.JSON(http.StatusOK, map[string]string{"message": "RBAC initialized successfully"})
 }
 
 // Me handles GET /v1/rbac/me
 func (h *Handler) Me(c echo.Context) error {
+    logger := logging.FromContext(c)
     // Get user from token
     principal, err := h.getPrincipalFromToken(c)
     if err != nil {
+        logger.Info("Token verification failed for RBAC me",
+            "operation", "rbac_me",
+            "error", err,
+        )
         // Graceful fallback for token verification failures (like auth handler)
         return c.JSON(http.StatusOK, map[string]interface{}{
             "rbac_enabled": false,
@@ -118,16 +159,30 @@ func (h *Handler) Me(c echo.Context) error {
         })
     }
     
+    logger.Info("Getting RBAC user info",
+        "operation", "rbac_me",
+        "subject", principal.Subject,
+    )
+    
     // Get org UUID from domain context
     ctx := c.Request().Context()
     
     // Check if RBAC is enabled
     enabled, err := h.manager.IsEnabled(ctx)
     if err != nil {
+        logger.Error("Failed to check RBAC status",
+            "operation", "rbac_me",
+            "subject", principal.Subject,
+            "error", err,
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to check RBAC status"})
     }
     
     if !enabled {
+        logger.Info("RBAC not initialized",
+            "operation", "rbac_me",
+            "subject", principal.Subject,
+        )
         return c.JSON(http.StatusOK, map[string]interface{}{
             "rbac_enabled": false,
             "subject":      principal.Subject,
@@ -140,10 +195,19 @@ func (h *Handler) Me(c echo.Context) error {
     // Get user assignment
     assignment, err := h.manager.GetUserInfo(ctx, principal.Subject)
     if err != nil {
+        logger.Error("Failed to get user info",
+            "operation", "rbac_me",
+            "subject", principal.Subject,
+            "error", err,
+        )
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get user info"})
     }
     
     if assignment == nil {
+        logger.Info("User has no RBAC assignments",
+            "operation", "rbac_me",
+            "subject", principal.Subject,
+        )
         return c.JSON(http.StatusOK, map[string]interface{}{
             "rbac_enabled": true,
             "subject":      principal.Subject,
@@ -165,6 +229,7 @@ func (h *Handler) Me(c echo.Context) error {
 
 // AssignRole handles POST /v1/rbac/users/assign
 func (h *Handler) AssignRole(c echo.Context) error {
+    logger := logging.FromContext(c)
     // Check if user has RBAC manage permission
     if err := h.requireRBACPermission(c, ActionRBACManage, "*"); err != nil {
         return err
@@ -177,22 +242,48 @@ func (h *Handler) AssignRole(c echo.Context) error {
     }
     
     if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+        logger.Warn("Invalid assign role request",
+            "operation", "rbac_assign_role",
+            "error", err,
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_request"})
     }
     
     if req.Email == "" || req.RoleID == "" {
+        logger.Warn("Missing email or role_id",
+            "operation", "rbac_assign_role",
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "email and role_id required"})
     }
+    
+    logger.Info("Assigning role",
+        "operation", "rbac_assign_role",
+        "subject", req.Subject,
+        "email", req.Email,
+        "role_id", req.RoleID,
+    )
     
     ctx := c.Request().Context()
     
     // Use email-based assignment if no subject provided
     if req.Subject == "" {
         if err := h.manager.AssignRoleByEmail(ctx, req.Email, req.RoleID); err != nil {
+            logger.Error("Failed to assign role by email",
+                "operation", "rbac_assign_role",
+                "email", req.Email,
+                "role_id", req.RoleID,
+                "error", err,
+            )
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to assign role: " + err.Error()})
         }
     } else {
         if err := h.manager.AssignRole(ctx, req.Subject, req.Email, req.RoleID); err != nil {
+            logger.Error("Failed to assign role",
+                "operation", "rbac_assign_role",
+                "subject", req.Subject,
+                "role_id", req.RoleID,
+                "error", err,
+            )
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to assign role"})
         }
     }
@@ -214,11 +305,18 @@ func (h *Handler) AssignRole(c echo.Context) error {
         }
     }
     
+    logger.Info("Role assigned successfully",
+        "operation", "rbac_assign_role",
+        "subject", req.Subject,
+        "email", req.Email,
+        "role_id", req.RoleID,
+    )
     return c.JSON(http.StatusOK, map[string]string{"message": "role assigned successfully"})
 }
 
 // RevokeRole handles POST /v1/rbac/users/revoke
 func (h *Handler) RevokeRole(c echo.Context) error {
+    logger := logging.FromContext(c)
     // Check if user has RBAC manage permission
     if err := h.requireRBACPermission(c, ActionRBACManage, "*"); err != nil {
         return err
@@ -231,22 +329,45 @@ func (h *Handler) RevokeRole(c echo.Context) error {
     }
     
     if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+        logger.Warn("Invalid revoke role request",
+            "operation", "rbac_revoke_role",
+            "error", err,
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_request"})
     }
     
     if req.RoleID == "" {
+        logger.Warn("Missing role_id",
+            "operation", "rbac_revoke_role",
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "role_id required"})
     }
     
     if req.Subject == "" && req.Email == "" {
+        logger.Warn("Missing subject and email",
+            "operation", "rbac_revoke_role",
+        )
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "either subject or email required"})
     }
+    
+    logger.Info("Revoking role",
+        "operation", "rbac_revoke_role",
+        "subject", req.Subject,
+        "email", req.Email,
+        "role_id", req.RoleID,
+    )
     
     ctx := c.Request().Context()
     
     // Use email-based revocation if email provided, otherwise use subject
     if req.Email != "" {
         if err := h.manager.RevokeRoleByEmail(ctx, req.Email, req.RoleID); err != nil {
+            logger.Error("Failed to revoke role by email",
+                "operation", "rbac_revoke_role",
+                "email", req.Email,
+                "role_id", req.RoleID,
+                "error", err,
+            )
             return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to revoke role: " + err.Error()})
         }
     } else {

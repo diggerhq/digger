@@ -29,12 +29,13 @@ import (
 // Dependencies holds all the interface-based dependencies for routes.
 // This uses interface segregation - each handler gets ONLY what it needs.
 type Dependencies struct {
-	Repository  domain.UnitRepository  // RBAC-wrapped repository (used by all routes)
-	BlobStore   storage.UnitStore      // Direct blob access (for legacy components like API tokens)
-	QueryStore  query.Store            // Direct query access (analytics, RBAC)
-	RBACManager *rbac.RBACManager      // RBAC management (RBAC routes only)
-	Signer      *authpkg.Signer        // JWT signing (auth, middleware)
-	AuthEnabled bool                   // Whether auth is enabled
+	Repository          domain.UnitRepository  // RBAC-wrapped repository (used by all routes)
+	UnwrappedRepository domain.UnitRepository  // Unwrapped repository (for pre-authorized operations like signed URLs)
+	BlobStore           storage.UnitStore      // Direct blob access (for legacy components like API tokens)
+	QueryStore          query.Store            // Direct query access (analytics, RBAC)
+	RBACManager         *rbac.RBACManager      // RBAC management (RBAC routes only)
+	Signer              *authpkg.Signer        // JWT signing (auth, middleware)
+	AuthEnabled         bool                   // Whether auth is enabled
 }
 
 // RegisterRoutes registers all API routes with interface-scoped dependencies.
@@ -244,8 +245,9 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	v1.DELETE("/rbac/permissions/:id", rbacHandler.DeletePermission)
 	v1.POST("/rbac/test", rbacHandler.TestPermissions)
 
-	// TFE api - inject auth handler, full repository, blob store for tokens, and RBAC dependencies
+	// TFE api - inject auth handler, wrapped & unwrapped repositories, blob store for tokens, and RBAC dependencies
 	// TFE handler scopes to TFEOperations internally but needs blob store for API token storage
+	// Unwrapped repository is used for signed URL operations (pre-authorized, no RBAC checks needed)
 	// Create identifier resolver for org resolution
 	var tfeIdentifierResolver domain.IdentifierResolver
 	if deps.QueryStore != nil {
@@ -253,7 +255,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 			tfeIdentifierResolver = repositories.NewIdentifierResolver(db)
 		}
 	}
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
+	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.UnwrappedRepository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
 
 	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")
@@ -272,7 +274,6 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeGroup.POST("/workspaces/:workspace_id/actions/force-unlock", tfeHandler.ForceUnlockWorkspace)
 	tfeGroup.GET("/workspaces/:workspace_id/current-state-version", tfeHandler.GetCurrentStateVersion)
 	tfeGroup.POST("/workspaces/:workspace_id/state-versions", tfeHandler.CreateStateVersion)
-	tfeGroup.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
 	tfeGroup.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
 
 	tfeGroup.GET("/plans/:planID/logs/:blobId", tfeHandler.GetPlanLogs)
@@ -282,6 +283,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	// Upload URLs can only be obtained from authenticated CreateStateVersion calls
 	tfeSignedUrlsGroup := e.Group("/tfe/api/v2")
 	tfeSignedUrlsGroup.Use(middleware.VerifySignedURL)
+	tfeSignedUrlsGroup.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/upload", tfeHandler.UploadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
 	tfeSignedUrlsGroup.PUT("/configuration-versions/:id/upload", tfeHandler.UploadConfigurationArchive)

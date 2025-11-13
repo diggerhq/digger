@@ -8,6 +8,7 @@ import { Organization } from '@workos-inc/node';
 import { WidgetScope } from 'node_modules/@workos-inc/node/lib/widgets/interfaces/get-token';
 import { syncOrgToBackend } from '@/api/orchestrator_orgs';
 import { syncOrgToStatesman } from '@/api/statesman_orgs';
+import { serverCache } from '@/lib/cache.server';
 
 export const getAuthorizationUrl = createServerFn({ method: 'GET' })
   .inputValidator((options?: GetAuthURLOptions) => options)
@@ -26,7 +27,21 @@ export const getAuthorizationUrl = createServerFn({ method: 'GET' })
 export const getOrganisationDetails = createServerFn({method: 'GET'})
   .inputValidator((data: {organizationId: string}) => data)
   .handler(async ({data: {organizationId}}) : Promise<Organization> => {
-  return getWorkOS().organizations.getOrganization(organizationId).then(organization => organization);
+    // Check cache first
+    const cached = serverCache.getOrg(organizationId);
+    if (cached) {
+      console.log(`✅ Cache hit for org: ${organizationId}`);
+      return cached;
+    }
+    
+    // Cache miss - fetch from WorkOS
+    console.log(`❌ Cache miss for org: ${organizationId}, fetching from WorkOS...`);
+    const organization = await getWorkOS().organizations.getOrganization(organizationId);
+    
+    // Store in cache
+    serverCache.setOrg(organizationId, organization);
+    
+    return organization;
 });
 
 
@@ -86,23 +101,57 @@ export const getAuth = createServerFn({ method: 'GET' }).handler(async (): Promi
 export const getOrganization = createServerFn({method: 'GET'})
     .inputValidator((data: {organizationId: string}) => data)
     .handler(async ({data: {organizationId}}) : Promise<Organization> => {
-  return getWorkOS().organizations.getOrganization(organizationId);
+  // Check cache first
+  const cached = serverCache.getOrg(organizationId);
+  if (cached) {
+    return cached;
+  }
+  
+  // Cache miss - fetch from WorkOS
+  const organization = await getWorkOS().organizations.getOrganization(organizationId);
+  serverCache.setOrg(organizationId, organization);
+  
+  return organization;
 });
 
 export const ensureOrgExists = createServerFn({method: 'GET'})
     .inputValidator((data: {organizationId: string}) => data)
     .handler(async ({data: {organizationId}}) : Promise<Organization> => {
-  return getWorkOS().organizations.getOrganization(organizationId);
+  // Check cache first
+  const cached = serverCache.getOrg(organizationId);
+  if (cached) {
+    return cached;
+  }
+  
+  // Cache miss - fetch from WorkOS
+  const organization = await getWorkOS().organizations.getOrganization(organizationId);
+  serverCache.setOrg(organizationId, organization);
+  
+  return organization;
 });
 
 
 export const getWidgetsAuthToken = createServerFn({method: 'GET'})
     .inputValidator((args: {userId: string, organizationId: string, scopes?: WidgetScope[]}) => args)
     .handler(async ({data: {userId, organizationId, scopes}}) : Promise<string> => {
-  return getWorkOS().widgets.getToken({
+  // Check cache first
+  const cached = serverCache.getWidgetToken(userId, organizationId);
+  if (cached) {
+    console.log(`✅ Widget token cache hit for ${userId}:${organizationId}`);
+    return cached;
+  }
+  
+  // Cache miss - generate new token
+  console.log(`❌ Widget token cache miss, generating new token for ${userId}:${organizationId}`);
+  const token = await getWorkOS().widgets.getToken({
     userId: userId,
     organizationId: organizationId,
     scopes: scopes ?? ['widgets:users-table:manage'] as WidgetScope[],
   });
+  
+  // Store in cache
+  serverCache.setWidgetToken(userId, organizationId, token);
+  
+  return token;
 })
 

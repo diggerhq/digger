@@ -14,8 +14,8 @@ var (
 	ErrInvalidOrgID = errors.New("invalid organization ID format")
 )
 
-// OrgIDPattern defines valid organization ID format: alphanumeric, hyphens, underscores
-var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$`)
+// OrgIDPattern defines valid organization ID format: must start with alphanumeric, can contain alphanumeric, hyphens, underscores, spaces, colons, periods
+var OrgIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_\- :.]*$`)
 
 // ============================================
 // Domain Models
@@ -92,11 +92,11 @@ func ValidateOrgID(orgID string) error {
 	if len(orgID) < 3 {
 		return fmt.Errorf("%w: must be at least 3 characters", ErrInvalidOrgID)
 	}
-	if len(orgID) > 50 {
-		return fmt.Errorf("%w: must be at most 50 characters", ErrInvalidOrgID)
+	if len(orgID) > 255 {
+		return fmt.Errorf("%w: must be at most 255 characters", ErrInvalidOrgID)
 	}
 	if !OrgIDPattern.MatchString(orgID) {
-		return fmt.Errorf("%w: must contain only letters, numbers, hyphens, and underscores", ErrInvalidOrgID)
+		return fmt.Errorf("%w: must start with a letter or number, and can only contain letters, numbers, hyphens, underscores, spaces, colons, and periods", ErrInvalidOrgID)
 	}
 	return nil
 }
@@ -106,8 +106,11 @@ func ValidateOrgID(orgID string) error {
 // ============================================
 
 // OrgContext carries organization information through the request lifecycle
+// Includes org name to avoid repeated database queries
 type OrgContext struct {
-	OrgID string // UUID of the organization
+	OrgID       string // UUID of the organization
+	OrgName     string // Short name (e.g., "acme") - populated by middleware
+	DisplayName string // Friendly name (e.g., "Acme Corp") - populated by middleware
 }
 
 // orgContextKey is used to store OrgContext in context.Context
@@ -117,6 +120,16 @@ type orgContextKey struct{}
 // This allows passing org information through the call stack without coupling to HTTP
 func ContextWithOrg(ctx context.Context, orgID string) context.Context {
 	return context.WithValue(ctx, orgContextKey{}, &OrgContext{OrgID: orgID})
+}
+
+// ContextWithOrgFull adds full organization context including name and display name
+// This avoids repeated database queries for org info
+func ContextWithOrgFull(ctx context.Context, orgID, orgName, displayName string) context.Context {
+	return context.WithValue(ctx, orgContextKey{}, &OrgContext{
+		OrgID:       orgID,
+		OrgName:     orgName,
+		DisplayName: displayName,
+	})
 }
 
 // OrgFromContext retrieves organization context from context.Context

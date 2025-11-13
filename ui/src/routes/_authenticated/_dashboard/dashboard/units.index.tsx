@@ -20,17 +20,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
  
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import UnitCreateForm from "@/components/UnitCreateForm"
 import { listUnitsFn } from '@/api/statesman_serverFunctions'
+import { PageLoading } from '@/components/LoadingSkeleton'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown, X } from 'lucide-react'
 
 export const Route = createFileRoute(
   '/_authenticated/_dashboard/dashboard/units/',
 )({
   component: RouteComponent,
+  pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const unitsData = await listUnitsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || ''}})
+    
+    const unitsData = await listUnitsFn({
+      data: {
+        organisationId: organisationId || '', 
+        userId: user?.id || '', 
+        email: user?.email || ''
+      }
+    });
+    
     return { unitsData: unitsData, user, organisationId } 
   }
 })
@@ -43,8 +55,62 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-function formatDate(date: Date) {
-  return date.toLocaleDateString('en-US', {
+function LoomBanner() {
+  const [dismissed, setDismissed] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('units_loom_open', String(open))
+  }, [open])
+
+  const handleDismiss = () => {
+    setDismissed(true)
+    try {
+      window.localStorage.setItem('units_loom_dismissed', 'true')
+    } catch {}
+  }
+
+  if (dismissed) return null
+
+  return (
+    <div className="mb-4">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <div className="rounded-md border bg-muted/30">
+          <div className="flex items-center justify-between px-4 py-3">
+            <CollapsibleTrigger className="flex-1 flex items-center justify-between text-left">
+              <span className="font-medium">Watch a quick walkthrough (2 min)</span>
+              <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <button
+              className="ml-3 p-1 rounded hover:bg-muted"
+              aria-label="Dismiss walkthrough"
+              onClick={handleDismiss}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="relative pt-[56.25%]">
+              <iframe
+                src="https://www.loom.com/embed/0f303822db4147b1a0f89eeaa8df18ae"
+                title="OpenTaco Units walkthrough"
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full rounded-md"
+              />
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    </div>
+  )
+}
+function formatDate(value: any) {
+  if (!value) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -53,7 +119,11 @@ function formatDate(date: Date) {
   })
 }
 
-function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
+function CreateUnitModal({ onUnitCreated, onUnitOptimistic, onUnitFailed }: { 
+  onUnitCreated: () => void,
+  onUnitOptimistic: (unit: any) => void,
+  onUnitFailed: () => void
+}) {
   const [open, setOpen] = useState(false)
   const { user, organisationId } = Route.useLoaderData()
   const navigate = Route.useNavigate()
@@ -78,7 +148,17 @@ function CreateUnitModal({ onUnitCreated }: { onUnitCreated: () => void }) {
             userId={user?.id || ''}
             email={user?.email || ''}
             organisationId={organisationId}
-            onCreated={() => { setOpen(false); onUnitCreated(); }}
+            onCreatedOptimistic={(tempUnit) => {
+              onUnitOptimistic(tempUnit)
+              setOpen(false)
+            }}
+            onCreated={() => { 
+              setOpen(false)
+              onUnitCreated()
+            }}
+            onCreatedFailed={() => {
+              onUnitFailed()
+            }}
             onBringOwnState={() => { setOpen(false); navigate({ to: '/dashboard/onboarding' }); }}
             showBringOwnState={false}
           />
@@ -94,9 +174,26 @@ function RouteComponent() {
   const navigate = Route.useNavigate()
   const router = useRouter()
   
+  // Handle optimistic update - add immediately
+  function handleUnitOptimistic(tempUnit: any) {
+    setUnits(prev => [{
+      ...tempUnit,
+      locked: false,
+      size: 0,
+      updated: new Date(),
+      isOptimistic: true
+    }, ...prev])
+  }
+  
+  // Handle actual creation - refresh from server
   async function handleUnitCreated() {
     const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
     setUnits(unitsData.units)
+  }
+  
+  // Handle failure - remove optimistic unit
+  function handleUnitFailed() {
+    setUnits(prev => prev.filter((u: any) => !u.isOptimistic))
   }
   
   return (<>
@@ -108,6 +205,9 @@ function RouteComponent() {
           </Link>
         </Button>
       </div>
+      
+      {/* Loom walkthrough banner - collapsible and dismissible */}
+      { units.length === 0 && <LoomBanner /> }
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -120,7 +220,11 @@ function RouteComponent() {
             <Button variant="outline" asChild>
               <Link to="/dashboard/onboarding">Show onboarding flow</Link>
             </Button>
-            <CreateUnitModal onUnitCreated={handleUnitCreated} />
+            <CreateUnitModal 
+              onUnitOptimistic={handleUnitOptimistic}
+              onUnitCreated={handleUnitCreated} 
+              onUnitFailed={handleUnitFailed}
+            />
           </div>)}
         </CardHeader>
         <CardContent>
@@ -151,20 +255,25 @@ function RouteComponent() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {units.map((unit) => (
-            <TableRow key={unit.id}>
+          {units.map((unit: any) => (
+            <TableRow key={unit.id} className={unit.isOptimistic ? 'opacity-60' : ''}>
               <TableCell>
                 {unit.locked ? <Lock className="h-5 w-5 text-destructive" /> : <Unlock className="h-5 w-5 text-muted-foreground" />}
               </TableCell>
-              <TableCell className="font-medium">{unit.name}</TableCell>
+              <TableCell className="font-medium">
+                {unit.name}
+                {unit.isOptimistic && <span className="ml-2 text-xs text-muted-foreground">(Creating...)</span>}
+              </TableCell>
               <TableCell>{formatBytes(unit.size)}</TableCell>
-              <TableCell>{formatDate(unit.updatedAt || new Date())}</TableCell>
+              <TableCell>{formatDate(unit.updated)}</TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" asChild className="justify-end">
-                  <Link to={`/dashboard/units/$unitId`} params={{ unitId: unit.id }}>
-                    View Details <ExternalLink className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                {!unit.isOptimistic && (
+                  <Button variant="ghost" asChild className="justify-end">
+                    <Link to={`/dashboard/units/$unitId`} params={{ unitId: unit.id }}>
+                      View Details <ExternalLink className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}

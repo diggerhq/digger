@@ -1,47 +1,44 @@
-# Multi-stage build for Taco UI
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1.7
+
+########### Builder: compile Vite/TypeScript/etc. ###########
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY ui/package.json ./
+# Install ALL dependencies (including devDeps) — required for Vite, tsc, plugins, etc.
+COPY ui/package.json ui/package-lock.json ./
 
-# Install dependencies first
-# npm will automatically install correct platform-specific binaries (amd64 or arm64)
-RUN npm install && \
-    npm cache clean --force
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
-# Copy source code (node_modules excluded via .dockerignore)
+# Copy source (node_modules should be excluded via .dockerignore)
 COPY ui/ ./
 
-# Build the application (with node adapter)
-RUN npm run build
+# Build the app
+RUN --mount=type=cache,target=/root/.npm \
+    npm run build
 
-# Production stage
-FROM node:20-alpine
+
+########### Runtime: minimal production image ###########
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Copy package file
-COPY ui/package.json ./
-
-# Install production dependencies only
-# npm will automatically install correct platform-specific binaries (amd64 or arm64)
-RUN npm install --omit=dev && \
-    npm cache clean --force
-
-# Copy built application and server entry from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server-start.js ./
-
-# Expose port
-EXPOSE 3030
-
-# Set environment variables
+# Set env before install so some libs can optimize for production
 ENV NODE_ENV=production
 ENV PORT=3030
 ENV HOST=0.0.0.0
 
-# Start the Node.js production server
-CMD ["node", "server-start.js"]
+# Install only production deps
+COPY ui/package.json ui/package-lock.json ./
 
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
+
+# Bring in built assets and server entry from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/server-start.js ./
+
+EXPOSE 3030
+
+CMD ["node", "server-start.js"]

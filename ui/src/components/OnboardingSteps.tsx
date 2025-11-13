@@ -33,6 +33,7 @@ interface OnboardingStepsProps {
   email: string
   organisationId: string
   publicHostname: string
+  githubAppUrl: string
 }
 
 interface WorkflowConfig {
@@ -42,7 +43,7 @@ interface WorkflowConfig {
   iacVersion: string
 }
 
-export default function OnboardingSteps({ repoName, repoOwner, onComplete, userId, email, organisationId, publicHostname }: OnboardingStepsProps) {
+export default function OnboardingSteps({ repoName, repoOwner, onComplete, userId, email, organisationId, publicHostname , githubAppUrl}: OnboardingStepsProps) {
   const [currentStep, setCurrentStep] = useState(() => {
     if (typeof window !== 'undefined') {
       const step = new URLSearchParams(window.location.search).get('step')
@@ -170,6 +171,9 @@ jobs:
       description: "Workflow content copied to clipboard",
       action: <ToastAction altText="OK">OK</ToastAction>,
     })
+    // analytics
+    const user = { id: userId, email }
+    import('@/lib/analytics').then(({ trackWorkflowFileAdded }) => trackWorkflowFileAdded(user, organisationId))
   }
 
   const handleCopyDigger = () => {
@@ -179,11 +183,14 @@ jobs:
       description: "digger.yml content copied to clipboard",
       action: <ToastAction altText="OK">OK</ToastAction>,
     })
+    // analytics
+    const user = { id: userId, email }
+    import('@/lib/analytics').then(({ trackDiggerYmlAdded }) => trackDiggerYmlAdded(user, organisationId))
   }
 
 
   const handleGithubConnect = () => {
-    window.open("https://github.com/apps/digger-pro", "_blank")
+    window.open(githubAppUrl, "_blank")
     setCurrentStep("workflow")
     setSteps(prev => ({ ...prev, githubConnected: true }))
   }
@@ -251,7 +258,12 @@ jobs:
                   Install the Digger GitHub App to connect your repository
                 </p>
 
-                  <GithubConnectButton source="onboarding" onClick={handleGithubConnect} />
+                  <GithubConnectButton
+                    source="onboarding"
+                    onClick={handleGithubConnect}
+                    user={{ id: userId, email }}
+                    organizationId={organisationId}
+                  />
               </div>
             </TabsContent>
 

@@ -1,6 +1,10 @@
 import { createFileRoute, createRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from '@/routes/__root'
 
+// File-route shim to satisfy the file-based router scanner
+export const Route = createFileRoute('/manual/terraformWellKnown' as any)({})
+
+
 export const terraformRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/.well-known/terraform.json',

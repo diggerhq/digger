@@ -1,3 +1,8 @@
+// Helper to generate request IDs for tracing
+function generateRequestId(): string {
+    return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function listUnits(orgId: string, userId: string, email: string) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'GET',
@@ -7,12 +12,14 @@ export async function listUnits(orgId: string, userId: string, email: string) {
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },  
     });
 
     if (!response.ok) {
         throw new Error(`Failed to list units: ${response.statusText}`);
     }
+    
     return response.json();
 }
 
@@ -25,6 +32,7 @@ export async function getUnit(orgId: string, userId: string, email: string, unit
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
     });
     if (!response.ok) {
@@ -42,6 +50,7 @@ export async function getUnitVersions(orgId: string, userId: string, email: stri
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
     });
     if (!response.ok) {
@@ -59,7 +68,8 @@ export async function lockUnit(orgId: string, userId: string, email: string, uni
             'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
-            'X-Email': email,            
+            'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
     });
     if (!response.ok) {
@@ -76,7 +86,8 @@ export async function unlockUnit(orgId: string, userId: string, email: string, u
             'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
-            'X-Email': email,            
+            'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
     });     
     if (!response.ok) {
@@ -94,6 +105,7 @@ export async function forcePushState(orgId: string, userId: string, email: strin
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
         body: state,
     });
@@ -112,6 +124,7 @@ export async function downloadLatestState(orgId: string, userId: string, email: 
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
     });
     return response.json()
@@ -126,6 +139,7 @@ export async function restoreUnitStateVersion(orgId: string, userId: string, ema
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             timestamp: timestamp,
@@ -146,7 +160,8 @@ export async function getUnitStatus(orgId: string, userId: string, email: string
             'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
-            'X-Email': email,            
+            'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
     });
     if (!response.ok) {
@@ -164,6 +179,7 @@ export async function createUnit(orgId: string, userId: string, email: string, n
             'X-Org-ID': orgId,
             'X-User-ID': userId,
             'X-Email': email,
+            'X-Request-ID': generateRequestId(),
         },
         body: JSON.stringify({
             name: name,
@@ -185,6 +201,7 @@ export async function deleteUnit(orgId: string, userId: string, email: string, u
             'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
             'X-Org-ID': orgId,
             'X-User-ID': userId,
+            'X-Request-ID': generateRequestId(),
             'X-Email': email,
         },
     });
