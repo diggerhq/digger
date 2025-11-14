@@ -80,6 +80,9 @@ type TFERunRepository interface {
 	
 	// Update run status and can_apply together
 	UpdateRunStatusAndCanApply(ctx context.Context, runID string, status string, canApply bool) error
+	
+	// Update run with error message (when execution fails)
+	UpdateRunError(ctx context.Context, runID string, errorMessage string) error
 }
 
 // TFEPlanRepository manages TFE plan lifecycle
@@ -231,6 +234,7 @@ type TFERun struct {
 	ApplyID                *string
 	CreatedBy              string
 	ApplyLogBlobID         *string
+	ErrorMessage           *string // Stores error message if run fails
 }
 
 // TFEPlan represents a Terraform plan execution

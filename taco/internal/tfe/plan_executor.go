@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
@@ -22,6 +24,7 @@ type PlanExecutor struct {
 	planRepo      domain.TFEPlanRepository
 	configVerRepo domain.TFEConfigurationVersionRepository
 	blobStore     storage.UnitStore
+	unitRepo      domain.UnitRepository
 }
 
 // NewPlanExecutor creates a new plan executor
@@ -30,33 +33,93 @@ func NewPlanExecutor(
 	planRepo domain.TFEPlanRepository,
 	configVerRepo domain.TFEConfigurationVersionRepository,
 	blobStore storage.UnitStore,
+	unitRepo domain.UnitRepository,
 ) *PlanExecutor {
 	return &PlanExecutor{
 		runRepo:       runRepo,
 		planRepo:      planRepo,
 		configVerRepo: configVerRepo,
 		blobStore:     blobStore,
+		unitRepo:      unitRepo,
 	}
 }
 
 // ExecutePlan executes a Terraform plan for a run
 func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
-	fmt.Printf("[ExecutePlan] === STARTING FOR RUN %s ===\n", runID)
+	logger := slog.Default().With(
+		slog.String("operation", "execute_plan"),
+		slog.String("run_id", runID),
+	)
+	
+	logger.Info("starting plan execution")
 
 	// Get run
 	run, err := e.runRepo.GetRun(ctx, runID)
 	if err != nil {
-		fmt.Printf("[ExecutePlan] ERROR: Failed to get run: %v\n", err)
+		logger.Error("failed to get run", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to get run: %w", err)
 	}
-	fmt.Printf("[ExecutePlan] Got run, configVersionID=%s\n", run.ConfigurationVersionID)
+	logger.Info("retrieved run", 
+		slog.String("config_version_id", run.ConfigurationVersionID),
+		slog.String("unit_id", run.UnitID))
+
+	// Acquire lock before starting terraform operations
+	// This prevents concurrent plans/applies on the same unit
+	lockInfo := &storage.LockInfo{
+		ID:      fmt.Sprintf("tfe-plan-%s", runID),
+		Who:     fmt.Sprintf("terraform-plan@run-%s", runID),
+		Version: "1.0.0",
+		Created: time.Now(),
+	}
+	
+	logger.Info("acquiring unit lock", 
+		slog.String("unit_id", run.UnitID),
+		slog.String("lock_id", lockInfo.ID))
+	
+	if err := e.unitRepo.Lock(ctx, run.UnitID, lockInfo); err != nil {
+		if err == storage.ErrLockConflict {
+			// Unit is locked by another operation
+			currentLock, _ := e.unitRepo.GetLock(ctx, run.UnitID)
+			errMsg := fmt.Sprintf("Unit is locked by another operation (locked by: %s). Please wait and try again.", 
+				currentLock.Who)
+			logger.Warn("lock conflict - unit already locked", 
+				slog.String("unit_id", run.UnitID),
+				slog.String("locked_by", currentLock.Who),
+				slog.String("lock_id", currentLock.ID))
+			return e.handlePlanError(ctx, run.ID, run.PlanID, logger, errMsg)
+		}
+		logger.Error("failed to acquire lock", slog.String("error", err.Error()))
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to acquire lock: %v", err))
+	}
+	
+	logger.Info("unit lock acquired successfully")
+	
+	// Track whether lock has been manually released (to avoid double-unlock in defer)
+	lockReleased := false
+	
+	// Ensure lock is released when we're done (success or failure)
+	defer func() {
+		if lockReleased {
+			// Lock was manually released (e.g., before spawning apply), skip defer unlock
+			return
+		}
+		logger.Info("releasing unit lock", slog.String("unit_id", run.UnitID))
+		if unlockErr := e.unitRepo.Unlock(ctx, run.UnitID, lockInfo.ID); unlockErr != nil {
+			logger.Error("failed to release lock", 
+				slog.String("error", unlockErr.Error()),
+				slog.String("unit_id", run.UnitID),
+				slog.String("lock_id", lockInfo.ID))
+		} else {
+			logger.Info("unit lock released successfully")
+		}
+	}()
 
 	// Update run status to "planning"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "planning"); err != nil {
-		fmt.Printf("[ExecutePlan] ERROR: Failed to update status to planning: %v\n", err)
+		logger.Error("failed to update status to planning", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to update run status: %w", err)
 	}
-	fmt.Printf("[ExecutePlan] Updated run status to 'planning'\n")
+	logger.Info("updated run status to planning")
 
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
@@ -66,31 +129,33 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 
 	// Check if configuration was uploaded
 	if configVer.Status != "uploaded" || configVer.ArchiveBlobID == nil {
-		return e.handlePlanError(ctx, run.ID, run.PlanID, "Configuration not uploaded")
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, "Configuration not uploaded")
 	}
 
 	// Download configuration archive from blob storage
 	archivePath := fmt.Sprintf("config-versions/%s/archive.tar.gz", configVer.ID)
 	archiveData, err := e.blobStore.Download(ctx, archivePath)
 	if err != nil {
-		return e.handlePlanError(ctx, run.ID, run.PlanID, fmt.Sprintf("Failed to download archive: %v", err))
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to download archive: %v", err))
 	}
 
-	fmt.Printf("Downloaded %d bytes for configuration version %s\n", len(archiveData), configVer.ID)
+	logger.Info("downloaded configuration archive", 
+		slog.Int("bytes", len(archiveData)),
+		slog.String("config_version_id", configVer.ID))
 
 	// Extract to temp directory
 	workDir, err := extractArchive(archiveData)
 	if err != nil {
-		return e.handlePlanError(ctx, run.ID, run.PlanID, fmt.Sprintf("Failed to extract archive: %v", err))
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to extract archive: %v", err))
 	}
 	defer cleanupWorkDir(workDir)
 
-	fmt.Printf("Extracted archive to %s\n", workDir)
+	logger.Info("extracted archive", slog.String("work_dir", workDir))
 
 	// Create an override file to disable cloud/remote backend
 	// This is required for server-side execution to prevent circular dependencies
 	if err := createBackendOverride(workDir); err != nil {
-		return e.handlePlanError(ctx, run.ID, run.PlanID, fmt.Sprintf("Failed to create backend override: %v", err))
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to create backend override: %v", err))
 	}
 
 	// Download current state for this unit (if it exists)
@@ -101,21 +166,24 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		// Write state to terraform.tfstate in the working directory
 		statePath := filepath.Join(workDir, "terraform.tfstate")
 		if err := os.WriteFile(statePath, stateData, 0644); err != nil {
-			fmt.Printf("Warning: Failed to write state file: %v\n", err)
+			logger.Warn("failed to write state file", slog.String("error", err.Error()))
 		} else {
-			fmt.Printf("Downloaded and wrote existing state for %s (%d bytes)\n", stateID, len(stateData))
+			logger.Info("downloaded and wrote existing state", 
+				slog.String("state_id", stateID),
+				slog.Int("bytes", len(stateData)))
 		}
 	} else {
-		fmt.Printf("No existing state found for %s (will start fresh): %v\n", stateID, err)
+		logger.Info("no existing state found, starting fresh", 
+			slog.String("state_id", stateID))
 	}
 
 	// Run terraform plan
-	planOutput, logs, hasChanges, adds, changes, destroys, err := e.runTerraformPlan(ctx, workDir, run.IsDestroy)
+	_, logs, hasChanges, adds, changes, destroys, err := e.runTerraformPlan(ctx, workDir, run.IsDestroy)
 
 	// Store logs in blob storage (use UploadBlob - no lock checks needed for logs)
 	logBlobID := fmt.Sprintf("plans/%s/logs.txt", *run.PlanID)
 	if err := e.blobStore.UploadBlob(ctx, logBlobID, []byte(logs)); err != nil {
-		fmt.Printf("Failed to store logs: %v\n", err)
+		logger.Error("failed to store plan logs", slog.String("error", err.Error()))
 	}
 
 	// Generate signed log URL
@@ -126,6 +194,10 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	if err != nil {
 		planStatus = "errored"
 		logs = logs + "\n\nError: " + err.Error()
+		// Store error in run for user visibility
+		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, err.Error()); updateErr != nil {
+			logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
+		}
 	}
 
 	planUpdates := &domain.TFEPlanUpdate{
@@ -138,10 +210,6 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		LogReadURL:           &logReadURL,
 	}
 
-	// Store plan output if not too large
-	if len(planOutput) < 1024*1024 { // < 1MB
-		planUpdates.PlanOutputJSON = &planOutput
-	}
 
 	if err := e.planRepo.UpdatePlan(ctx, *run.PlanID, planUpdates); err != nil {
 		return fmt.Errorf("failed to update plan: %w", err)
@@ -155,47 +223,82 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		runStatus = "errored"
 	}
 
-	fmt.Printf("[ExecutePlan] Updating run %s status to '%s', canApply=%v\n", run.ID, runStatus, canApply)
+	logger.Info("updating run status", 
+		slog.String("status", runStatus),
+		slog.Bool("can_apply", canApply))
+	
 	if err := e.runRepo.UpdateRunStatusAndCanApply(ctx, run.ID, runStatus, canApply); err != nil {
-		fmt.Printf("[ExecutePlan] ERROR: Failed to update run: %v\n", err)
+		logger.Error("failed to update run", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to update run: %w", err)
 	}
 
-	fmt.Printf("[ExecutePlan] ✅ Plan execution completed for run %s: status=%s, canApply=%v, hasChanges=%v, adds=%d, changes=%d, destroys=%d\n",
-		runID, runStatus, canApply, hasChanges, adds, changes, destroys)
+	logger.Info("plan execution completed", 
+		slog.String("status", runStatus),
+		slog.Bool("can_apply", canApply),
+		slog.Bool("has_changes", hasChanges),
+		slog.Int("adds", adds),
+		slog.Int("changes", changes),
+		slog.Int("destroys", destroys))
 
 	// Only auto-trigger apply if AutoApply flag is true (i.e., terraform apply -auto-approve)
-	fmt.Printf("[ExecutePlan] Auto-apply check: run.AutoApply=%v, err=%v\n", run.AutoApply, err)
+	logger.Debug("auto-apply check", 
+		slog.Bool("auto_apply", run.AutoApply),
+		slog.Bool("plan_succeeded", err == nil))
+	
 	if run.AutoApply && err == nil {
-		fmt.Printf("[ExecutePlan] Auto-applying run %s (AutoApply=true)\n", runID)
+		logger.Info("triggering auto-apply")
 		
 		// Queue the apply by updating the run status
 		if err := e.runRepo.UpdateRunStatus(ctx, run.ID, "apply_queued"); err != nil {
-			fmt.Printf("[ExecutePlan] ERROR: Failed to queue apply: %v\n", err)
+			logger.Error("failed to queue apply", slog.String("error", err.Error()))
 			return nil // Don't fail the plan if we can't queue the apply
 		}
 		
+		// CRITICAL: Release the plan lock BEFORE spawning apply goroutine
+		// Otherwise we get a race condition where apply tries to acquire while plan still holds it
+		logger.Info("releasing plan lock before triggering apply", slog.String("unit_id", run.UnitID))
+		if unlockErr := e.unitRepo.Unlock(ctx, run.UnitID, lockInfo.ID); unlockErr != nil {
+			logger.Error("failed to release plan lock before apply", 
+				slog.String("error", unlockErr.Error()),
+				slog.String("unit_id", run.UnitID))
+			return fmt.Errorf("failed to release lock before apply: %w", unlockErr)
+		}
+		lockReleased = true // Mark as released to prevent defer from trying again
+		logger.Info("plan lock released, apply can now acquire it")
+		
 		// Trigger apply execution in background
+		// Use a new context to avoid cancellation propagation issues
+		applyCtx, cancel := context.WithCancel(context.Background())
 		go func() {
-			fmt.Printf("[ExecutePlan] Starting async apply execution for run %s\n", run.ID)
-			applyExecutor := NewApplyExecutor(e.runRepo, e.planRepo, e.configVerRepo, e.blobStore)
-			if err := applyExecutor.ExecuteApply(context.Background(), run.ID); err != nil {
-				fmt.Printf("[ExecutePlan] ❌ Apply execution failed for run %s: %v\n", run.ID, err)
+			defer cancel()
+			applyLogger := slog.Default().With(
+				slog.String("operation", "auto_apply"),
+				slog.String("run_id", run.ID),
+			)
+			applyLogger.Info("starting async apply execution")
+			applyExecutor := NewApplyExecutor(e.runRepo, e.planRepo, e.configVerRepo, e.blobStore, e.unitRepo)
+			if err := applyExecutor.ExecuteApply(applyCtx, run.ID); err != nil {
+				applyLogger.Error("apply execution failed", slog.String("error", err.Error()))
 			} else {
-				fmt.Printf("[ExecutePlan] ✅ Apply execution completed successfully for run %s\n", run.ID)
+				applyLogger.Info("apply execution completed successfully")
 			}
 		}()
+		
+		// Return without triggering defer (lock already released)
+		return nil
 	}
 
+	// Normal case: defer will release the lock
 	return nil
 }
 
 // runTerraformPlan executes terraform init and plan
 func (e *PlanExecutor) runTerraformPlan(ctx context.Context, workDir string, isDestroy bool) (output string, logs string, hasChanges bool, adds, changes, destroys int, err error) {
+	logger := slog.Default().With(slog.String("work_dir", workDir))
 	var allLogs strings.Builder
 
 	// Run terraform init (backend override file disables cloud/remote backend)
-	fmt.Printf("Running terraform init in %s\n", workDir)
+	logger.Info("running terraform init")
 	initCmd := exec.CommandContext(ctx, "terraform", "init", "-no-color", "-input=false")
 	initCmd.Dir = workDir
 	initCmd.Env = append(os.Environ(), "TF_IN_AUTOMATION=1") // Tell Terraform it's running in automation
@@ -205,11 +308,12 @@ func (e *PlanExecutor) runTerraformPlan(ctx context.Context, workDir string, isD
 	allLogs.WriteString("\n\n")
 
 	if initErr != nil {
+		logger.Error("terraform init failed", slog.String("error", initErr.Error()))
 		return "", allLogs.String(), false, 0, 0, 0, fmt.Errorf("terraform init failed: %w", initErr)
 	}
 
 	// Run terraform plan
-	fmt.Printf("Running terraform plan in %s\n", workDir)
+	logger.Info("running terraform plan", slog.Bool("is_destroy", isDestroy))
 	planArgs := []string{"plan", "-no-color", "-input=false", "-detailed-exitcode"}
 	if isDestroy {
 		planArgs = append(planArgs, "-destroy")
@@ -239,8 +343,8 @@ func (e *PlanExecutor) runTerraformPlan(ctx context.Context, workDir string, isD
 }
 
 // handlePlanError handles plan execution errors
-func (e *PlanExecutor) handlePlanError(ctx context.Context, runID string, planID *string, errorMsg string) error {
-	fmt.Printf("Plan error for run %s: %s\n", runID, errorMsg)
+func (e *PlanExecutor) handlePlanError(ctx context.Context, runID string, planID *string, logger *slog.Logger, errorMsg string) error {
+	logger.Error("plan execution failed", slog.String("error", errorMsg))
 
 	// Update plan status if we have a plan ID
 	if planID != nil {
@@ -251,8 +355,10 @@ func (e *PlanExecutor) handlePlanError(ctx context.Context, runID string, planID
 		_ = e.planRepo.UpdatePlan(ctx, *planID, planUpdates)
 	}
 
-	// Update run status
-	_ = e.runRepo.UpdateRunStatus(ctx, runID, "errored")
+	// Store error in database so user can see it
+	if err := e.runRepo.UpdateRunError(ctx, runID, errorMsg); err != nil {
+		logger.Error("failed to update run error in database", slog.String("error", err.Error()))
+	}
 
 	return fmt.Errorf("plan execution failed: %s", errorMsg)
 }
@@ -349,7 +455,9 @@ func extractArchive(data []byte) (string, error) {
 func cleanupWorkDir(dir string) {
 	if dir != "" {
 		if err := os.RemoveAll(dir); err != nil {
-			fmt.Printf("Warning: failed to cleanup work dir %s: %v\n", dir, err)
+			slog.Warn("failed to cleanup work directory", 
+				slog.String("dir", dir),
+				slog.String("error", err.Error()))
 		}
 	}
 }
@@ -374,7 +482,7 @@ func createBackendOverride(workDir string) error {
 			
 			// Check if file contains terraform block with cloud or backend
 			if strings.Contains(contentStr, "cloud") || strings.Contains(contentStr, "backend") {
-				fmt.Printf("Removing cloud/backend configuration from %s\n", path)
+				slog.Info("removing cloud/backend configuration", slog.String("file", path))
 				
 				// Comment out cloud and backend blocks
 				// This is a simple approach - we comment out lines containing "cloud {" and "backend "
@@ -418,7 +526,7 @@ func createBackendOverride(workDir string) error {
 		return fmt.Errorf("failed to process terraform files: %w", err)
 	}
 	
-	fmt.Printf("Successfully removed cloud/backend configuration from Terraform files\n")
+	slog.Info("successfully removed cloud/backend configuration from terraform files")
 	return nil
 }
 

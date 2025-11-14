@@ -22,6 +22,7 @@ type TfeHandler struct {
 	planRepo       domain.TFEPlanRepository
 	configVerRepo  domain.TFEConfigurationVersionRepository
 	blobStore      storage.UnitStore
+	unitRepo       domain.UnitRepository  // Direct access for locking during plan/apply
 }
 
 // NewTFETokenHandler creates a new TFE handler.
@@ -49,5 +50,6 @@ func NewTFETokenHandler(
 		planRepo:           planRepo,
 		configVerRepo:      configVerRepo,
 		blobStore:          blobStore,
+		unitRepo:           unwrappedRepo,  // Use unwrapped repo for direct lock access
 	}
 }

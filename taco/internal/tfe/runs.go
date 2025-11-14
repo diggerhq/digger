@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -17,10 +18,15 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	ctx := c.Request().Context()
 	runID := c.Param("id")
 
+	logger := slog.Default().With(
+		slog.String("operation", "get_run"),
+		slog.String("run_id", runID),
+	)
+
 	// Get run from database
 	run, err := h.runRepo.GetRun(ctx, runID)
 	if err != nil {
-		fmt.Printf("Failed to get run %s: %v\n", runID, err)
+		logger.Error("failed to get run", slog.String("error", err.Error()))
 		return c.JSON(http.StatusNotFound, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "404",
@@ -33,8 +39,12 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	// Determine if run is confirmable (waiting for user approval)
 	isConfirmable := run.Status == "planned_and_finished" && run.CanApply && !run.AutoApply
 	
-	fmt.Printf("[GetRun] 🔍 Poll: runID=%s, status=%s, canApply=%v, autoApply=%v, planOnly=%v, isConfirmable=%v\n", 
-		run.ID, run.Status, run.CanApply, run.AutoApply, run.PlanOnly, isConfirmable)
+	logger.Debug("run polled", 
+		slog.String("status", run.Status),
+		slog.Bool("can_apply", run.CanApply),
+		slog.Bool("auto_apply", run.AutoApply),
+		slog.Bool("plan_only", run.PlanOnly),
+		slog.Bool("is_confirmable", isConfirmable))
 
 	// Use unit ID as workspace ID (they're the same in our architecture)
 	workspaceID := run.UnitID
@@ -67,16 +77,16 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	// In our simplified model, apply ID is the same as run ID
 	if run.Status == "applying" || run.Status == "applied" || run.Status == "apply_queued" {
 		response.Apply = &tfe.ApplyRef{ID: run.ID}
-		fmt.Printf("[GetRun] Added Apply reference: applyID=%s for status=%s\n", run.ID, run.Status)
+		logger.Debug("added apply reference", slog.String("apply_id", run.ID), slog.String("status", run.Status))
 	} else {
-		fmt.Printf("[GetRun] No Apply reference (status=%s)\n", run.Status)
+		logger.Debug("no apply reference", slog.String("status", run.Status))
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
 	c.Response().WriteHeader(http.StatusOK)
 
 	if err := jsonapi.MarshalPayload(c.Response().Writer, &response); err != nil {
-		fmt.Printf("error marshaling run payload: %v\n", err)
+		logger.Error("error marshaling run payload", slog.String("error", err.Error()))
 		return err
 	}
 	return nil
@@ -85,6 +95,8 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 
 func (h *TfeHandler) CreateRun(c echo.Context) error {
 	ctx := c.Request().Context()
+
+	logger := slog.Default().With(slog.String("operation", "create_run"))
 
 	// Decode the JSON:API request
 	var requestData struct {
@@ -111,7 +123,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 
 	// Manually decode JSON since content-type is application/vnd.api+json
 	if err := json.NewDecoder(c.Request().Body).Decode(&requestData); err != nil {
-		fmt.Printf("Failed to decode request: %v\n", err)
+		logger.Error("failed to decode request", slog.String("error", err.Error()))
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "400",
@@ -128,8 +140,11 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	autoApply := requestData.Data.Attributes.AutoApply
 	
 	// Log the full request for debugging
-	fmt.Printf("📥 CreateRun request: message=%q, isDestroy=%v, autoApply=%v, workspaceID=%s\n", 
-		message, isDestroy, autoApply, workspaceID)
+	logger.Info("create run request", 
+		slog.String("message", message),
+		slog.Bool("is_destroy", isDestroy),
+		slog.Bool("auto_apply", autoApply),
+		slog.String("workspace_id", workspaceID))
 
 	// Get org and user context from middleware
 	orgIdentifier, _ := c.Get("organization_id").(string)
@@ -146,7 +161,9 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	// This is critical for S3 path construction: <orgUUID>/<unitUUID>/terraform.tfstate
 	orgUUID, err := h.identifierResolver.ResolveOrganization(ctx, orgIdentifier)
 	if err != nil {
-		fmt.Printf("Failed to resolve organization %s: %v\n", orgIdentifier, err)
+		logger.Error("failed to resolve organization", 
+			slog.String("org_identifier", orgIdentifier),
+			slog.String("error", err.Error()))
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "500",
@@ -155,10 +172,39 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 			}},
 		})
 	}
-	fmt.Printf("Resolved org identifier '%s' to UUID '%s'\n", orgIdentifier, orgUUID)
+	logger.Info("resolved organization", 
+		slog.String("org_identifier", orgIdentifier),
+		slog.String("org_uuid", orgUUID))
 
 	// Strip ws- prefix from workspace ID to get the actual unit ID
 	unitID := convertWorkspaceToStateID(workspaceID)
+
+	// Fetch unit to check workspace-level auto-apply setting
+	unit, err := h.unitRepo.Get(ctx, unitID)
+	if err != nil {
+		logger.Error("failed to get unit for run",
+			slog.String("unit_id", unitID),
+			slog.String("error", err.Error()))
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "404",
+				"title":  "not found",
+				"detail": fmt.Sprintf("Workspace %s not found", workspaceID),
+			}},
+		})
+	}
+
+	// Determine final auto-apply setting:
+	// 1. If workspace has auto-apply enabled → auto-apply
+	// 2. If CLI sends -auto-approve flag → auto-apply
+	// 3. Either one being true results in auto-apply
+	workspaceAutoApply := unit.TFEAutoApply != nil && *unit.TFEAutoApply
+	finalAutoApply := workspaceAutoApply || autoApply
+	
+	logger.Info("determining auto-apply setting",
+		slog.Bool("workspace_auto_apply", workspaceAutoApply),
+		slog.Bool("cli_auto_approve", autoApply),
+		slog.Bool("final_auto_apply", finalAutoApply))
 
 	// Create the run in database
 	run := &domain.TFERun{
@@ -168,7 +214,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		IsDestroy:              isDestroy,
 		Message:                message,
 		PlanOnly:               false, // Always false for apply operations (terraform apply with or without -auto-approve)
-		AutoApply:              autoApply, // Only auto-trigger if -auto-approve was used
+		AutoApply:              finalAutoApply, // Workspace default OR CLI override
 		Source:                 "cli",
 		IsCancelable:           true,
 		CanApply:               false,
@@ -176,10 +222,12 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		CreatedBy:              userID,
 	}
 	
-	fmt.Printf("Creating run: autoApply=%v, planOnly=%v\n", autoApply, run.PlanOnly)
+	logger.Info("creating run", 
+		slog.Bool("auto_apply", finalAutoApply),
+		slog.Bool("plan_only", run.PlanOnly))
 
 	if err := h.runRepo.CreateRun(ctx, run); err != nil {
-		fmt.Printf("Failed to create run: %v\n", err)
+		logger.Error("failed to create run", slog.String("error", err.Error()))
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "500",
@@ -189,7 +237,9 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
-	fmt.Printf("Created run %s for unit %s\n", run.ID, unitID)
+	logger.Info("created run", 
+		slog.String("run_id", run.ID),
+		slog.String("unit_id", unitID))
 
 	// Create a plan for this run
 	plan := &domain.TFEPlan{
@@ -200,7 +250,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	}
 
 	if err := h.planRepo.CreatePlan(ctx, plan); err != nil {
-		fmt.Printf("Failed to create plan: %v\n", err)
+		logger.Error("failed to create plan", slog.String("error", err.Error()))
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "500",
@@ -210,25 +260,34 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
-	fmt.Printf("Created plan %s for run %s\n", plan.ID, run.ID)
+	logger.Info("created plan", 
+		slog.String("plan_id", plan.ID),
+		slog.String("run_id", run.ID))
 
 	// Update run with plan ID
 	if err := h.runRepo.UpdateRunPlanID(ctx, run.ID, plan.ID); err != nil {
-		fmt.Printf("Failed to update run with plan ID: %v\n", err)
+		logger.Warn("failed to update run with plan ID", slog.String("error", err.Error()))
 		// Non-fatal, continue
 	}
 
 	// Trigger real plan execution asynchronously
+	// Use a new context to avoid cancellation propagation
+	planCtx, cancel := context.WithCancel(context.Background())
 	go func() {
-		fmt.Printf("[CreateRun] Starting async plan execution for run %s\n", run.ID)
+		defer cancel()
+		planLogger := slog.Default().With(
+			slog.String("operation", "async_plan"),
+			slog.String("run_id", run.ID),
+		)
+		planLogger.Info("starting async plan execution")
 		// Create plan executor
-		executor := NewPlanExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore)
+		executor := NewPlanExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo)
 		
 		// Execute the plan (this will run terraform plan)
-		if err := executor.ExecutePlan(context.Background(), run.ID); err != nil {
-			fmt.Printf("[CreateRun] ❌ Plan execution failed for run %s: %v\n", run.ID, err)
+		if err := executor.ExecutePlan(planCtx, run.ID); err != nil {
+			planLogger.Error("plan execution failed", slog.String("error", err.Error()))
 		} else {
-			fmt.Printf("[CreateRun] ✅ Plan execution completed successfully for run %s\n", run.ID)
+			planLogger.Info("plan execution completed successfully")
 		}
 	}()
 
@@ -257,16 +316,16 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	// For auto-apply runs, include Apply reference immediately so Terraform CLI knows to expect it
 	if run.AutoApply {
 		response.Apply = &tfe.ApplyRef{ID: run.ID}
-		fmt.Printf("[CreateRun] Added Apply reference for auto-apply run: applyID=%s\n", run.ID)
+		logger.Debug("added apply reference for auto-apply run", slog.String("apply_id", run.ID))
 	} else {
-		fmt.Printf("[CreateRun] No Apply reference (AutoApply=false, user will confirm apply manually)\n")
+		logger.Debug("no apply reference, user will confirm apply manually")
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
 	c.Response().WriteHeader(http.StatusCreated)
 
 	if err := jsonapi.MarshalPayload(c.Response().Writer, &response); err != nil {
-		fmt.Printf("error marshaling run payload: %v\n", err)
+		logger.Error("error marshaling run payload", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -283,10 +342,15 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	ctx := c.Request().Context()
 	runID := c.Param("id")
 
+	logger := slog.Default().With(
+		slog.String("operation", "apply_run"),
+		slog.String("run_id", runID),
+	)
+
 	// Get run from database
 	run, err := h.runRepo.GetRun(ctx, runID)
 	if err != nil {
-		fmt.Printf("Failed to get run %s: %v\n", runID, err)
+		logger.Error("failed to get run", slog.String("error", err.Error()))
 		return c.JSON(http.StatusNotFound, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "404",
@@ -321,10 +385,11 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 		}
 	}
 
-	fmt.Printf("Triggering apply for run %s\n", runID)
+	logger.Info("triggering apply")
 
 	// Update run status to apply_queued
 	if err := h.runRepo.UpdateRunStatus(ctx, runID, "apply_queued"); err != nil {
+		logger.Error("failed to update run status", slog.String("error", err.Error()))
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "500",
@@ -335,13 +400,23 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	}
 
 	// Trigger real apply execution asynchronously
+	// Use a new context to avoid cancellation propagation
+	applyCtx, cancel := context.WithCancel(context.Background())
 	go func() {
+		defer cancel()
+		applyLogger := slog.Default().With(
+			slog.String("operation", "async_apply"),
+			slog.String("run_id", runID),
+		)
+		applyLogger.Info("starting async apply execution")
 		// Create apply executor
-		executor := NewApplyExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore)
+		executor := NewApplyExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo)
 		
 		// Execute the apply (this will run terraform apply)
-		if err := executor.ExecuteApply(context.Background(), runID); err != nil {
-			fmt.Printf("Apply execution failed for run %s: %v\n", runID, err)
+		if err := executor.ExecuteApply(applyCtx, runID); err != nil {
+			applyLogger.Error("apply execution failed", slog.String("error", err.Error()))
+		} else {
+			applyLogger.Info("apply execution completed successfully")
 		}
 	}()
 
@@ -371,13 +446,13 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	
 	// Include Apply reference so Terraform CLI knows to fetch apply logs
 	response.Apply = &tfe.ApplyRef{ID: run.ID}
-	fmt.Printf("[ApplyRun] Added Apply reference: applyID=%s\n", run.ID)
+	logger.Debug("added apply reference", slog.String("apply_id", run.ID))
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
 	c.Response().WriteHeader(http.StatusOK)
 
 	if err := jsonapi.MarshalPayload(c.Response().Writer, &response); err != nil {
-		fmt.Printf("error marshaling run payload: %v\n", err)
+		logger.Error("error marshaling run payload", slog.String("error", err.Error()))
 		return err
 	}
 	return nil

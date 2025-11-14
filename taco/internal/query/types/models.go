@@ -252,6 +252,9 @@ type TFERun struct {
 	// Blob storage references
 	ApplyLogBlobID *string `gorm:"type:varchar(255)"` // Blob ID for apply logs
 	
+	// Error tracking
+	ErrorMessage *string `gorm:"type:text"` // Stores error message if run fails
+	
 	// Metadata
 	CreatedBy string `gorm:"type:varchar(255)"`
 	

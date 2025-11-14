@@ -93,6 +93,7 @@ func (r *TFERunRepository) GetRun(ctx context.Context, runID string) (*domain.TF
 		PlanID:                 dbRun.PlanID,
 		ApplyID:                dbRun.ApplyID,
 		ApplyLogBlobID:         dbRun.ApplyLogBlobID,
+		ErrorMessage:           dbRun.ErrorMessage,
 		CreatedBy:              dbRun.CreatedBy,
 	}, nil
 }
@@ -128,6 +129,7 @@ func (r *TFERunRepository) ListRunsForUnit(ctx context.Context, unitID string, l
 			ConfigurationVersionID: dbRun.ConfigurationVersionID,
 			PlanID:                 dbRun.PlanID,
 			ApplyID:                dbRun.ApplyID,
+			ErrorMessage:           dbRun.ErrorMessage,
 			CreatedBy:              dbRun.CreatedBy,
 		}
 	}
@@ -199,6 +201,27 @@ func (r *TFERunRepository) UpdateRunStatusAndCanApply(ctx context.Context, runID
 	}
 
 	fmt.Printf("[UpdateRunStatusAndCanApply] ✅ Updated run %s\n", runID)
+	return nil
+}
+
+// UpdateRunError updates the run with an error message and sets status to "errored"
+func (r *TFERunRepository) UpdateRunError(ctx context.Context, runID string, errorMessage string) error {
+	result := r.db.WithContext(ctx).
+		Model(&types.TFERun{}).
+		Where("id = ?", runID).
+		Updates(map[string]interface{}{
+			"status":        "errored",
+			"error_message": errorMessage,
+		})
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to update run error: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("run not found: %s", runID)
+	}
+
 	return nil
 }
 
