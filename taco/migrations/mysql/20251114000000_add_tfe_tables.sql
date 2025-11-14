@@ -1,9 +1,9 @@
 -- Add TFE-specific fields to units table
 ALTER TABLE `units` 
-  ADD COLUMN IF NOT EXISTS `tfe_auto_apply` boolean DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `tfe_terraform_version` varchar(50) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `tfe_working_directory` varchar(500) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `tfe_execution_mode` varchar(50) DEFAULT NULL;
+  ADD COLUMN `tfe_auto_apply` boolean DEFAULT NULL,
+  ADD COLUMN `tfe_terraform_version` varchar(50) DEFAULT NULL,
+  ADD COLUMN `tfe_working_directory` varchar(500) DEFAULT NULL,
+  ADD COLUMN `tfe_execution_mode` varchar(50) DEFAULT NULL;
 
 -- Create tfe_runs table
 CREATE TABLE IF NOT EXISTS `tfe_runs` (
