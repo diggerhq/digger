@@ -769,10 +769,10 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			slog.Warn("Impacted project entry not found in db (maybe it was not synced in event start)", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
 		} else {
 			if batch.BatchType == orchestrator_scheduler.DiggerCommandPlan {
-				impactedProjectDb.Applied = true
-			}
-			if batch.BatchType == orchestrator_scheduler.DiggerCommandPlan {
 				impactedProjectDb.Planned = true
+			}
+			if batch.BatchType == orchestrator_scheduler.DiggerCommandApply {
+				impactedProjectDb.Applied = true
 			}
 			models.DB.GormDB.Save(impactedProjectDb)
 		}

@@ -16,6 +16,8 @@ type ImpactedProject struct {
 	ID           uuid.UUID `gorm:"primary_key"`
 	RepoFullName string `gorm:"index:idx_org_repo"`
 	CommitSha    string `gorm:"index:idx_org_repo"`
+	PrNumber     *int
+	Branch       *string
 	ProjectName  string
 	Planned      bool
 	Applied      bool

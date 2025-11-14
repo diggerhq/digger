@@ -206,9 +206,9 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 
 	dbImpactedProjects, err := models.DB.GetImpactedProjects(repoFullName, commitSha)
 	// TODO: is this check for db impacted projects necessary?
-	if len(dbImpactedProjects) > 0 {
+	if len(dbImpactedProjects) == 0 {
 		for _, impactedProject := range impactedProjects {
-			_, err = models.DB.CreateImpactedProject(repoFullName, commitSha, impactedProject.Name)
+			_, err = models.DB.CreateImpactedProject(repoFullName, commitSha, impactedProject.Name, &branch, &prNumber)
 			if err != nil {
 				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error failed to update internal record of impacted projects %v", err))
 				return err

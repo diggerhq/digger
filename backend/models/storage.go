@@ -707,11 +707,14 @@ func (db *Database) MakeGithubAppInstallationLinkInactive(link *GithubAppInstall
 	return link, nil
 }
 
-func (db *Database) CreateImpactedProject(repoFullName string, commitSha string, projcectName string) (*ImpactedProject,error) {
+func (db *Database) CreateImpactedProject(repoFullName string, commitSha string, projcectName string, branch *string, prNumber *int) (*ImpactedProject,error) {
 	ip := ImpactedProject{
+		ID:          uuid.New(),
 		RepoFullName: repoFullName,
 		CommitSha:    commitSha,
 		ProjectName:  projcectName,
+		Branch: branch,
+		PrNumber: prNumber,
 		Planned: false,
 		Applied: false,
 	}
@@ -752,6 +755,11 @@ func (db *Database) AllImpactedProjectPlanned(repoFullName string, commitSha str
 		slog.Error("could not get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
 		return false, nil, err
 	}
+
+	if len(impactedProjects) == 0 {
+		return false, nil, errors.New("could not determine planned status for this project set since not all applied")
+	}
+
 	projectsNotPlanned := lo.Filter(impactedProjects, func(item ImpactedProject, _ int) bool {
 		return item.Planned == false
 	})
@@ -764,6 +772,11 @@ func (db *Database) AllImpactedProjectApplied(repoFullName string, commitSha str
 		slog.Error("could not get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
 		return false, nil, err
 	}
+
+	if len(impactedProjects) == 0 {
+		return false, nil, errors.New("could not determine apply status for this project set since not all applied")
+	}
+
 	projectsNotApplied := lo.Filter(impactedProjects, func(item ImpactedProject, _ int) bool {
 		return item.Applied == false
 	})
