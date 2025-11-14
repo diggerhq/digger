@@ -133,12 +133,12 @@ export default function UnitCreateForm({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold">Remote</span>
-                <Badge variant="default" className="bg-green-600">TFE Compatible</Badge>
+                <Badge variant="secondary">Coming soon</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Fully managed terraform runs. Execute terraform commands locally via CLI
-                and runs execute remotely. Compatible with Terraform Cloud/Enterprise
-                workflow.
+                Fully managed terraform runs. Run terraform locally and stream logs from
+                remote runs. Best for teams that want seamless automation for their
+                terraform runs without much configuration.
               </p>
             </div>
           </label>

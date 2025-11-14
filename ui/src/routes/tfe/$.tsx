@@ -4,7 +4,7 @@ import { getUserEmail } from '@/api/statesman_users'
 
 async function handler({ request }) {
   const url = new URL(request.url);
-  console.log('url', url);
+  
   // OAuth/discovery paths that don't require token auth (login flow)
   const isOAuthPath = 
     url.pathname.startsWith('/tfe/app/oauth2/') ||
@@ -121,7 +121,6 @@ async function handler({ request }) {
   const webhookSecret = process.env.STATESMAN_BACKEND_WEBHOOK_SECRET;
   
   if (!webhookSecret) {
-    console.error('STATESMAN_BACKEND_WEBHOOK_SECRET not configured');
     console.error('STATESMAN_BACKEND_WEBHOOK_SECRET not configured');
     return new Response('Internal configuration error', { status: 500 });
   }
