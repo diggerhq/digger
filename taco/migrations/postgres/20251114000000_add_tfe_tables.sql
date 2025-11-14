@@ -84,20 +84,22 @@ CREATE INDEX IF NOT EXISTS "idx_tfe_configuration_versions_unit_id" ON "public".
 CREATE INDEX IF NOT EXISTS "idx_tfe_configuration_versions_status" ON "public"."tfe_configuration_versions" ("status");
 CREATE INDEX IF NOT EXISTS "idx_tfe_configuration_versions_created_at" ON "public"."tfe_configuration_versions" ("created_at" DESC);
 
--- Add foreign key constraints (optional - for referential integrity)
+-- Add foreign key constraints
+-- Note: PostgreSQL doesn't support IF NOT EXISTS for ADD CONSTRAINT
+-- These will fail if constraints already exist (which is expected behavior for migrations)
 ALTER TABLE "public"."tfe_runs" 
-  ADD CONSTRAINT IF NOT EXISTS "fk_tfe_runs_unit" 
+  ADD CONSTRAINT "fk_tfe_runs_unit" 
   FOREIGN KEY ("unit_id") REFERENCES "public"."units" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "public"."tfe_runs" 
-  ADD CONSTRAINT IF NOT EXISTS "fk_tfe_runs_configuration_version" 
+  ADD CONSTRAINT "fk_tfe_runs_configuration_version" 
   FOREIGN KEY ("configuration_version_id") REFERENCES "public"."tfe_configuration_versions" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "public"."tfe_plans" 
-  ADD CONSTRAINT IF NOT EXISTS "fk_tfe_plans_run" 
+  ADD CONSTRAINT "fk_tfe_plans_run" 
   FOREIGN KEY ("run_id") REFERENCES "public"."tfe_runs" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "public"."tfe_configuration_versions" 
-  ADD CONSTRAINT IF NOT EXISTS "fk_tfe_configuration_versions_unit" 
+  ADD CONSTRAINT "fk_tfe_configuration_versions_unit" 
   FOREIGN KEY ("unit_id") REFERENCES "public"."units" ("id") ON DELETE CASCADE;
 
