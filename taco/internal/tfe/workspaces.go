@@ -419,8 +419,8 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		})
 	}
 	
-	// Determine execution mode (default to 'remote' if not specified)
-	executionMode := "remote"
+	// Determine execution mode (default to 'local' if not specified)
+	executionMode := "local"
 	if unit.TFEExecutionMode != nil && *unit.TFEExecutionMode != "" {
 		executionMode = *unit.TFEExecutionMode
 	}
