@@ -13,19 +13,26 @@ type TFERun struct {
 
 	// ----- relationships -----
 	Plan                  *PlanRef                  `jsonapi:"relation,plan" json:"plan"`
+	Apply                 *ApplyRef                 `jsonapi:"relation,apply,omitempty" json:"apply,omitempty"`
 	Workspace             *WorkspaceRef             `jsonapi:"relation,workspace" json:"workspace"`
 	ConfigurationVersion  *ConfigurationVersionRef  `jsonapi:"relation,configuration-version" json:"configuration-version"`
 }
 
 // Actions block Terraform likes to see on runs
 type RunActions struct {
-	IsCancelable bool `json:"is-cancelable"`
-	CanApply     bool `json:"can-apply"`
+	IsCancelable  bool `json:"is-cancelable"`
+	IsConfirmable bool `json:"is-confirmable"`
+	CanApply      bool `json:"can-apply"`
 }
 
 // Relationship: plan
 type PlanRef struct {
 	ID string `jsonapi:"primary,plans" json:"id"`
+}
+
+// Relationship: apply
+type ApplyRef struct {
+	ID string `jsonapi:"primary,applies" json:"id"`
 }
 
 // Relationship: workspace

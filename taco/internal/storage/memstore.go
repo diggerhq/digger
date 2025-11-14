@@ -127,6 +127,26 @@ func (m *memStore) Download(ctx context.Context, id string) ([]byte, error) {
 	return content, nil
 }
 
+// UploadBlob uploads arbitrary data (config archives, logs, etc.) without lock checks.
+// Use this for non-state files. For state files, use Upload() which includes lock checking.
+func (m *memStore) UploadBlob(ctx context.Context, key string, data []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	// Store as a simple blob (no versioning, no lock checks)
+	m.units[key] = &unitData{
+		metadata: &UnitMetadata{
+			ID:      key,
+			Size:    int64(len(data)),
+			Updated: time.Now(),
+			Locked:  false,
+		},
+		content:  data,
+		versions: nil,
+	}
+	return nil
+}
+
 func (m *memStore) Upload(ctx context.Context, id string, data []byte, lockID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

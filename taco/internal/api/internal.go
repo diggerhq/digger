@@ -142,15 +142,34 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	
 	// Create identifier resolver for TFE org resolution
 	var tfeIdentifierResolver domain.IdentifierResolver
+	var runRepo domain.TFERunRepository
+	var planRepo domain.TFEPlanRepository
+	var configVerRepo domain.TFEConfigurationVersionRepository
+	
 	if deps.QueryStore != nil {
 		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
 			tfeIdentifierResolver = repositories.NewIdentifierResolver(db)
+			// Create TFE repositories for runs, plans, and configuration versions
+			runRepo = repositories.NewTFERunRepository(db)
+			planRepo = repositories.NewTFEPlanRepository(db)
+			configVerRepo = repositories.NewTFEConfigurationVersionRepository(db)
+			log.Println("TFE repositories initialized successfully (internal routes)")
 		}
 	}
 	
 	// Create TFE handler with webhook auth context
 	// Pass both wrapped (for authenticated calls) and unwrapped (for signed URLs) repositories
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.UnwrappedRepository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
+	tfeHandler := tfe.NewTFETokenHandler(
+		authHandler,
+		deps.Repository,
+		deps.UnwrappedRepository,
+		deps.BlobStore,
+		deps.RBACManager,
+		tfeIdentifierResolver,
+		runRepo,
+		planRepo,
+		configVerRepo,
+	)
 	
 	// TFE group with webhook auth (for UI pass-through)
 	tfeInternal := e.Group("/internal/tfe/api/v2")
@@ -179,11 +198,13 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	tfeInternal.GET("/configuration-versions/:id", tfeHandler.GetConfigurationVersion)
 	tfeInternal.POST("/runs", tfeHandler.CreateRun)
 	tfeInternal.GET("/runs/:id", tfeHandler.GetRun)
-	tfeInternal.GET("/runs/:id/policy-checks", tfeHandler.EmptyListResponse)
-	tfeInternal.GET("/runs/:id/task-stages", tfeHandler.EmptyListResponse)
-	tfeInternal.GET("/runs/:id/cost-estimates", tfeHandler.EmptyListResponse)
-	tfeInternal.GET("/runs/:id/run-events", tfeHandler.EmptyListResponse)
+	tfeInternal.POST("/runs/:id/actions/apply", tfeHandler.ApplyRun)
+	tfeInternal.GET("/runs/:id/policy-checks", tfeHandler.GetPolicyChecks)
+	tfeInternal.GET("/runs/:id/task-stages", tfeHandler.GetTaskStages)
+	tfeInternal.GET("/runs/:id/cost-estimates", tfeHandler.GetCostEstimates)
+	tfeInternal.GET("/runs/:id/run-events", tfeHandler.GetRunEvents)
 	tfeInternal.GET("/plans/:id", tfeHandler.GetPlan)
+	tfeInternal.GET("/applies/:id", tfeHandler.GetApply)
 
 
 	log.Println("TFE API endpoints registered at /internal/tfe/api/v2 with webhook auth")

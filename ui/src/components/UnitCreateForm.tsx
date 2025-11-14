@@ -53,6 +53,9 @@ export default function UnitCreateForm({
           organisationId,
           email,
           name: unitName.trim(),
+          // Enable TFE remote execution for remote type
+          tfeAutoApply: unitType === 'remote',
+          tfeExecutionMode: unitType === 'remote' ? 'remote' : 'local',
         },
       })
       // analytics: track unit creation
@@ -120,21 +123,22 @@ export default function UnitCreateForm({
 
           <label
             htmlFor="unit-type-remote"
-            className={`relative flex cursor-not-allowed items-start gap-4 rounded-lg border p-4 md:p-5 opacity-60 bg-muted/30`}
+            className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${unitType === 'remote' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+            onClick={() => setUnitType('remote')}
           >
-            <RadioGroupItem id="unit-type-remote" value="remote" disabled className="sr-only" />
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <RadioGroupItem id="unit-type-remote" value="remote" className="sr-only" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Cloud className="h-5 w-5" />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold">Remote</span>
-                <Badge variant="secondary">Coming soon</Badge>
+                <Badge variant="default" className="bg-green-600">TFE Compatible</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Fully managed terraform runs. Run terraform locally and stream logs from
-                remote runs. Best for teams that want seamless automation for their
-                terraform runs without much configuration.
+                Fully managed terraform runs. Execute terraform commands locally via CLI
+                and runs execute remotely. Compatible with Terraform Cloud/Enterprise
+                workflow.
               </p>
             </div>
           </label>

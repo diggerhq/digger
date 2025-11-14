@@ -3,40 +3,51 @@ package tfe
 import (
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/auth"
+	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
 )
 
 func (h *TfeHandler) GetConfigurationVersion(c echo.Context) error {
+	ctx := c.Request().Context()
 	cvID := c.Param("id")
 
-	// In a real impl you'd look this up from memory/db. For now assume we stored:
-	// - that cvID exists
-	// - upload already happened
-	// We'll fake a timestamp.
-	uploadedAt := time.Now().UTC().Format(time.RFC3339)
+	// Get configuration version from database
+	configVer, err := h.configVerRepo.GetConfigurationVersion(ctx, cvID)
+	if err != nil {
+		fmt.Printf("Failed to get configuration version %s: %v\n", cvID, err)
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "404",
+				"title":  "not found",
+				"detail": fmt.Sprintf("Configuration version %s not found", cvID),
+			}},
+		})
+	}
+
+	// Parse status timestamps
+	statusTimestamps := make(map[string]string)
+	if configVer.UploadedAt != nil {
+		statusTimestamps["uploaded-at"] = configVer.UploadedAt.UTC().Format(time.RFC3339)
+	}
 
 	cv := tfe.ConfigurationVersionRecord{
-		ID:            cvID,
-		AutoQueueRuns: false,
-		Error:         nil,
-		ErrorMessage:  nil,
-		Source:        "cli",
-		Speculative:   true,
-		Status:        "uploaded", // <-- important change
-		StatusTimestamps: map[string]string{
-			"uploaded-at": uploadedAt,
-		},
-		UploadURL:        nil,     // <-- becomes null in JSON now
-		Provisional:      false,
-		IngressAttributes: nil,    // emit relationships.ingress-attributes.data = null
+		ID:               cvID,
+		AutoQueueRuns:    configVer.AutoQueueRuns,
+		Error:            configVer.Error,
+		ErrorMessage:     configVer.ErrorMessage,
+		Source:           configVer.Source,
+		Speculative:      configVer.Speculative,
+		Status:           configVer.Status,
+		StatusTimestamps: statusTimestamps,
+		UploadURL:        configVer.UploadURL,
+		Provisional:      configVer.Provisional,
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
@@ -49,28 +60,82 @@ func (h *TfeHandler) GetConfigurationVersion(c echo.Context) error {
 }
 
 func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
-	cvId := "cv-1234567890"
+	ctx := c.Request().Context()
+	workspaceName := c.Param("workspace_name")
+
+	// Get org and user context
+	orgIdentifier, _ := c.Get("organization_id").(string)
+	userID, _ := c.Get("user_id").(string)
+	
+	if orgIdentifier == "" {
+		orgIdentifier = "default-org"
+	}
+	if userID == "" {
+		userID = "system"
+	}
+
+	// Resolve external org ID to UUID (needed for S3 paths)
+	orgUUID, err := h.identifierResolver.ResolveOrganization(ctx, orgIdentifier)
+	if err != nil {
+		fmt.Printf("Failed to resolve organization %s: %v\n", orgIdentifier, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": fmt.Sprintf("Failed to resolve organization: %v", err),
+		})
+	}
+
+	// Strip ws- prefix if present to get the actual unit ID
+	unitID := convertWorkspaceToStateID(workspaceName)
+
 	publicBase := os.Getenv("OPENTACO_PUBLIC_BASE_URL")
 	if publicBase == "" {
-		slog.Error("OPENTACO_PUBLIC_BASE_URL environment variable not set")
-		return fmt.Errorf("OPENTACO_PUBLIC_BASE_URL environment variable not set")
+		publicBase = "http://localhost:8080" // Fallback for testing
 	}
-	signedUploadUrl, err := auth.SignURL(publicBase, fmt.Sprintf("/tfe/api/v2/configuration-versions/%v/upload", cvId), time.Now().Add(2*time.Minute))
+
+	// Create configuration version in database
+	configVer := &domain.TFEConfigurationVersion{
+		OrgID:            orgUUID, // Store UUID, not external ID!
+		UnitID:           unitID,
+		Status:           "pending",
+		Source:           "cli",
+		Speculative:      true,
+		AutoQueueRuns:    false,
+		Provisional:      false,
+		StatusTimestamps: "{}",
+		CreatedBy:        userID,
+	}
+
+	if err := h.configVerRepo.CreateConfigurationVersion(ctx, configVer); err != nil {
+		fmt.Printf("Failed to create configuration version: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "500",
+				"title":  "internal error",
+				"detail": "Failed to create configuration version",
+			}},
+		})
+	}
+
+	fmt.Printf("Created configuration version %s for unit %s\n", configVer.ID, unitID)
+
+	// Generate signed upload URL
+	signedUploadUrl, err := auth.SignURL(publicBase, fmt.Sprintf("/tfe/api/v2/configuration-versions/%v/upload", configVer.ID), time.Now().Add(2*time.Minute))
 	if err != nil {
 		return err
 	}
+	
+	fmt.Printf("DEBUG Generated upload URL: %s\n", signedUploadUrl)
+
 	cv := tfe.ConfigurationVersionRecord{
-		ID:               cvId,
-		AutoQueueRuns:    false, // you can choose true/false; docs default true
+		ID:               configVer.ID,
+		AutoQueueRuns:    configVer.AutoQueueRuns,
 		Error:            nil,
 		ErrorMessage:     nil,
-		Source:           "cli",       // HashiCorp examples show "tfe-api" or "gitlab"; "cli" is fine for CLI-driven runs.
-		Speculative:      true,        // for terraform plan in remote mode
-		Status:           "pending",   // initial status according to docs
+		Source:           configVer.Source,
+		Speculative:      configVer.Speculative,
+		Status:           configVer.Status,
 		StatusTimestamps: map[string]string{},
 		UploadURL:        &signedUploadUrl,
-		Provisional:      false,
-		IngressAttributes: nil,
+		Provisional:      configVer.Provisional,
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
@@ -86,14 +151,41 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 
 
 func (h *TfeHandler) UploadConfigurationArchive(c echo.Context) error {
-	configVersionID := c.Param("configVersionID")
+	ctx := c.Request().Context()
+	configVersionID := c.Param("id")
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	fmt.Printf("received %d bytes for %s\n", len(body), configVersionID)
+	if len(body) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "empty archive"})
+	}
+
+	fmt.Printf("Received %d bytes for configuration version %s\n", len(body), configVersionID)
+
+	// Get configuration version from database
+	_, err = h.configVerRepo.GetConfigurationVersion(ctx, configVersionID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "configuration version not found"})
+	}
+
+	// Store archive in blob storage (use UploadBlob - no lock checks needed for archives)
+	archiveBlobID := fmt.Sprintf("config-versions/%s/archive.tar.gz", configVersionID)
+	if err := h.blobStore.UploadBlob(ctx, archiveBlobID, body); err != nil {
+		fmt.Printf("Failed to store archive: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to store archive"})
+	}
+
+	// Update configuration version status to uploaded AND set the archive blob ID
+	uploadedAt := time.Now()
+	if err := h.configVerRepo.UpdateConfigurationVersionStatus(ctx, configVersionID, "uploaded", &uploadedAt, &archiveBlobID); err != nil {
+		fmt.Printf("Failed to update configuration version status: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update status"})
+	}
+
+	fmt.Printf("Successfully uploaded and stored archive for configuration version %s (blob: %s)\n", configVersionID, archiveBlobID)
 
 	// 200 OK, empty body. Terraform does not expect JSON here.
 	return c.NoContent(http.StatusOK)

@@ -119,7 +119,7 @@ async function handler({ request }) {
 
   // Use webhook auth to forward to internal TFE routes
   const webhookSecret = process.env.STATESMAN_BACKEND_WEBHOOK_SECRET;
-  const webhookSecret = process.env.STATESMAN_BACKEND_WEBHOOK_SECRET;
+  
   if (!webhookSecret) {
     console.error('STATESMAN_BACKEND_WEBHOOK_SECRET not configured');
     console.error('STATESMAN_BACKEND_WEBHOOK_SECRET not configured');

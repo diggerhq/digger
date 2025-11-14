@@ -18,7 +18,7 @@ type ConfigurationVersionRecord struct {
 	StatusTimestamps map[string]string `jsonapi:"attr,status-timestamps" json:"status-timestamps"`
 	UploadURL        *string            `jsonapi:"attr,upload-url" json:"upload-url"`
 	Provisional      bool              `jsonapi:"attr,provisional" json:"provisional"`
-	IngressAttributes *IngressAttributesStub `jsonapi:"relation,ingress-attributes" json:"ingress-attributes"`
+	// IngressAttributes omitted - not used in remote execution mode
 }
 
 

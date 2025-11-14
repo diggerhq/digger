@@ -250,6 +250,32 @@ func (s *SQLStore) SyncDeleteUnit(ctx context.Context, blobPath string) error {
 		Delete(&types.Unit{}).Error
 }
 
+// UpdateUnitTFESettings updates TFE-specific settings for a unit
+func (s *SQLStore) UpdateUnitTFESettings(ctx context.Context, unitID string, autoApply *bool, executionMode *string, terraformVersion *string, workingDirectory *string) error {
+	updates := make(map[string]interface{})
+	
+	if autoApply != nil {
+		updates["tfe_auto_apply"] = *autoApply
+	}
+	if executionMode != nil {
+		updates["tfe_execution_mode"] = *executionMode
+	}
+	if terraformVersion != nil {
+		updates["tfe_terraform_version"] = *terraformVersion
+	}
+	if workingDirectory != nil {
+		updates["tfe_working_directory"] = *workingDirectory
+	}
+	
+	if len(updates) == 0 {
+		return nil // Nothing to update
+	}
+	
+	return s.db.WithContext(ctx).Model(&types.Unit{}).
+		Where("id = ?", unitID).
+		Updates(updates).Error
+}
+
 func (s *SQLStore) SyncUnitLock(ctx context.Context, blobPath string, lockID, lockWho string, lockCreated time.Time) error {
 	orgUUID, unitUUID, err := s.parseBlobPath(ctx, blobPath)
 	if err != nil {

@@ -292,6 +292,26 @@ func (s *s3Store) Download(ctx context.Context, id string) ([]byte, error) {
     return io.ReadAll(out.Body)
 }
 
+// UploadBlob uploads arbitrary data (config archives, logs, etc.) without lock checks or versioning.
+// Use this for non-state files. For state files, use Upload() which includes lock checking.
+func (s *s3Store) UploadBlob(ctx context.Context, key string, data []byte) error {
+    fmt.Printf("[S3Store.UploadBlob] START - key=%s, dataLen=%d\n", key, len(data))
+    
+    fullKey := s.objKey(key)
+    if _, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+        Bucket: &s.bucket,
+        Key:    aws.String(fullKey),
+        Body:   bytes.NewReader(data),
+        ContentType: aws.String("application/octet-stream"),
+    }); err != nil {
+        fmt.Printf("[S3Store.UploadBlob] Upload failed: %v\n", err)
+        return err
+    }
+    
+    fmt.Printf("[S3Store.UploadBlob] SUCCESS: Blob uploaded to %s\n", fullKey)
+    return nil
+}
+
 func (s *s3Store) Upload(ctx context.Context, id string, data []byte, lockID string) error {
     fmt.Printf("[S3Store.Upload] START - id=%s, dataLen=%d, lockID=%s\n", id, len(data), lockID)
     

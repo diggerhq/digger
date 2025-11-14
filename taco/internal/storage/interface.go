@@ -49,6 +49,7 @@ type UnitStore interface {
 	// Data operations
 	Download(ctx context.Context, id string) ([]byte, error)
 	Upload(ctx context.Context, id string, data []byte, lockID string) error
+	UploadBlob(ctx context.Context, key string, data []byte) error // For non-state files (no lock checks)
 	
 	// Lock operations
 	Lock(ctx context.Context, id string, info *LockInfo) error

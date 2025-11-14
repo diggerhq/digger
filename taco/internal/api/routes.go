@@ -250,12 +250,32 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	// Unwrapped repository is used for signed URL operations (pre-authorized, no RBAC checks needed)
 	// Create identifier resolver for org resolution
 	var tfeIdentifierResolver domain.IdentifierResolver
+	var runRepo domain.TFERunRepository
+	var planRepo domain.TFEPlanRepository
+	var configVerRepo domain.TFEConfigurationVersionRepository
+	
 	if deps.QueryStore != nil {
 		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
 			tfeIdentifierResolver = repositories.NewIdentifierResolver(db)
+			// Create TFE repositories for runs, plans, and configuration versions
+			runRepo = repositories.NewTFERunRepository(db)
+			planRepo = repositories.NewTFEPlanRepository(db)
+			configVerRepo = repositories.NewTFEConfigurationVersionRepository(db)
+			log.Println("TFE repositories initialized successfully")
 		}
 	}
-	tfeHandler := tfe.NewTFETokenHandler(authHandler, deps.Repository, deps.UnwrappedRepository, deps.BlobStore, deps.RBACManager, tfeIdentifierResolver)
+	
+	tfeHandler := tfe.NewTFETokenHandler(
+		authHandler,
+		deps.Repository,
+		deps.UnwrappedRepository,
+		deps.BlobStore,
+		deps.RBACManager,
+		tfeIdentifierResolver,
+		runRepo,
+		planRepo,
+		configVerRepo,
+	)
 
 	// Create protected TFE group - opaque tokens only
 	tfeGroup := e.Group("/tfe/api/v2")
@@ -276,7 +296,24 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeGroup.POST("/workspaces/:workspace_id/state-versions", tfeHandler.CreateStateVersion)
 	tfeGroup.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
 
-	tfeGroup.GET("/plans/:planID/logs/:blobId", tfeHandler.GetPlanLogs)
+	// Configuration version routes
+	tfeGroup.POST("/workspaces/:workspace_name/configuration-versions", tfeHandler.CreateConfigurationVersions)
+	tfeGroup.GET("/configuration-versions/:id", tfeHandler.GetConfigurationVersion)
+	
+	// Run routes
+	tfeGroup.POST("/runs", tfeHandler.CreateRun)
+	tfeGroup.GET("/runs/:id", tfeHandler.GetRun)
+	tfeGroup.POST("/runs/:id/actions/apply", tfeHandler.ApplyRun)
+	tfeGroup.GET("/runs/:id/policy-checks", tfeHandler.GetPolicyChecks)
+	tfeGroup.GET("/runs/:id/task-stages", tfeHandler.GetTaskStages)
+	tfeGroup.GET("/runs/:id/cost-estimates", tfeHandler.GetCostEstimates)
+	tfeGroup.GET("/runs/:id/run-events", tfeHandler.GetRunEvents)
+	
+	// Plan routes
+	tfeGroup.GET("/plans/:id", tfeHandler.GetPlan)
+	
+	// Apply routes
+	tfeGroup.GET("/applies/:id", tfeHandler.GetApply)
 
 	// Upload endpoints exempt from auth middleware (Terraform doesn't send auth headers)
 	// Security: These validate lock ownership and have RBAC checks in handlers
@@ -287,6 +324,14 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/upload", tfeHandler.UploadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
 	tfeSignedUrlsGroup.PUT("/configuration-versions/:id/upload", tfeHandler.UploadConfigurationArchive)
+	
+	// Plan log streaming - token-based auth (token embedded in path, not query string)
+	// Security: Time-limited HMAC-signed tokens, Terraform CLI preserves path
+	e.GET("/tfe/api/v2/plans/:planID/logs/:token", tfeHandler.GetPlanLogs)
+	
+	// Apply log streaming - token-based auth (token embedded in path, not query string)
+	// Security: Time-limited HMAC-signed tokens, Terraform CLI preserves path
+	e.GET("/tfe/api/v2/applies/:applyID/logs/:token", tfeHandler.GetApplyLogs)
 
 	// Keep discovery endpoints unprotected (needed for terraform login)
 	e.GET("/.well-known/terraform.json", tfeHandler.GetWellKnownJson)
