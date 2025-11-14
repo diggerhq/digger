@@ -320,6 +320,21 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"jobCount", len(jobs),
 	)
 
+
+	// impacted projects should have already been populated in the database by here since the PR open would have
+	// populated them, but just in case (disabled pr events or a long old pr before this change was deployed)
+	// we will populate them if they did not exist
+	dbImpactedProjects, err := models.DB.GetImpactedProjects(repoFullName, *commitSha)
+	if len(dbImpactedProjects) > 0 {
+		for _, impactedProject := range allImpactedProjects {
+			_, err = models.DB.CreateImpactedProject(repoFullName, *commitSha, impactedProject.Name)
+			if err != nil {
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error failed to update internal record of impacted projects %v", err))
+				return err
+			}
+		}
+	}
+
 	// if flag set we dont allow more projects impacted than the number of changed files in PR (safety check)
 	if config2.LimitByNumOfFilesChanged() {
 		if len(impactedProjectsForComment) > len(changedFiles) {

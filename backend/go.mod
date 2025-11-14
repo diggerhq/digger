@@ -18,7 +18,7 @@ replace github.com/diggerhq/digger/drift => ../drift
 replace github.com/ugorji/go => github.com/ugorji/go v1.2.12
 
 require (
-	ariga.io/atlas-provider-gorm v0.5.0
+	ariga.io/atlas-provider-gorm v0.5.4
 	github.com/bradleyfalzon/ghinstallation/v2 v2.16.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/dominikbraun/graph v0.23.0
@@ -44,7 +44,7 @@ require (
 	golang.org/x/text v0.28.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.31.0
+	gorm.io/gorm v1.30.1
 	k8s.io/api v0.20.6
 	k8s.io/apimachinery v0.20.6
 	k8s.io/client-go v10.0.0+incompatible

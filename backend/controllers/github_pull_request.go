@@ -204,6 +204,18 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return nil
 	}
 
+	dbImpactedProjects, err := models.DB.GetImpactedProjects(repoFullName, commitSha)
+	// TODO: is this check for db impacted projects necessary?
+	if len(dbImpactedProjects) > 0 {
+		for _, impactedProject := range impactedProjects {
+			_, err = models.DB.CreateImpactedProject(repoFullName, commitSha, impactedProject.Name)
+			if err != nil {
+				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Error failed to update internal record of impacted projects %v", err))
+				return err
+			}
+		}
+	}
+
 	// if flag set we dont allow more projects impacted than the number of changed files in PR (safety check)
 	if config2.LimitByNumOfFilesChanged() {
 		if len(impactedProjects) > len(changedFiles) {

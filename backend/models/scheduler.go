@@ -11,6 +11,16 @@ import (
 	"gorm.io/gorm"
 )
 
+type ImpactedProject struct {
+	gorm.Model
+	ID           uuid.UUID `gorm:"primary_key"`
+	RepoFullName string `gorm:"index:idx_org_repo"`
+	CommitSha    string `gorm:"index:idx_org_repo"`
+	ProjectName  string
+	Planned      bool
+	Applied      bool
+}
+
 type DiggerJobParentLink struct {
 	gorm.Model
 	DiggerJobId       string `gorm:"size:50,index:idx_digger_job_id"`
@@ -29,6 +39,7 @@ type DiggerBatch struct {
 	Layer                    uint
 	VCS                      DiggerVCSType
 	PrNumber                 int
+	CommitSha    			 string
 	CommentId                *int64
 	AiSummaryCommentId       string
 	Status                   orchestrator_scheduler.DiggerBatchStatus

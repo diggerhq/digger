@@ -707,6 +707,69 @@ func (db *Database) MakeGithubAppInstallationLinkInactive(link *GithubAppInstall
 	return link, nil
 }
 
+func (db *Database) CreateImpactedProject(repoFullName string, commitSha string, projcectName string) (*ImpactedProject,error) {
+	ip := ImpactedProject{
+		RepoFullName: repoFullName,
+		CommitSha:    commitSha,
+		ProjectName:  projcectName,
+		Planned: false,
+		Applied: false,
+	}
+	err := db.GormDB.Create(&ip).Error
+	if err != nil {
+		slog.Error("failed to create impacted project", "error", err, "repoFullName", repoFullName, "commitSha", commitSha, "projcectName", projcectName)
+		return nil, err
+	}
+	return &ip, nil
+}
+
+func (db *Database) GetImpactedProjects(repoFullName string, commitSha string) ([]ImpactedProject, error) {
+	var impactedProjects []ImpactedProject
+	err := db.GormDB.Where("repo_full_name=? AND commit_sha = ?", repoFullName, commitSha).Find(&impactedProjects).Error
+	if err != nil {
+		slog.Error("failed to get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
+		return nil, err
+	}
+	return impactedProjects, nil
+}
+
+func (db *Database) GetImpactedProjectSingle(repoFullName string, commitSha string, projectName string) (*ImpactedProject, error) {
+	var impactedProject ImpactedProject
+	err := db.GormDB.Where("repo_full_name=? AND commit_sha = ?", repoFullName, commitSha).Find(&impactedProject).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		slog.Error("failed to get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
+		return nil, err
+	}
+	return &impactedProject, nil
+}
+
+func (db *Database) AllImpactedProjectPlanned(repoFullName string, commitSha string) (bool, []ImpactedProject, error) {
+	impactedProjects, err := db.GetImpactedProjects(repoFullName, commitSha)
+	if err != nil {
+		slog.Error("could not get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
+		return false, nil, err
+	}
+	projectsNotPlanned := lo.Filter(impactedProjects, func(item ImpactedProject, _ int) bool {
+		return item.Planned == false
+	})
+	return len(projectsNotPlanned) == 0, impactedProjects, nil
+}
+
+func (db *Database) AllImpactedProjectApplied(repoFullName string, commitSha string) (bool, []ImpactedProject, error) {
+	impactedProjects, err := db.GetImpactedProjects(repoFullName, commitSha)
+	if err != nil {
+		slog.Error("could not get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
+		return false, nil, err
+	}
+	projectsNotApplied := lo.Filter(impactedProjects, func(item ImpactedProject, _ int) bool {
+		return item.Applied == false
+	})
+	return len(projectsNotApplied) == 0, impactedProjects, nil
+}
+
 func (db *Database) CreateDiggerJobLink(diggerJobId string, repoFullName string) (*GithubDiggerJobLink, error) {
 	link := GithubDiggerJobLink{Status: DiggerJobLinkCreated, DiggerJobId: diggerJobId, RepoFullName: repoFullName}
 	result := db.GormDB.Save(&link)
@@ -790,7 +853,7 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool, VCSConnectionId *uint) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool, VCSConnectionId *uint, commitSha string) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                       uid,
@@ -801,6 +864,7 @@ func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationI
 		RepoName:                 repoName,
 		RepoFullName:             repoFullname,
 		PrNumber:                 PRNumber,
+		CommitSha:                commitSha,
 		CommentId:                commentId,
 		Status:                   scheduler.BatchJobCreated,
 		BranchName:               branchName,
