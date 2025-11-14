@@ -761,6 +761,22 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			)
 		}
 
+		commitSha := batch.CommitSha
+		impactedProjectDb, err := models.DB.GetImpactedProjectSingle(batch.RepoFullName, commitSha, job.ProjectName)
+		if err != nil {
+			slog.Warn("Error fetching impacted project db", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
+		} else if impactedProjectDb == nil && err == nil {
+			slog.Warn("Impacted project entry not found in db (maybe it was not synced in event start)", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
+		} else {
+			if batch.BatchType == orchestrator_scheduler.DiggerCommandPlan {
+				impactedProjectDb.Planned = true
+			}
+			if batch.BatchType == orchestrator_scheduler.DiggerCommandApply {
+				impactedProjectDb.Applied = true
+			}
+			models.DB.GormDB.Save(impactedProjectDb)
+		}
+
 		var prCommentId *int64
 		num, err := strconv.ParseInt(request.PrCommentId, 10, 64)
 		if err != nil {
@@ -1492,9 +1508,16 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		"batchType", batch.BatchType,
 	)
 
+	allApplied, _, err := models.DB.AllImpactedProjectApplied(batch.RepoFullName, batch.CommitSha)
+	if err != nil {
+		slog.Error("Error fetching all applied projects", "batchId", batch.ID, "error", err)
+		slog.Warn("falling back to using batch entry")
+		allApplied = batch.CoverAllImpactedProjects
+	}
+
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded &&
 		batch.BatchType == orchestrator_scheduler.DiggerCommandApply &&
-		batch.CoverAllImpactedProjects == true &&
+		allApplied &&
 		automerge == true {
 
 		slog.Info("Conditions met for auto-merge, proceeding",

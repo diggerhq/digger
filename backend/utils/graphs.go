@@ -72,7 +72,7 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 		)
 	}
 
-	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId, aiSummaryCommentId, reportTerraformOutput, coverAllImpactedProjects, VCSConnectionId)
+	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId, aiSummaryCommentId, reportTerraformOutput, coverAllImpactedProjects, VCSConnectionId, commitSha)
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
