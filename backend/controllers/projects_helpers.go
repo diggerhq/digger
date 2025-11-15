@@ -3,11 +3,14 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
-	"log/slog"
 )
 
 func UpdateCheckStatusForBatch(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
@@ -63,6 +66,80 @@ func UpdateCheckStatusForBatch(gh utils.GithubClientProvider, batch *models.Digg
 		"newStatus", serializedBatch.ToStatusCheck())
 	if isPlanBatch {
 		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/plan")
+		if disableDiggerApplyStatusCheck == false {
+			prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
+		}
+
+	} else {
+		prService.SetStatus(batch.PrNumber, "success", "digger/plan")
+		if disableDiggerApplyStatusCheck == false {
+			prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/apply")
+		}
+	}
+	return nil
+}
+
+
+func UpdateCheckStatusForBatchWithModernChecks(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+	slog.Info("Updating PR status for batch",
+		"batchId", batch.ID,
+		"prNumber", batch.PrNumber,
+		"batchStatus", batch.Status,
+		"batchType", batch.BatchType,
+	)
+
+	if batch.VCS != models.DiggerVCSGithub {
+		return fmt.Errorf("We only support github VCS for modern checks at the moment")
+	}
+	prService, err := utils.GetPrServiceFromBatch(batch, gh)
+	if err != nil {
+		slog.Error("Error getting PR service",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error getting github service: %v", err)
+	}
+
+	ghPrService := prService.(github.GithubService)
+
+
+	diggerYmlString := batch.DiggerConfig
+	diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(diggerYmlString)
+	if err != nil {
+		slog.Error("Error loading Digger config from batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error loading digger config from batch: %v", err)
+	}
+
+	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	if err != nil {
+		slog.Error("Error converting Digger YAML to config",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error converting Digger YAML to config: %v", err)
+	}
+
+	disableDiggerApplyStatusCheck := config.DisableDiggerApplyStatusCheck
+
+	isPlanBatch := batch.BatchType == orchestrator_scheduler.DiggerCommandPlan
+
+	serializedBatch, err := batch.MapToJsonStruct()
+	if err != nil {
+		slog.Error("Error mapping batch to json struct",
+			"batchId", batch.ID,
+			"error", err,
+		)
+		return fmt.Errorf("error mapping batch to json struct: %v", err)
+	}
+	slog.Debug("Updating PR status for batch",
+		"batchId", batch.ID, "prNumber", batch.PrNumber, "batchStatus", batch.Status, "batchType", batch.BatchType,
+		"newStatus", serializedBatch.ToStatusCheck())
+	if isPlanBatch {
+		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/plan")
+		ghPrService.CreateCheckRun(name, status, conclusion, title , summary, text,batch.CommitSha)
 		if disableDiggerApplyStatusCheck == false {
 			prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
 		}

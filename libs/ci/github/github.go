@@ -308,6 +308,51 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 	return err
 }
 
+// modern check runs for github (not the commit status)
+func (svc GithubService) CreateCheckRun(name string, status string, conclusion string, title string, summary string, text string, headSHA string) (*github.CheckRun, error) {
+	client := svc.Client
+	owner := svc.Owner
+	repoName := svc.RepoName
+	opts := github.CreateCheckRunOptions{
+		Name:    name,
+		HeadSHA: headSHA, // commit SHA to attach the check to
+		Status:  github.String(status),  // or "queued" / "in_progress"
+		Conclusion: github.String(conclusion), // "success", "failure", "neutral", etc.
+		Output: &github.CheckRunOutput{
+			Title:   github.String(title),
+			Summary: github.String(summary),
+			Text:    github.String(text),
+		},
+	}
+
+	ctx := context.Background()
+	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repoName, opts)
+	return checkRun, err
+}
+
+func (svc GithubService) UpdateCheckRun(checkRunId string, status string, conclusion string, title string, summary string, text string) (*github.CheckRun, error) {
+	client := svc.Client
+	owner := svc.Owner
+	repoName := svc.RepoName
+
+	checkRunIdInt64, err := strconv.ParseInt(checkRunId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert id %v to i64: %v", checkRunId, err)
+	}
+	opts := github.UpdateCheckRunOptions{
+		Status:     github.String(status),
+		Conclusion: github.String(conclusion),
+		Output: &github.CheckRunOutput{
+			Title:   github.String(title),
+			Summary: github.String(summary),
+			Text:    github.String(text),
+		},
+	}
+	ctx := context.Background()
+	checkRun, _, err := client.Checks.UpdateCheckRun(ctx, owner, repoName, checkRunIdInt64, opts)
+	return checkRun, err
+}
+
 func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
