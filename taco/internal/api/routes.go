@@ -274,6 +274,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeGroup.POST("/workspaces/:workspace_id/actions/force-unlock", tfeHandler.ForceUnlockWorkspace)
 	tfeGroup.GET("/workspaces/:workspace_id/current-state-version", tfeHandler.GetCurrentStateVersion)
 	tfeGroup.POST("/workspaces/:workspace_id/state-versions", tfeHandler.CreateStateVersion)
+	tfeGroup.GET("/workspaces/:workspace_id/current-state-version-outputs", tfeHandler.GetCurrentStateVersionOutputs)
 	tfeGroup.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
 
 	// Upload/Download endpoints use signed URLs instead of auth middleware

@@ -172,9 +172,11 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	tfeInternal.POST("/workspaces/:workspace_id/actions/force-unlock", tfeHandler.ForceUnlockWorkspace)
 	tfeInternal.GET("/workspaces/:workspace_id/current-state-version", tfeHandler.GetCurrentStateVersion)
 	tfeInternal.POST("/workspaces/:workspace_id/state-versions", tfeHandler.CreateStateVersion)
+	tfeInternal.GET("/workspaces/:workspace_id/current-state-version-outputs", tfeHandler.GetCurrentStateVersionOutputs)
 	tfeInternal.GET("/state-versions/:id/download", tfeHandler.DownloadStateVersion)
 	tfeInternal.GET("/state-versions/:id", tfeHandler.ShowStateVersion)
-	
+
+
 	log.Println("TFE API endpoints registered at /internal/tfe/api/v2 with webhook auth")
 	
 	// ====================================================================================
