@@ -200,7 +200,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			// This one is for aggregate reporting
 			commentReporterManager.UpdateComment(":construction_worker: No projects impacted")
 		}
-		err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+		err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
 		return nil
 	}
 
@@ -376,7 +376,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error initializing comment reporter")
 	}
 
-	err = utils.SetPRStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+	//err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+	err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"prNumber", prNumber,

@@ -278,11 +278,11 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	if len(jobs) == 0 {
 		log.Printf("no projects impacated, succeeding")
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(bbService, issueNumber, jobs)
+		err = utils.SetPRCommitStatusForJobs(bbService, issueNumber, jobs)
 		return nil
 	}
 
-	err = utils.SetPRStatusForJobs(bbService, issueNumber, jobs)
+	err = utils.SetPRCommitStatusForJobs(bbService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))

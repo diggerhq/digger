@@ -7,8 +7,6 @@ import (
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci"
-	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 )
@@ -100,7 +98,7 @@ func UpdateCheckStatusForBatchWithModernChecks(gh utils.GithubClientProvider, ba
 		return fmt.Errorf("error getting github service: %v", err)
 	}
 
-	ghPrService := prService.(github.GithubService)
+	//ghPrService := prService.(github.GithubService)
 
 
 	diggerYmlString := batch.DiggerConfig
@@ -139,7 +137,7 @@ func UpdateCheckStatusForBatchWithModernChecks(gh utils.GithubClientProvider, ba
 		"newStatus", serializedBatch.ToStatusCheck())
 	if isPlanBatch {
 		prService.SetStatus(batch.PrNumber, serializedBatch.ToStatusCheck(), "digger/plan")
-		ghPrService.CreateCheckRun(name, status, conclusion, title , summary, text,batch.CommitSha)
+		//ghPrService.CreateCheckRun(name, status, conclusion, title , summary, text,batch.CommitSha)
 		if disableDiggerApplyStatusCheck == false {
 			prService.SetStatus(batch.PrNumber, "pending", "digger/apply")
 		}

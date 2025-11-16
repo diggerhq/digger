@@ -203,7 +203,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
 		log.Printf("No projects impacted; not starting any jobs")
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(glService, prNumber, jobsForImpactedProjects)
+		err = utils.SetPRCommitStatusForJobs(glService, prNumber, jobsForImpactedProjects)
 		return nil
 	}
 
@@ -265,7 +265,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("failed to comment initial status for jobs")
 	}
 
-	err = utils.SetPRStatusForJobs(glService, prNumber, jobsForImpactedProjects)
+	err = utils.SetPRCommitStatusForJobs(glService, prNumber, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
@@ -461,11 +461,11 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	if len(jobs) == 0 {
 		log.Printf("no projects impacated, succeeding")
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(glService, issueNumber, jobs)
+		err = utils.SetPRCommitStatusForJobs(glService, issueNumber, jobs)
 		return nil
 	}
 
-	err = utils.SetPRStatusForJobs(glService, issueNumber, jobs)
+	err = utils.SetPRCommitStatusForJobs(glService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))

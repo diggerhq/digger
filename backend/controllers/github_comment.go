@@ -492,14 +492,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			"command", *diggerCommand,
 		)
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
+		err = utils.SetPRCommitStatusForJobs(ghService, issueNumber, jobs)
 		return nil
 	}
 
 	// If we reach here then we have created a comment that would have led to more events
 	segment.Track(*org, repoOwner, vcsActorID, "github", "issue_digger_comment", map[string]string{"comment": commentBody})
 
-	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
+	err = utils.SetPRCommitStatusForJobs(ghService, issueNumber, jobs)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"issueNumber", issueNumber,

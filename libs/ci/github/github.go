@@ -317,7 +317,6 @@ func (svc GithubService) CreateCheckRun(name string, status string, conclusion s
 		Name:    name,
 		HeadSHA: headSHA, // commit SHA to attach the check to
 		Status:  github.String(status),  // or "queued" / "in_progress"
-		Conclusion: github.String(conclusion), // "success", "failure", "neutral", etc.
 		Output: &github.CheckRunOutput{
 			Title:   github.String(title),
 			Summary: github.String(summary),
@@ -325,6 +324,10 @@ func (svc GithubService) CreateCheckRun(name string, status string, conclusion s
 		},
 	}
 
+	if conclusion != "" {
+		opts.Conclusion = github.String(conclusion)
+	}
+	
 	ctx := context.Background()
 	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repoName, opts)
 	return checkRun, err
