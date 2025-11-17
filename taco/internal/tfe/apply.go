@@ -103,7 +103,7 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 	// Try to get apply logs from blob storage
 	var logText string
 	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
-
+	
 	logData, err := h.blobStore.DownloadBlob(ctx, applyLogBlobID)
 	if err == nil {
 		logText = string(logData)

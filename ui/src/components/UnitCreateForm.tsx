@@ -32,14 +32,9 @@ export default function UnitCreateForm({
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
   const [isCreating, setIsCreating] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [remoteRunsEnabled, setRemoteRunsEnabled] = React.useState(false)
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const flagValue = window.localStorage.getItem('remote-runs')
-      setRemoteRunsEnabled(flagValue === 'true')
-    }
-  }, [])
+  
+  // Check if remote runs feature is enabled via environment variable
+  const remoteRunsEnabled = import.meta.env.VITE_REMOTE_RUNS_ENABLED === 'true'
 
   const handleCreate = async () => {
     if (!unitName.trim()) return

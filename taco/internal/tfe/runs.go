@@ -338,6 +338,24 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
+	// Security: Check if remote runs are enabled via environment variable
+	executionMode := "local" // default
+	if unit.TFEExecutionMode != nil && *unit.TFEExecutionMode != "" {
+		executionMode = *unit.TFEExecutionMode
+	}
+	if executionMode == "remote" && os.Getenv("REMOTE_RUNS_ENABLED") != "true" {
+		logger.Warn("remote run creation blocked - feature not enabled",
+			slog.String("unit_id", unitID),
+			slog.String("execution_mode", executionMode))
+		return c.JSON(http.StatusForbidden, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "403",
+				"title":  "forbidden",
+				"detail": "Remote runs feature is not enabled on this server",
+			}},
+		})
+	}
+
 	// Get the configuration version to check if it's speculative
 	configVer, err := h.configVerRepo.GetConfigurationVersion(ctx, cvID)
 	if err != nil {
