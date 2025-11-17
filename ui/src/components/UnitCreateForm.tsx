@@ -32,6 +32,14 @@ export default function UnitCreateForm({
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
   const [isCreating, setIsCreating] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [remoteRunsEnabled, setRemoteRunsEnabled] = React.useState(false)
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const flagValue = window.localStorage.getItem('remote-runs')
+      setRemoteRunsEnabled(flagValue === 'true')
+    }
+  }, [])
 
   const handleCreate = async () => {
     if (!unitName.trim()) return
@@ -40,6 +48,7 @@ export default function UnitCreateForm({
     
     const tempId = `temp-${Date.now()}`
     const tempUnit = { id: tempId, name: unitName.trim(), isOptimistic: true }
+    const finalUnitType = remoteRunsEnabled ? unitType : 'local'
     
     // Optimistic update - show immediately
     if (onCreatedOptimistic) {
@@ -47,6 +56,7 @@ export default function UnitCreateForm({
     }
     
     try {
+      const finalUnitType = remoteRunsEnabled ? unitType : 'local'
       const unit = await createUnitFn({
         data: {
           userId,
@@ -54,8 +64,8 @@ export default function UnitCreateForm({
           email,
           name: unitName.trim(),
           // Enable TFE remote execution for remote type
-          tfeAutoApply: unitType === 'remote',
-          tfeExecutionMode: unitType === 'remote' ? 'remote' : 'local',
+          tfeAutoApply: finalUnitType === 'remote',
+          tfeExecutionMode: finalUnitType === 'remote' ? 'remote' : 'local',
         },
       })
       // analytics: track unit creation
@@ -123,17 +133,32 @@ export default function UnitCreateForm({
 
           <label
             htmlFor="unit-type-remote"
-            className={`relative flex cursor-pointer items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors hover:bg-muted/50 ${unitType === 'remote' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
-            onClick={() => setUnitType('remote')}
+            className={`relative flex items-start gap-4 rounded-lg border p-4 md:p-5 transition-colors ${
+              remoteRunsEnabled
+                ? 'cursor-pointer hover:bg-muted/50'
+                : 'cursor-not-allowed opacity-60'
+            } ${unitType === 'remote' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+            onClick={() => {
+              if (remoteRunsEnabled) {
+                setUnitType('remote')
+              }
+            }}
           >
-            <RadioGroupItem id="unit-type-remote" value="remote" className="sr-only" />
+            <RadioGroupItem
+              id="unit-type-remote"
+              value="remote"
+              className="sr-only"
+              disabled={!remoteRunsEnabled}
+            />
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Cloud className="h-5 w-5" />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold">Remote</span>
-                <Badge variant="secondary">Coming soon</Badge>
+                <Badge variant="secondary">
+                  {remoteRunsEnabled ? 'Beta' : 'Coming soon'}
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
                 Fully managed terraform runs. Run terraform locally and stream logs from
