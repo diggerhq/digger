@@ -36,7 +36,7 @@ func (h *TfeHandler) GetApply(c echo.Context) error {
 		return fmt.Errorf("OPENTACO_PUBLIC_BASE_URL environment variable not set")
 	}
 
-	// Generate signed token for apply log streaming
+	// Generate signed token for apply log streaming (same approach as plan logs)
 	logToken, err := auth.GenerateLogStreamToken(applyID, 24*time.Hour)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -103,8 +103,8 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 	// Try to get apply logs from blob storage
 	var logText string
 	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
-	
-	logData, err := h.blobStore.Download(ctx, applyLogBlobID)
+
+	logData, err := h.blobStore.DownloadBlob(ctx, applyLogBlobID)
 	if err == nil {
 		logText = string(logData)
 	} else {
@@ -116,16 +116,37 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 		}
 	}
 
-	// Handle offset for streaming
-	if offsetInt > 0 && offsetInt < int64(len(logText)) {
-		logText = logText[offsetInt:]
-	} else if offsetInt >= int64(len(logText)) {
-		logText = ""
+	// Handle offset for streaming with proper byte accounting
+	// Stream format: [STX at offset 0][logText at offset 1+][ETX at offset 1+len(logText)]
+	var responseData []byte
+
+	if offsetInt == 0 {
+		// First request: send STX + current logs
+		responseData = append([]byte{0x02}, []byte(logText)...)
+		fmt.Printf("📤 APPLY LOGS at offset=0: STX + %d bytes of log text\n", len(logText))
+	} else {
+		// Client already received STX (1 byte at offset 0)
+		// Map stream offset to logText offset: streamOffset=1 → logText[0]
+		logOffset := offsetInt - 1
+
+		if logOffset < int64(len(logText)) {
+			// Send remaining log text
+			responseData = []byte(logText[logOffset:])
+			fmt.Printf("📤 APPLY LOGS at offset=%d: sending %d bytes (logText[%d:])\n",
+				offsetInt, len(responseData), logOffset)
+		} else if logOffset == int64(len(logText)) && run.Status == "applied" {
+			// All logs sent, send ETX
+			responseData = []byte{0x03}
+			fmt.Printf("📤 Sending ETX (End of Text) for apply %s - logs complete\n", applyID)
+		} else {
+			// Waiting for more logs or already sent ETX
+			responseData = []byte{}
+			fmt.Printf("📤 APPLY LOGS at offset=%d: no new data (waiting or complete)\n", offsetInt)
+		}
 	}
 
 	c.Response().Header().Set("Content-Type", "text/plain")
 	c.Response().WriteHeader(http.StatusOK)
-	_, err = c.Response().Write([]byte(logText))
+	_, err = c.Response().Write(responseData)
 	return err
 }
-

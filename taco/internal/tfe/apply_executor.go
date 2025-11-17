@@ -1,15 +1,16 @@
 package tfe
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 )
@@ -57,7 +58,8 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	}
 
 	// Check if run can be applied
-	if run.Status != "planned_and_finished" && run.Status != "apply_queued" {
+	// Allow apply from "planned" (waiting for confirmation) or "apply_queued" status
+	if run.Status != "planned" && run.Status != "apply_queued" {
 		logger.Error("run cannot be applied", slog.String("status", run.Status))
 		return fmt.Errorf("run cannot be applied in status: %s", run.Status)
 	}
@@ -122,7 +124,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 
 	// Download configuration archive
 	archivePath := fmt.Sprintf("config-versions/%s/archive.tar.gz", configVer.ID)
-	archiveData, err := e.blobStore.Download(ctx, archivePath)
+	archiveData, err := e.blobStore.DownloadBlob(ctx, archivePath)
 	if err != nil {
 		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to download archive: %v", err))
 	}
@@ -225,48 +227,58 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	return nil
 }
 
-// runTerraformApply executes terraform init and apply
+// runTerraformApply executes terraform init and apply using terraform-exec
+// This provides clean output without local execution indicators
 func (e *ApplyExecutor) runTerraformApply(ctx context.Context, workDir string, isDestroy bool) (logs string, err error) {
 	logger := slog.Default().With(slog.String("work_dir", workDir))
-	var allLogs strings.Builder
+	var logBuffer bytes.Buffer
+
+	// Find terraform binary
+	terraformPath, err := exec.LookPath("terraform")
+	if err != nil {
+		return "", fmt.Errorf("terraform binary not found: %w", err)
+	}
+
+	// Create terraform-exec instance
+	tf, err := tfexec.NewTerraform(workDir, terraformPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create terraform executor: %w", err)
+	}
+
+	// Capture all output to our log buffer
+	tf.SetStdout(&logBuffer)
+	tf.SetStderr(&logBuffer)
 
 	// Run terraform init (cloud/backend config already removed by createBackendOverride)
 	logger.Info("running terraform init")
-	initCmd := exec.CommandContext(ctx, "terraform", "init", "-no-color", "-input=false")
-	initCmd.Dir = workDir
-	initCmd.Env = append(os.Environ(), "TF_IN_AUTOMATION=1")
-	initOutput, initErr := initCmd.CombinedOutput()
-	allLogs.WriteString("=== Terraform Init ===\n")
-	allLogs.Write(initOutput)
-	allLogs.WriteString("\n\n")
-
-	if initErr != nil {
-		logger.Error("terraform init failed", slog.String("error", initErr.Error()))
-		return allLogs.String(), fmt.Errorf("terraform init failed: %w", initErr)
+	err = tf.Init(ctx, tfexec.Upgrade(false))
+	if err != nil {
+		logger.Error("terraform init failed", slog.String("error", err.Error()))
+		return logBuffer.String(), fmt.Errorf("terraform init failed: %w", err)
 	}
+
+	// Clear init output - HashiCorp TFC doesn't show init to users
+	logBuffer.Reset()
 
 	// Run terraform apply
 	logger.Info("running terraform apply", slog.Bool("is_destroy", isDestroy))
-	applyArgs := []string{"apply", "-no-color", "-input=false", "-auto-approve"}
+	
 	if isDestroy {
-		applyArgs = []string{"destroy", "-no-color", "-input=false", "-auto-approve"}
+		err = tf.Destroy(ctx)
+	} else {
+		err = tf.Apply(ctx)
 	}
 
-	applyCmd := exec.CommandContext(ctx, "terraform", applyArgs...)
-	applyCmd.Dir = workDir
-	applyCmd.Env = append(os.Environ(), "TF_IN_AUTOMATION=1")
-	applyOutput, applyErr := applyCmd.CombinedOutput()
-	allLogs.WriteString("=== Terraform Apply ===\n")
-	allLogs.Write(applyOutput)
-	allLogs.WriteString("\n")
+	// Get the apply logs
+	applyLogs := logBuffer.String()
 
-	if applyErr != nil {
-		logger.Error("terraform apply failed", slog.String("error", applyErr.Error()))
-		return allLogs.String(), fmt.Errorf("terraform apply failed: %w", applyErr)
+	if err != nil {
+		logger.Error("terraform apply failed", slog.String("error", err.Error()))
+		return applyLogs, fmt.Errorf("terraform apply failed: %w", err)
 	}
 
 	logger.Info("terraform apply completed successfully")
-	return allLogs.String(), nil
+	return applyLogs, nil
 }
 
 // handleApplyError handles apply execution errors

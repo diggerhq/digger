@@ -12,19 +12,21 @@ async function handler({ request }) {
     url.pathname === '/.well-known/terraform.json' ||
     url.pathname === '/tfe/api/v2/motd';
   
-  // Upload paths that use signed URLs (no Bearer token)
-  const signedUrlPaths =
+  // Paths that should be proxied directly to public Statesman endpoints
+  // (signed uploads or tokenized log URLs where Terraform doesn't send auth headers)
+  const isDirectProxyPath =
     /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/upload$/.test(url.pathname) ||
-    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/json-upload$/.test(url.pathname ) ||
-    /^\/tfe\/api\/v2\/configuration-versions\/[^\/]+\/upload$/.test(url.pathname ) ||
-    /^\/tfe\/api\/v2\/plans\/[^\/]+\/logs\/[^\/]+$/.test(url.pathname );
+    /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/json-upload$/.test(url.pathname) ||
+    /^\/tfe\/api\/v2\/configuration-versions\/[^\/]+\/upload$/.test(url.pathname) ||
+    /^\/tfe\/api\/v2\/plans\/[^\/]+\/logs\/[^\/]+$/.test(url.pathname) ||
+    /^\/tfe\/api\/v2\/applies\/[^\/]+\/logs\/[^\/]+$/.test(url.pathname);
 
   const isDownloadPath =
     /^\/tfe\/api\/v2\/state-versions\/[^\/]+\/download$/.test(url.pathname);
   
 
   // OAuth and upload paths: forward directly to public statesman endpoints
-  if (isOAuthPath || signedUrlPaths || isDownloadPath) {
+  if (isOAuthPath || isDirectProxyPath || isDownloadPath) {
     const outgoingHeaders = new Headers(request.headers);
     const originalHost = outgoingHeaders.get('host') ?? '';
     if (originalHost) outgoingHeaders.set('x-forwarded-host', originalHost);

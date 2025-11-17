@@ -29,13 +29,13 @@ import (
 // Dependencies holds all the interface-based dependencies for routes.
 // This uses interface segregation - each handler gets ONLY what it needs.
 type Dependencies struct {
-	Repository          domain.UnitRepository  // RBAC-wrapped repository (used by all routes)
-	UnwrappedRepository domain.UnitRepository  // Unwrapped repository (for pre-authorized operations like signed URLs)
-	BlobStore           storage.UnitStore      // Direct blob access (for legacy components like API tokens)
-	QueryStore          query.Store            // Direct query access (analytics, RBAC)
-	RBACManager         *rbac.RBACManager      // RBAC management (RBAC routes only)
-	Signer              *authpkg.Signer        // JWT signing (auth, middleware)
-	AuthEnabled         bool                   // Whether auth is enabled
+	Repository          domain.UnitRepository // RBAC-wrapped repository (used by all routes)
+	UnwrappedRepository domain.UnitRepository // Unwrapped repository (for pre-authorized operations like signed URLs)
+	BlobStore           storage.UnitStore     // Direct blob access (for legacy components like API tokens)
+	QueryStore          query.Store           // Direct query access (analytics, RBAC)
+	RBACManager         *rbac.RBACManager     // RBAC management (RBAC routes only)
+	Signer              *authpkg.Signer       // JWT signing (auth, middleware)
+	AuthEnabled         bool                  // Whether auth is enabled
 }
 
 // RegisterRoutes registers all API routes with interface-scoped dependencies.
@@ -46,17 +46,17 @@ type Dependencies struct {
 // - RBAC: RBACManager + QueryStore - NO unit access at all
 func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	queryStore := deps.QueryStore
-	
+
 	// Repository already implements all needed interfaces (UnitManagement embeds StateOperations & TFEOperations)
 	// We pass the same repository reference but with different interface types for scoping
 	stateOps := domain.StateOperations(deps.Repository)
 	unitMgmt := domain.UnitManagement(deps.Repository)
-	
+
 	// Health checks
 	health := observability.NewHealthHandler()
 	e.GET("/healthz", health.Healthz)
 	e.GET("/readyz", health.Readyz)
-	
+
 	// Sync health check (monitors blob/query synchronization)
 	syncHealth := observability.NewSyncHealthChecker(deps.Repository, deps.QueryStore)
 	e.GET("/healthz/sync", func(c echo.Context) error {
@@ -144,11 +144,11 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 			identifierResolver = repositories.NewIdentifierResolver(db)
 		}
 	}
-	
+
 	if deps.AuthEnabled {
 		jwtVerifyFn := middleware.JWTOnlyVerifier(deps.Signer)
 		v1.Use(middleware.RequireAuth(jwtVerifyFn, deps.Signer))
-		
+
 		// Add JWT org resolution middleware (converts org name from JWT to UUID in domain context)
 		if identifierResolver != nil {
 			v1.Use(middleware.JWTOrgResolverMiddleware(identifierResolver))
@@ -253,7 +253,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	var runRepo domain.TFERunRepository
 	var planRepo domain.TFEPlanRepository
 	var configVerRepo domain.TFEConfigurationVersionRepository
-	
+
 	if deps.QueryStore != nil {
 		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
 			tfeIdentifierResolver = repositories.NewIdentifierResolver(db)
@@ -264,7 +264,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 			log.Println("TFE repositories initialized successfully")
 		}
 	}
-	
+
 	tfeHandler := tfe.NewTFETokenHandler(
 		authHandler,
 		deps.Repository,
@@ -299,7 +299,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	// Configuration version routes
 	tfeGroup.POST("/workspaces/:workspace_name/configuration-versions", tfeHandler.CreateConfigurationVersions)
 	tfeGroup.GET("/configuration-versions/:id", tfeHandler.GetConfigurationVersion)
-	
+
 	// Run routes
 	tfeGroup.POST("/runs", tfeHandler.CreateRun)
 	tfeGroup.GET("/runs/:id", tfeHandler.GetRun)
@@ -308,10 +308,12 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeGroup.GET("/runs/:id/task-stages", tfeHandler.GetTaskStages)
 	tfeGroup.GET("/runs/:id/cost-estimates", tfeHandler.GetCostEstimates)
 	tfeGroup.GET("/runs/:id/run-events", tfeHandler.GetRunEvents)
-	
+
 	// Plan routes
 	tfeGroup.GET("/plans/:id", tfeHandler.GetPlan)
-	
+	tfeGroup.GET("/plans/:id/json-output", tfeHandler.GetPlanJSONOutput)
+	tfeGroup.GET("/plans/:id/json-output-redacted", tfeHandler.GetPlanJSONOutput) // Alias for json-output
+
 	// Apply routes
 	tfeGroup.GET("/applies/:id", tfeHandler.GetApply)
 
@@ -324,13 +326,12 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/upload", tfeHandler.UploadStateVersion)
 	tfeSignedUrlsGroup.PUT("/state-versions/:id/json-upload", tfeHandler.UploadJSONStateOutputs)
 	tfeSignedUrlsGroup.PUT("/configuration-versions/:id/upload", tfeHandler.UploadConfigurationArchive)
-	
+
 	// Plan log streaming - token-based auth (token embedded in path, not query string)
 	// Security: Time-limited HMAC-signed tokens, Terraform CLI preserves path
 	e.GET("/tfe/api/v2/plans/:planID/logs/:token", tfeHandler.GetPlanLogs)
-	
-	// Apply log streaming - token-based auth (token embedded in path, not query string)
-	// Security: Time-limited HMAC-signed tokens, Terraform CLI preserves path
+
+	// Apply log streaming - same tokenized approach
 	e.GET("/tfe/api/v2/applies/:applyID/logs/:token", tfeHandler.GetApplyLogs)
 
 	// Keep discovery endpoints unprotected (needed for terraform login)

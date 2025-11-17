@@ -1,18 +1,19 @@
 package tfe
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
 )
-
 
 func (h *TfeHandler) GetRun(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -36,30 +37,57 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 		})
 	}
 
+	includeParam := c.QueryParam("include")
+
 	// Determine if run is confirmable (waiting for user approval)
-	isConfirmable := run.Status == "planned_and_finished" && run.CanApply && !run.AutoApply
+	// Status is "planned" when waiting for confirmation
+	isConfirmable := run.Status == "planned" && run.CanApply && !run.AutoApply
 	
-	logger.Debug("run polled", 
+	// Determine if run has changes (Terraform CLI uses this!)
+	var hasChanges bool
+	var planData *domain.TFEPlan
+	if run.PlanID != nil {
+		needPlanData := run.Status == "planned" || contains(includeParam, "plan")
+		if needPlanData {
+			if plan, err := h.planRepo.GetPlan(ctx, *run.PlanID); err != nil {
+				logger.Warn("failed to fetch plan for run", slog.String("error", err.Error()))
+			} else {
+				planData = plan
+				if plan.Status == "finished" {
+					hasChanges = plan.HasChanges
+				}
+			}
+		}
+	}
+
+	logger.Info("GET /runs/:id - returning run state",
 		slog.String("status", run.Status),
 		slog.Bool("can_apply", run.CanApply),
 		slog.Bool("auto_apply", run.AutoApply),
 		slog.Bool("plan_only", run.PlanOnly),
-		slog.Bool("is_confirmable", isConfirmable))
+		slog.Bool("is_confirmable", isConfirmable),
+		slog.Bool("has_plan_id", run.PlanID != nil))
 
 	// Use unit ID as workspace ID (they're the same in our architecture)
-	workspaceID := run.UnitID
+	// Terraform CLI expects workspace ID in the format "ws-{uuid}"
+	workspaceID := "ws-" + run.UnitID
 	
 	// Build response
 	response := tfe.TFERun{
-		ID:        run.ID,
-		Status:    run.Status,
-		IsDestroy: run.IsDestroy,
-		Message:   run.Message,
-		PlanOnly:  run.PlanOnly,
+		ID:            run.ID,
+		Status:        run.Status,
+		HasChanges:    hasChanges,
+		IsDestroy:     run.IsDestroy,
+		Message:       run.Message,
+		PlanOnly:      run.PlanOnly,
+		AutoApply:     run.AutoApply,
+		IsConfirmable: isConfirmable,
 		Actions: &tfe.RunActions{
 			IsCancelable:  run.IsCancelable,
 			IsConfirmable: isConfirmable,
-			CanApply:      run.CanApply,
+		},
+		Permissions: &tfe.RunPermissions{
+			CanApply: run.CanApply,
 		},
 		Workspace: &tfe.WorkspaceRef{
 			ID: workspaceID,
@@ -77,9 +105,83 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	// In our simplified model, apply ID is the same as run ID
 	if run.Status == "applying" || run.Status == "applied" || run.Status == "apply_queued" {
 		response.Apply = &tfe.ApplyRef{ID: run.ID}
-		logger.Debug("added apply reference", slog.String("apply_id", run.ID), slog.String("status", run.Status))
+		logger.Info("GET /runs/:id - added apply reference (run in progress/complete)", slog.String("apply_id", run.ID), slog.String("status", run.Status))
 	} else {
-		logger.Debug("no apply reference", slog.String("status", run.Status))
+		logger.Info("GET /runs/:id - NO apply reference (waiting for confirmation or still planning)",
+			slog.String("status", run.Status),
+			slog.Bool("is_confirmable", isConfirmable))
+	}
+
+	// Check if client requested to include plan details (Terraform CLI uses "?include=workspace,plan")
+	// If yes, manually construct JSON:API response with plan in "included" array
+	if run.PlanID != nil && contains(includeParam, "plan") {
+		// Ensure we have plan data (may have been loaded already)
+		if planData == nil {
+			if plan, err := h.planRepo.GetPlan(ctx, *run.PlanID); err == nil {
+				planData = plan
+			} else {
+				logger.Warn("failed to fetch plan for include=plan", slog.String("error", err.Error()))
+			}
+		}
+
+		if planData != nil && planData.Status == "finished" {
+			logger.Info("including full plan data for CLI",
+				slog.Bool("has_changes", planData.HasChanges),
+				slog.Int("adds", planData.ResourceAdditions))
+
+			// Manually construct JSON:API compound document with included plan
+			// First marshal the run using jsonapi to get proper structure
+			var runBuffer bytes.Buffer
+			if err := jsonapi.MarshalPayload(&runBuffer, &response); err != nil {
+				logger.Error("error marshaling run", slog.String("error", err.Error()))
+				return err
+			}
+
+			// Parse the marshaled run JSON
+			var runDoc map[string]interface{}
+			if err := json.Unmarshal(runBuffer.Bytes(), &runDoc); err != nil {
+				logger.Error("error parsing run JSON", slog.String("error", err.Error()))
+				return err
+			}
+
+			// Build plan data for included section
+			publicBase := os.Getenv("OPENTACO_PUBLIC_BASE_URL")
+			planData := map[string]interface{}{
+				"id":   planData.ID,
+				"type": "plans",
+				"attributes": map[string]interface{}{
+					"status":                planData.Status,
+					"has-changes":           planData.HasChanges,
+					"resource-additions":    planData.ResourceAdditions,
+					"resource-changes":      planData.ResourceChanges,
+					"resource-destructions": planData.ResourceDestructions,
+					"log-read-url":          fmt.Sprintf("%s/tfe/api/v2/plans/%s/logs", publicBase, planData.ID),
+				},
+				"relationships": map[string]interface{}{
+					"run": map[string]interface{}{
+						"data": map[string]interface{}{
+							"id":   run.ID,
+							"type": "runs",
+						},
+					},
+				},
+			}
+
+			// Add included section to the document
+			runDoc["included"] = []interface{}{planData}
+
+			// DEBUG: Log the exact JSON response
+			debugJSON, _ := json.MarshalIndent(runDoc, "", "  ")
+			logger.Info("📤 FULL JSON RESPONSE WITH PLAN", slog.String("json", string(debugJSON)))
+
+			c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
+			c.Response().WriteHeader(http.StatusOK)
+			if err := json.NewEncoder(c.Response().Writer).Encode(runDoc); err != nil {
+				logger.Error("error encoding compound document", slog.String("error", err.Error()))
+				return err
+			}
+			return nil
+		}
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
@@ -92,6 +194,37 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	return nil
 }
 
+// Helper function to check if a comma-separated string contains a value
+func contains(includeParam, value string) bool {
+	if includeParam == "" {
+		return false
+	}
+	for _, part := range splitCommaList(includeParam) {
+		if part == value {
+			return true
+		}
+	}
+	return false
+}
+
+func splitCommaList(s string) []string {
+	result := []string{}
+	current := ""
+	for _, ch := range s {
+		if ch == ',' {
+			if current != "" {
+				result = append(result, current)
+				current = ""
+			}
+		} else {
+			current += string(ch)
+		}
+	}
+	if current != "" {
+		result = append(result, current)
+	}
+	return result
+}
 
 func (h *TfeHandler) CreateRun(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -105,6 +238,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 				Message   string `json:"message"`
 				IsDestroy bool   `json:"is-destroy"`
 				AutoApply bool   `json:"auto-apply"` // Terraform CLI sends this with -auto-approve
+				PlanOnly  *bool  `json:"plan-only"`  // Pointer to detect if CLI sent it (terraform plan vs apply)
 			} `json:"attributes"`
 			Relationships struct {
 				Workspace struct {
@@ -138,12 +272,22 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	message := requestData.Data.Attributes.Message
 	isDestroy := requestData.Data.Attributes.IsDestroy
 	autoApply := requestData.Data.Attributes.AutoApply
+	planOnlyFromCLI := requestData.Data.Attributes.PlanOnly // Pointer - can be nil
 	
 	// Log the full request for debugging
+	planOnlyValue := "not-set"
+	if planOnlyFromCLI != nil {
+		if *planOnlyFromCLI {
+			planOnlyValue = "true"
+		} else {
+			planOnlyValue = "false"
+		}
+	}
 	logger.Info("create run request", 
 		slog.String("message", message),
 		slog.Bool("is_destroy", isDestroy),
-		slog.Bool("auto_apply", autoApply),
+		slog.Bool("auto_apply_from_cli", autoApply),
+		slog.String("plan_only_from_cli", planOnlyValue),
 		slog.String("workspace_id", workspaceID))
 
 	// Get org and user context from middleware
@@ -194,6 +338,21 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
+	// Get the configuration version to check if it's speculative
+	configVer, err := h.configVerRepo.GetConfigurationVersion(ctx, cvID)
+	if err != nil {
+		logger.Error("failed to get configuration version",
+			slog.String("cv_id", cvID),
+			slog.String("error", err.Error()))
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "400",
+				"title":  "bad request",
+				"detail": fmt.Sprintf("Configuration version %s not found", cvID),
+			}},
+		})
+	}
+
 	// Determine final auto-apply setting:
 	// 1. If workspace has auto-apply enabled → auto-apply
 	// 2. If CLI sends -auto-approve flag → auto-apply
@@ -206,6 +365,15 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		slog.Bool("cli_auto_approve", autoApply),
 		slog.Bool("final_auto_apply", finalAutoApply))
 
+	// Determine plan-only setting:
+	// 1. If CLI explicitly sets it (terraform plan sends true) → use CLI value
+	// 2. Otherwise inherit from configuration version's speculative flag
+	planOnly := configVer.Speculative // Default: inherit from config version
+	if planOnlyFromCLI != nil {
+		planOnly = *planOnlyFromCLI // CLI explicitly set it - respect that
+		logger.Info("CLI explicitly set plan-only", slog.Bool("plan_only", planOnly))
+	}
+
 	// Create the run in database
 	run := &domain.TFERun{
 		OrgID:                  orgUUID, // Store UUID, not external ID!
@@ -213,7 +381,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		Status:                 "pending",
 		IsDestroy:              isDestroy,
 		Message:                message,
-		PlanOnly:               false, // Always false for apply operations (terraform apply with or without -auto-approve)
+		PlanOnly:               planOnly,       // From CLI or config version
 		AutoApply:              finalAutoApply, // Workspace default OR CLI override
 		Source:                 "cli",
 		IsCancelable:           true,
@@ -292,21 +460,28 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	}()
 
 	// Return JSON:API response
+	// Terraform CLI expects workspace ID in the format "ws-{uuid}"
 	response := tfe.TFERun{
-		ID:        run.ID,
-		Status:    "planning", // Return as planning immediately
-		IsDestroy: run.IsDestroy,
-		Message:   run.Message,
-		PlanOnly:  run.PlanOnly,
+		ID:            run.ID,
+		Status:        "planning", // Return as planning immediately
+		HasChanges:    false,
+		IsDestroy:     run.IsDestroy,
+		Message:       run.Message,
+		PlanOnly:      run.PlanOnly,
+		AutoApply:     run.AutoApply,
+		IsConfirmable: false,
 		Actions: &tfe.RunActions{
-			IsCancelable: run.IsCancelable,
-			CanApply:     run.CanApply,
+			IsCancelable:  run.IsCancelable,
+			IsConfirmable: false,
+		},
+		Permissions: &tfe.RunPermissions{
+			CanApply: run.CanApply,
 		},
 		Plan: &tfe.PlanRef{
 			ID: plan.ID,
 		},
 		Workspace: &tfe.WorkspaceRef{
-			ID: workspaceID,
+			ID: "ws-" + workspaceID, // Add ws- prefix
 		},
 		ConfigurationVersion: &tfe.ConfigurationVersionRef{
 			ID: cvID,
@@ -361,7 +536,8 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	}
 
 	// Check if run can be applied
-	if run.Status != "planned_and_finished" {
+	// Allow apply from "planned" status (waiting for confirmation)
+	if run.Status != "planned" {
 		return c.JSON(http.StatusConflict, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "409",
@@ -423,17 +599,23 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	// Return updated run
 	run.Status = "apply_queued"
 	response := tfe.TFERun{
-		ID:        run.ID,
-		Status:    run.Status,
-		IsDestroy: run.IsDestroy,
-		Message:   run.Message,
-		PlanOnly:  run.PlanOnly,
+		ID:            run.ID,
+		Status:        run.Status,
+		HasChanges:    false,
+		IsDestroy:     run.IsDestroy,
+		Message:       run.Message,
+		PlanOnly:      run.PlanOnly,
+		AutoApply:     run.AutoApply,
+		IsConfirmable: false,
 		Actions: &tfe.RunActions{
-			IsCancelable: false,
-			CanApply:     false,
+			IsCancelable:  false,
+			IsConfirmable: false,
+		},
+		Permissions: &tfe.RunPermissions{
+			CanApply: false,
 		},
 		Workspace: &tfe.WorkspaceRef{
-			ID: run.UnitID,
+			ID: "ws-" + run.UnitID, // Add ws- prefix
 		},
 		ConfigurationVersion: &tfe.ConfigurationVersionRef{
 			ID: run.ConfigurationVersionID,
@@ -457,7 +639,6 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	}
 	return nil
 }
-
 
 // GetRunEvents returns timeline events for a run (used by Terraform CLI to track progress)
 func (h *TfeHandler) GetRunEvents(c echo.Context) error {
@@ -499,7 +680,7 @@ func (h *TfeHandler) GetRunEvents(c echo.Context) error {
 
 	// Add status-specific events
 	switch run.Status {
-	case "planning", "planned", "planned_and_finished":
+	case "planning", "planned":
 		addEvent("planning", "Plan is running")
 	case "applying", "applied":
 		addEvent("planning", "Plan completed")

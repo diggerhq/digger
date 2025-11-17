@@ -1,6 +1,7 @@
 package tfe
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -91,14 +92,44 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 		publicBase = "http://localhost:8080" // Fallback for testing
 	}
 
+	// Parse request body to get speculative flag from CLI
+	// Must manually decode JSON:API format (c.Bind doesn't work with vnd.api+json)
+	var requestPayload struct {
+		Data struct {
+			Attributes struct {
+				Speculative   *bool `json:"speculative"`
+				AutoQueueRuns *bool `json:"auto-queue-runs"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+	
+	speculative := false  // Default to false (normal apply)
+	autoQueueRuns := false
+	
+	// Manually decode JSON since content-type is application/vnd.api+json
+	if err := json.NewDecoder(c.Request().Body).Decode(&requestPayload); err == nil {
+		if requestPayload.Data.Attributes.Speculative != nil {
+			speculative = *requestPayload.Data.Attributes.Speculative
+			fmt.Printf("🔍 DEBUG: CLI sent speculative=%v for workspace %s\n", speculative, workspaceName)
+		} else {
+			fmt.Printf("🔍 DEBUG: CLI did NOT send speculative flag for workspace %s, using default: false\n", workspaceName)
+		}
+		if requestPayload.Data.Attributes.AutoQueueRuns != nil {
+			autoQueueRuns = *requestPayload.Data.Attributes.AutoQueueRuns
+		}
+	} else {
+		fmt.Printf("⚠️  WARN: Failed to decode config version request body: %v\n", err)
+	}
+
 	// Create configuration version in database
+	// Speculative means "plan-only" - should be false for normal apply operations
 	configVer := &domain.TFEConfigurationVersion{
 		OrgID:            orgUUID, // Store UUID, not external ID!
 		UnitID:           unitID,
 		Status:           "pending",
 		Source:           "cli",
-		Speculative:      true,
-		AutoQueueRuns:    false,
+		Speculative:      speculative,      // Parse from CLI request
+		AutoQueueRuns:    autoQueueRuns,    // Parse from CLI request
 		Provisional:      false,
 		StatusTimestamps: "{}",
 		CreatedBy:        userID,

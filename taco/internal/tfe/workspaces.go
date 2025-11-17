@@ -471,7 +471,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 			CanUpdateVariable: false,
 		},
 		QueueAllRuns:               false,
-		SpeculativeEnabled:         true,
+		SpeculativeEnabled:         false,  // False = allow confirmable applies, True = all runs are plan-only
 		SourceName:                 "",
 		SourceURL:                  "",
 		StructuredRunOutputEnabled: false,

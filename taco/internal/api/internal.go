@@ -205,6 +205,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	tfeInternal.GET("/runs/:id/run-events", tfeHandler.GetRunEvents)
 	tfeInternal.GET("/plans/:id", tfeHandler.GetPlan)
 	tfeInternal.GET("/applies/:id", tfeHandler.GetApply)
+	tfeInternal.GET("/applies/:id/logs", tfeHandler.GetApplyLogs)
 
 
 	log.Println("TFE API endpoints registered at /internal/tfe/api/v2 with webhook auth")

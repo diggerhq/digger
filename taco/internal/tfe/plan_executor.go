@@ -2,6 +2,7 @@ package tfe
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -10,10 +11,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 )
@@ -134,7 +135,7 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 
 	// Download configuration archive from blob storage
 	archivePath := fmt.Sprintf("config-versions/%s/archive.tar.gz", configVer.ID)
-	archiveData, err := e.blobStore.Download(ctx, archivePath)
+	archiveData, err := e.blobStore.DownloadBlob(ctx, archivePath)
 	if err != nil {
 		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to download archive: %v", err))
 	}
@@ -216,7 +217,8 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	}
 
 	// Update run status and can_apply
-	runStatus := "planned_and_finished"
+	// Use "planned" status (not "planned_and_finished") - this is what Terraform CLI expects
+	runStatus := "planned"
 	canApply := (err == nil) // Can apply if plan succeeded (regardless of whether there are changes)
 	
 	if err != nil {
@@ -292,54 +294,117 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	return nil
 }
 
-// runTerraformPlan executes terraform init and plan
+// runTerraformPlan executes terraform init and plan using terraform-exec
+// This provides clean, structured output without local execution indicators
 func (e *PlanExecutor) runTerraformPlan(ctx context.Context, workDir string, isDestroy bool) (output string, logs string, hasChanges bool, adds, changes, destroys int, err error) {
 	logger := slog.Default().With(slog.String("work_dir", workDir))
-	var allLogs strings.Builder
+	var logBuffer bytes.Buffer
 
-	// Run terraform init (backend override file disables cloud/remote backend)
+	// Find terraform binary
+	terraformPath, err := exec.LookPath("terraform")
+	if err != nil {
+		return "", "", false, 0, 0, 0, fmt.Errorf("terraform binary not found: %w", err)
+	}
+
+	// Create terraform-exec instance
+	tf, err := tfexec.NewTerraform(workDir, terraformPath)
+	if err != nil {
+		return "", "", false, 0, 0, 0, fmt.Errorf("failed to create terraform executor: %w", err)
+	}
+
+	// Capture all output to our log buffer (this is clean output, no local indicators!)
+	tf.SetStdout(&logBuffer)
+	tf.SetStderr(&logBuffer)
+
+	// Run terraform init (backend override file already created to disable cloud/remote backend)
 	logger.Info("running terraform init")
-	initCmd := exec.CommandContext(ctx, "terraform", "init", "-no-color", "-input=false")
-	initCmd.Dir = workDir
-	initCmd.Env = append(os.Environ(), "TF_IN_AUTOMATION=1") // Tell Terraform it's running in automation
-	initOutput, initErr := initCmd.CombinedOutput()
-	allLogs.WriteString("=== Terraform Init ===\n")
-	allLogs.Write(initOutput)
-	allLogs.WriteString("\n\n")
-
-	if initErr != nil {
-		logger.Error("terraform init failed", slog.String("error", initErr.Error()))
-		return "", allLogs.String(), false, 0, 0, 0, fmt.Errorf("terraform init failed: %w", initErr)
+	err = tf.Init(ctx, tfexec.Upgrade(false))
+	if err != nil {
+		logger.Error("terraform init failed", slog.String("error", err.Error()))
+		return "", logBuffer.String(), false, 0, 0, 0, fmt.Errorf("terraform init failed: %w", err)
 	}
 
-	// Run terraform plan
-	logger.Info("running terraform plan", slog.Bool("is_destroy", isDestroy))
-	planArgs := []string{"plan", "-no-color", "-input=false", "-detailed-exitcode"}
+	// Clear init output - HashiCorp TFC doesn't show init to users
+	logBuffer.Reset()
+
+	// Run terraform plan WITHOUT -out to avoid "Saved the plan to..." message
+	// We'll run it again with -json to get structured data
+	logger.Info("running terraform plan for human-readable output")
+	
 	if isDestroy {
-		planArgs = append(planArgs, "-destroy")
+		hasChanges, err = tf.Plan(ctx, tfexec.Destroy(true))
+	} else {
+		hasChanges, err = tf.Plan(ctx)
 	}
 
-	planCmd := exec.CommandContext(ctx, "terraform", planArgs...)
-	planCmd.Dir = workDir
-	planCmd.Env = append(os.Environ(), "TF_IN_AUTOMATION=1")
-	planOutput, planErr := planCmd.CombinedOutput()
-	allLogs.WriteString("=== Terraform Plan ===\n")
-	allLogs.Write(planOutput)
-	allLogs.WriteString("\n")
+	// Get the human-readable logs (clean output, no "saved plan" messages!)
+	planLogs := logBuffer.String()
 
-	// Parse output for resource counts
-	adds, changes, destroys = parsePlanOutput(string(planOutput))
-	hasChanges = adds > 0 || changes > 0 || destroys > 0
+	// Handle plan errors
+	if err != nil {
+		logger.Error("terraform plan failed", slog.String("error", err.Error()))
+		return "", planLogs, false, 0, 0, 0, fmt.Errorf("terraform plan failed: %w", err)
+	}
 
-	// Exit code 2 means changes detected (not an error)
-	if exitErr, ok := planErr.(*exec.ExitError); ok {
-		if exitErr.ExitCode() == 2 {
-			// Changes detected - this is success
-			planErr = nil
+	// Now run again with structured JSON to get resource counts
+	// Reset buffer and redirect to discard human output from this run
+	logBuffer.Reset()
+	var jsonBuffer bytes.Buffer
+	
+	logger.Info("running terraform plan for structured JSON output")
+	planFile := filepath.Join(workDir, "tfplan")
+
+	// Temporarily redirect output so we don't pollute logs with duplicate plan
+	tf.SetStdout(&jsonBuffer)
+	tf.SetStderr(&jsonBuffer)
+	
+	if isDestroy {
+		_, err = tf.Plan(ctx, tfexec.Destroy(true), tfexec.Out(planFile))
+	} else {
+		_, err = tf.Plan(ctx, tfexec.Out(planFile))
+	}
+	
+	if err != nil {
+		logger.Warn("failed to generate structured plan", slog.String("error", err.Error()))
+		// Not fatal - we have the human-readable logs already
+	} else {
+		// Get structured JSON output from the saved plan
+		planStruct, err := tf.ShowPlanFile(ctx, planFile)
+		if err != nil {
+			logger.Warn("failed to read structured plan", slog.String("error", err.Error()))
+			planStruct = nil
+		} else {
+			// Extract resource counts from structured plan
+			if planStruct != nil && planStruct.ResourceChanges != nil {
+				for _, rc := range planStruct.ResourceChanges {
+					if rc.Change == nil {
+						continue
+					}
+					actions := rc.Change.Actions
+					if actions.Create() {
+						adds++
+					} else if actions.Update() {
+						changes++
+					} else if actions.Delete() {
+						destroys++
+					} else if actions.Replace() {
+						adds++
+						destroys++
 		}
 	}
+			}
+		}
+	}
+	
+	hasChanges = adds > 0 || changes > 0 || destroys > 0
 
-	return string(planOutput), allLogs.String(), hasChanges, adds, changes, destroys, planErr
+	logger.Info("plan completed",
+		slog.Bool("has_changes", hasChanges),
+		slog.Int("adds", adds),
+		slog.Int("changes", changes),
+		slog.Int("destroys", destroys))
+
+	return "", planLogs, hasChanges, adds, changes, destroys, nil
 }
 
 // handlePlanError handles plan execution errors
@@ -361,21 +426,6 @@ func (e *PlanExecutor) handlePlanError(ctx context.Context, runID string, planID
 	}
 
 	return fmt.Errorf("plan execution failed: %s", errorMsg)
-}
-
-// parsePlanOutput parses "Plan: X to add, Y to change, Z to destroy" from Terraform output
-func parsePlanOutput(output string) (adds, changes, destroys int) {
-	// Look for "Plan: X to add, Y to change, Z to destroy"
-	planRegex := regexp.MustCompile(`Plan: (\d+) to add, (\d+) to change, (\d+) to destroy`)
-	matches := planRegex.FindStringSubmatch(output)
-	
-	if len(matches) == 4 {
-		fmt.Sscanf(matches[1], "%d", &adds)
-		fmt.Sscanf(matches[2], "%d", &changes)
-		fmt.Sscanf(matches[3], "%d", &destroys)
-	}
-
-	return
 }
 
 // extractArchive extracts a tar.gz archive to a temp directory
@@ -529,4 +579,3 @@ func createBackendOverride(workDir string) error {
 	slog.Info("successfully removed cloud/backend configuration from terraform files")
 	return nil
 }
-

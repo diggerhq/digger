@@ -56,16 +56,22 @@ func (h *TfeHandler) GetPlan(c echo.Context) error {
 	logsurl := fmt.Sprintf("%s/tfe/api/v2/plans/%s/logs/%s", publicBase, planID, logToken)
 
 	response := tfe.PlanRecord{
-		ID:                   plan.ID,
-		Status:               plan.Status,
-		ResourceAdditions:    plan.ResourceAdditions,
-		ResourceChanges:      plan.ResourceChanges,
-		ResourceDestructions: plan.ResourceDestructions,
-		HasChanges:           plan.HasChanges,
-		LogReadURL:           logsurl,
+		ID:         plan.ID,
+		Status:     plan.Status,
+		LogReadURL: logsurl,
 		Run: &tfe.RunRef{
 			ID: plan.RunID,
 		},
+	}
+	
+	// Only include resource counts when plan is finished
+	// If we send HasChanges:false before the plan completes, Terraform CLI
+	// will think there's nothing to apply and won't prompt for confirmation!
+	if plan.Status == "finished" {
+		response.ResourceAdditions = plan.ResourceAdditions
+		response.ResourceChanges = plan.ResourceChanges
+		response.ResourceDestructions = plan.ResourceDestructions
+		response.HasChanges = plan.HasChanges
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
@@ -102,7 +108,7 @@ func (h *TfeHandler) GetPlanLogs(c echo.Context) error {
 	var logText string
 	if plan.LogBlobID != nil {
 		// Try to get logs from blob storage
-		logData, err := h.blobStore.Download(ctx, *plan.LogBlobID)
+		logData, err := h.blobStore.DownloadBlob(ctx, *plan.LogBlobID)
 		if err != nil {
 			fmt.Printf("Failed to get logs from blob storage: %v\n", err)
 			// Fall back to default logs
@@ -115,21 +121,116 @@ func (h *TfeHandler) GetPlanLogs(c echo.Context) error {
 		logText = generateDefaultPlanLogs(plan)
 	}
 
-	// Handle offset for streaming (TFE streams logs incrementally)
-	if offsetInt > 0 && offsetInt < int64(len(logText)) {
-		logText = logText[offsetInt:]
-	} else if offsetInt >= int64(len(logText)) {
-		logText = "" // No new data
+	// Handle offset for streaming with proper byte accounting
+	// Stream format: [STX at offset 0][logText at offset 1+][ETX at offset 1+len(logText)]
+	var responseData []byte
+	
+	if offsetInt == 0 {
+		// First request: send STX + current logs
+		responseData = append([]byte{0x02}, []byte(logText)...)
+		fmt.Printf("📤 PLAN LOGS at offset=0: STX + %d bytes of log text\n", len(logText))
+		if len(logText) > 0 {
+			fmt.Printf("Log preview (first 200 chars): %.200s\n", logText)
+		}
+	} else {
+		// Client already received STX (1 byte at offset 0)
+		// Map stream offset to logText offset: streamOffset=1 → logText[0]
+		logOffset := offsetInt - 1
+		
+		if logOffset < int64(len(logText)) {
+			// Send remaining log text
+			responseData = []byte(logText[logOffset:])
+			fmt.Printf("📤 PLAN LOGS at offset=%d: sending %d bytes (logText[%d:])\n", 
+				offsetInt, len(responseData), logOffset)
+		} else if logOffset == int64(len(logText)) && plan.Status == "finished" {
+			// All logs sent, send ETX
+			responseData = []byte{0x03}
+			fmt.Printf("📤 Sending ETX (End of Text) for plan %s - logs complete\n", planID)
+		} else {
+			// Waiting for more logs or already sent ETX
+			responseData = []byte{}
+			fmt.Printf("📤 PLAN LOGS at offset=%d: no new data (waiting or complete)\n", offsetInt)
+		}
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "text/plain")
 	c.Response().WriteHeader(http.StatusOK)
 
-	_, err = c.Response().Writer.Write([]byte(logText))
+	_, err = c.Response().Writer.Write(responseData)
 	return err
 }
 
+// GetPlanJSONOutput returns the structured JSON representation of a plan
+// This is what Terraform CLI uses to decide whether to show the confirmation dialog
+func (h *TfeHandler) GetPlanJSONOutput(c echo.Context) error {
+	ctx := c.Request().Context()
+	planID := c.Param("id")
+
+	// Get plan from database
+	plan, err := h.planRepo.GetPlan(ctx, planID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "404",
+				"title":  "not found",
+				"detail": fmt.Sprintf("Plan %s not found", planID),
+			}},
+		})
+	}
+
+	// Return a minimal Terraform JSON plan format
+	// This is the structured representation that the CLI parses to determine if it should prompt
+	jsonPlan := map[string]interface{}{
+		"format_version":    "1.2",
+		"terraform_version": "1.9.0",
+		"resource_changes":  []interface{}{}, // Empty for now, but signals that plan exists
+	}
+
+	// If plan is finished, include resource change summary
+	if plan.Status == "finished" {
+		// Create dummy resource changes based on our counts
+		// The CLI checks if this array has entries to decide whether to prompt
+		resourceChanges := make([]interface{}, 0)
+		
+		// Add placeholder entries for additions
+		for i := 0; i < plan.ResourceAdditions; i++ {
+			resourceChanges = append(resourceChanges, map[string]interface{}{
+				"change": map[string]interface{}{
+					"actions": []string{"create"},
+				},
+			})
+		}
+		
+		// Add placeholder entries for changes
+		for i := 0; i < plan.ResourceChanges; i++ {
+			resourceChanges = append(resourceChanges, map[string]interface{}{
+				"change": map[string]interface{}{
+					"actions": []string{"update"},
+				},
+			})
+		}
+		
+		// Add placeholder entries for destructions
+		for i := 0; i < plan.ResourceDestructions; i++ {
+			resourceChanges = append(resourceChanges, map[string]interface{}{
+				"change": map[string]interface{}{
+					"actions": []string{"delete"},
+				},
+			})
+		}
+		
+		jsonPlan["resource_changes"] = resourceChanges
+	}
+
+	c.Response().Header().Set(echo.HeaderContentType, "application/json")
+	c.Response().WriteHeader(http.StatusOK)
+	return c.JSON(http.StatusOK, jsonPlan)
+}
+
 func generateDefaultPlanLogs(plan *domain.TFEPlan) string {
+	// Don't show resource counts in logs until plan is finished
+	// Terraform CLI parses the logs to determine if changes exist!
+	if plan.Status == "finished" {
 	return fmt.Sprintf(`Terraform used the selected providers to generate the following execution plan.
 Resource actions are indicated with the following symbols:
   + create
@@ -137,8 +238,11 @@ Resource actions are indicated with the following symbols:
   ~ update in-place
 
 Plan: %d to add, %d to change, %d to destroy.
+`, plan.ResourceAdditions, plan.ResourceChanges, plan.ResourceDestructions)
+	}
 
-Status: %s
-`, plan.ResourceAdditions, plan.ResourceChanges, plan.ResourceDestructions, plan.Status)
+	// While planning, return EMPTY - don't send any text that CLI might parse as a plan summary!
+	// The CLI will keep polling until it gets real content.
+	return ""
 }
 

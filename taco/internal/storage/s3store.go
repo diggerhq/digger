@@ -292,12 +292,33 @@ func (s *s3Store) Download(ctx context.Context, id string) ([]byte, error) {
     return io.ReadAll(out.Body)
 }
 
+// DownloadBlob downloads arbitrary data (config archives, logs, etc.) without state file path suffix.
+// Use this for non-state files. For state files, use Download() which adds /terraform.tfstate suffix.
+func (s *s3Store) DownloadBlob(ctx context.Context, key string) ([]byte, error) {
+	// Use s.key() directly, NOT s.objKey() which adds /terraform.tfstate suffix!
+	fullKey := s.key(key)
+	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: &s.bucket,
+		Key:    aws.String(fullKey),
+	})
+	if err != nil {
+		if isNotFound(err) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	defer out.Body.Close()
+	return io.ReadAll(out.Body)
+}
+
 // UploadBlob uploads arbitrary data (config archives, logs, etc.) without lock checks or versioning.
 // Use this for non-state files. For state files, use Upload() which includes lock checking.
 func (s *s3Store) UploadBlob(ctx context.Context, key string, data []byte) error {
     fmt.Printf("[S3Store.UploadBlob] START - key=%s, dataLen=%d\n", key, len(data))
     
-    fullKey := s.objKey(key)
+	// Use s.key() directly, NOT s.objKey() which adds /terraform.tfstate suffix!
+	// UploadBlob is for arbitrary blobs (logs, archives), not state files
+	fullKey := s.key(key)
     if _, err := s.client.PutObject(ctx, &s3.PutObjectInput{
         Bucket: &s.bucket,
         Key:    aws.String(fullKey),

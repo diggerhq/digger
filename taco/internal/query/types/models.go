@@ -325,7 +325,7 @@ type TFEConfigurationVersion struct {
 	// Configuration version attributes
 	Status          string `gorm:"type:varchar(50);not null;default:'pending'"`
 	Source          string `gorm:"type:varchar(50);default:'cli'"` // 'cli', 'api', 'vcs', 'terraform'
-	Speculative     bool   `gorm:"default:true"`
+	Speculative     bool   `gorm:"default:false"` // false = normal apply, true = plan-only
 	AutoQueueRuns   bool   `gorm:"default:false"`
 	Provisional     bool   `gorm:"default:false"`
 	
