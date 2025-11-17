@@ -23,6 +23,13 @@ type UnitMetadata struct {
     Updated  time.Time `json:"updated"`
     Locked   bool      `json:"locked"`
     LockInfo *LockInfo `json:"lock,omitempty"`
+    
+    // TFE workspace settings (nullable for non-TFE usage)
+    TFEAutoApply        *bool   `json:"tfe_auto_apply,omitempty"`
+    TFETerraformVersion *string `json:"tfe_terraform_version,omitempty"`
+    TFEWorkingDirectory *string `json:"tfe_working_directory,omitempty"`
+    TFEExecutionMode    *string `json:"tfe_execution_mode,omitempty"` // 'remote', 'local', 'agent'
+    LockID              string  `json:"lock_id,omitempty"`
 }
 
 type VersionInfo struct {
@@ -49,6 +56,8 @@ type UnitStore interface {
 	// Data operations
 	Download(ctx context.Context, id string) ([]byte, error)
 	Upload(ctx context.Context, id string, data []byte, lockID string) error
+	DownloadBlob(ctx context.Context, key string) ([]byte, error)     // For non-state files (no /terraform.tfstate suffix)
+	UploadBlob(ctx context.Context, key string, data []byte) error     // For non-state files (no lock checks)
 	
 	// Lock operations
 	Lock(ctx context.Context, id string, info *LockInfo) error

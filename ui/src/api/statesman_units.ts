@@ -170,7 +170,16 @@ export async function getUnitStatus(orgId: string, userId: string, email: string
     return response.json();
 }
 
-export async function createUnit(orgId: string, userId: string, email: string, name: string) {
+export async function createUnit(
+    orgId: string, 
+    userId: string, 
+    email: string, 
+    name: string,
+    tfeAutoApply?: boolean,
+    tfeExecutionMode?: string,
+    tfeTerraformVersion?: string,
+    tfeWorkingDirectory?: string
+) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
         method: 'POST',
         headers: {
@@ -183,6 +192,10 @@ export async function createUnit(orgId: string, userId: string, email: string, n
         },
         body: JSON.stringify({
             name: name,
+            tfe_auto_apply: tfeAutoApply,
+            tfe_execution_mode: tfeExecutionMode,
+            tfe_terraform_version: tfeTerraformVersion,
+            tfe_working_directory: tfeWorkingDirectory,
         }),
     });
 

@@ -80,7 +80,11 @@ func (h *Handler) resolveUnitIdentifier(ctx context.Context, identifier string) 
 }
 
 type CreateUnitRequest struct {
-	Name string `json:"name"`
+	Name                 string  `json:"name"`
+	TFEAutoApply         *bool   `json:"tfe_auto_apply"`
+	TFEExecutionMode     *string `json:"tfe_execution_mode"`
+	TFETerraformVersion  *string `json:"tfe_terraform_version"`
+	TFEWorkingDirectory  *string `json:"tfe_working_directory"`
 }
 
 type CreateUnitResponse struct {
@@ -127,6 +131,7 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 		"operation", "create_unit",
 		"name", name,
 		"org_id", orgCtx.OrgID,
+		"tfe_execution_mode", req.TFEExecutionMode,
 	)
 
 	metadata, err := h.store.Create(ctx, orgCtx.OrgID, name)
@@ -154,6 +159,26 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 			"error": "Failed to create unit",
 			"detail": err.Error(),
 		})
+	}
+
+	// Update TFE fields if provided (after unit creation)
+	if req.TFEAutoApply != nil || req.TFEExecutionMode != nil || req.TFETerraformVersion != nil || req.TFEWorkingDirectory != nil {
+		if h.queryStore != nil {
+			if err := h.queryStore.UpdateUnitTFESettings(ctx, metadata.ID, req.TFEAutoApply, req.TFEExecutionMode, req.TFETerraformVersion, req.TFEWorkingDirectory); err != nil {
+				logger.Warn("Failed to update TFE settings for unit",
+					"operation", "create_unit",
+					"unit_id", metadata.ID,
+					"error", err,
+				)
+				// Don't fail the request, just log the warning
+			} else {
+				logger.Info("Updated TFE settings for unit",
+					"operation", "create_unit",
+					"unit_id", metadata.ID,
+					"tfe_execution_mode", req.TFEExecutionMode,
+				)
+			}
+		}
 	}
 
 	logger.Info("Unit created successfully",

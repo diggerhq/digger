@@ -14,6 +14,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/jsonapi v1.0.0
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/terraform-exec v0.24.0
+	github.com/hashicorp/terraform-json v0.27.2
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/mr-tron/base58 v1.2.0
 	github.com/stretchr/testify v1.10.0
@@ -29,6 +31,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.3.2 // indirect
+	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.6 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.4 // indirect
@@ -48,6 +51,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
+	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect
@@ -63,6 +67,7 @@ require (
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/zclconf/go-cty v1.16.4 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect

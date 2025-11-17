@@ -65,9 +65,28 @@ export const getUnitStatusFn = createServerFn({method: 'GET'})
 })
 
 export const createUnitFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, name: string, requestId?: string}) => data)
+  .inputValidator((data : {
+    userId: string, 
+    organisationId: string, 
+    email: string, 
+    name: string, 
+    requestId?: string,
+    tfeAutoApply?: boolean,
+    tfeExecutionMode?: string,
+    tfeTerraformVersion?: string,
+    tfeWorkingDirectory?: string
+  }) => data)
   .handler(async ({ data }) => {
-    const unit : any = await createUnit(data.organisationId, data.userId, data.email, data.name);
+    const unit : any = await createUnit(
+      data.organisationId, 
+      data.userId, 
+      data.email, 
+      data.name,
+      data.tfeAutoApply,
+      data.tfeExecutionMode,
+      data.tfeTerraformVersion,
+      data.tfeWorkingDirectory
+    );
     return unit;
 })
 

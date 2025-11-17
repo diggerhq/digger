@@ -61,6 +61,60 @@ type TFEOperations interface {
 	StateOperations
 }
 
+// TFERunRepository manages TFE run lifecycle
+type TFERunRepository interface {
+	// Create a new run
+	CreateRun(ctx context.Context, run *TFERun) error
+	
+	// Get run by ID
+	GetRun(ctx context.Context, runID string) (*TFERun, error)
+	
+	// List runs for a unit (workspace)
+	ListRunsForUnit(ctx context.Context, unitID string, limit int) ([]*TFERun, error)
+	
+	// Update run status
+	UpdateRunStatus(ctx context.Context, runID string, status string) error
+	
+	// Update run with plan ID
+	UpdateRunPlanID(ctx context.Context, runID string, planID string) error
+	
+	// Update run status and can_apply together
+	UpdateRunStatusAndCanApply(ctx context.Context, runID string, status string, canApply bool) error
+	
+	// Update run with error message (when execution fails)
+	UpdateRunError(ctx context.Context, runID string, errorMessage string) error
+}
+
+// TFEPlanRepository manages TFE plan lifecycle
+type TFEPlanRepository interface {
+	// Create a new plan
+	CreatePlan(ctx context.Context, plan *TFEPlan) error
+	
+	// Get plan by ID
+	GetPlan(ctx context.Context, planID string) (*TFEPlan, error)
+	
+	// Update plan status and results
+	UpdatePlan(ctx context.Context, planID string, updates *TFEPlanUpdate) error
+	
+	// Get plan by run ID
+	GetPlanByRunID(ctx context.Context, runID string) (*TFEPlan, error)
+}
+
+// TFEConfigurationVersionRepository manages configuration versions
+type TFEConfigurationVersionRepository interface {
+	// Create a new configuration version
+	CreateConfigurationVersion(ctx context.Context, cv *TFEConfigurationVersion) error
+	
+	// Get configuration version by ID
+	GetConfigurationVersion(ctx context.Context, cvID string) (*TFEConfigurationVersion, error)
+	
+	// Update configuration version status (and optionally the archive blob ID)
+	UpdateConfigurationVersionStatus(ctx context.Context, cvID string, status string, uploadedAt *time.Time, archiveBlobID *string) error
+	
+	// List configuration versions for a unit (workspace)
+	ListConfigurationVersionsForUnit(ctx context.Context, unitID string, limit int) ([]*TFEConfigurationVersion, error)
+}
+
 // ============================================
 // Full Repository Interface
 // ============================================
@@ -154,5 +208,85 @@ func DecodeURLPath(encoded string) (string, error) {
 // DecodeUnitID decodes a URL-encoded unit ID (currently just normalizes)
 func DecodeUnitID(encoded string) string {
 	return NormalizeUnitID(encoded)
+}
+
+// ============================================
+// TFE Domain Models
+// ============================================
+
+// TFERun represents a Terraform run (plan/apply execution)
+type TFERun struct {
+	ID                     string
+	OrgID                  string
+	UnitID                 string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	Status                 string
+	IsDestroy              bool
+	Message                string
+	PlanOnly               bool
+	AutoApply              bool // Whether to auto-trigger apply after successful plan
+	Source                 string
+	IsCancelable           bool
+	CanApply               bool
+	ConfigurationVersionID string
+	PlanID                 *string
+	ApplyID                *string
+	CreatedBy              string
+	ApplyLogBlobID         *string
+	ErrorMessage           *string // Stores error message if run fails
+}
+
+// TFEPlan represents a Terraform plan execution
+type TFEPlan struct {
+	ID                   string
+	OrgID                string
+	RunID                string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	Status               string
+	ResourceAdditions    int
+	ResourceChanges      int
+	ResourceDestructions int
+	HasChanges           bool
+	LogBlobID            *string
+	LogReadURL           *string
+	PlanOutputBlobID     *string
+	PlanOutputJSON       *string
+	CreatedBy            string
+}
+
+// TFEPlanUpdate contains fields that can be updated on a plan
+type TFEPlanUpdate struct {
+	Status               *string
+	ResourceAdditions    *int
+	ResourceChanges      *int
+	ResourceDestructions *int
+	HasChanges           *bool
+	LogBlobID            *string
+	LogReadURL           *string
+	PlanOutputBlobID     *string
+	PlanOutputJSON       *string
+}
+
+// TFEConfigurationVersion represents an uploaded Terraform configuration
+type TFEConfigurationVersion struct {
+	ID               string
+	OrgID            string
+	UnitID           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	Status           string
+	Source           string
+	Speculative      bool
+	AutoQueueRuns    bool
+	Provisional      bool
+	Error            *string
+	ErrorMessage     *string
+	UploadURL        *string
+	UploadedAt       *time.Time
+	ArchiveBlobID    *string
+	StatusTimestamps string
+	CreatedBy        string
 }
 

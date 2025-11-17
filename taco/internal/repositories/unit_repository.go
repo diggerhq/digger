@@ -147,6 +147,13 @@ func (r *UnitRepository) Get(ctx context.Context, uuid string) (*storage.UnitMet
 		Size:     unit.Size,
 		Updated:  unit.UpdatedAt,
 		Locked:   unit.Locked,
+		LockID:   unit.LockID,
+		
+		// Include TFE workspace settings
+		TFEAutoApply:        unit.TFEAutoApply,
+		TFETerraformVersion: unit.TFETerraformVersion,
+		TFEWorkingDirectory: unit.TFEWorkingDirectory,
+		TFEExecutionMode:    unit.TFEExecutionMode,
 	}
 
 	// Use blob lock info if available

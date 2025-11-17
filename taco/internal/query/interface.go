@@ -19,6 +19,7 @@ type UnitQuery interface {
 	SyncUnitLock(ctx context.Context, unitName string, lockID, lockWho string, lockCreated time.Time) error
 	SyncUnitUnlock(ctx context.Context, unitName string) error
 	SyncDeleteUnit(ctx context.Context, unitName string) error
+	UpdateUnitTFESettings(ctx context.Context, unitID string, autoApply *bool, executionMode *string, terraformVersion *string, workingDirectory *string) error
 }
 
 type RBACQuery interface {

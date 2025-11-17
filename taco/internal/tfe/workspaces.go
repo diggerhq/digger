@@ -402,19 +402,41 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 	unitUUID := extractUnitUUID(stateID)
 	fmt.Printf("GetWorkspace: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
 	
-	// Check if unit exists (optional - may auto-create later)
-	_, err = h.stateStore.Get(c.Request().Context(), unitUUID)
-	locked := false
+	// Fetch unit to get execution mode and lock status
+	unit, err := h.unitRepo.Get(c.Request().Context(), unitUUID)
+	if err != nil {
+		logger.Error("Failed to get unit",
+			"operation", "tfe_get_workspace",
+			"unit_uuid", unitUUID,
+			"error", err,
+		)
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"errors": []map[string]string{{
+				"status": "404",
+				"title":  "not found",
+				"detail": fmt.Sprintf("Workspace %s not found", workspaceName),
+			}},
+		})
+	}
+	
+	// Determine execution mode (default to 'local' if not specified)
+	executionMode := "local"
+	if unit.TFEExecutionMode != nil && *unit.TFEExecutionMode != "" {
+		executionMode = *unit.TFEExecutionMode
+	}
+	
+	// Determine auto-apply setting (default to false if not specified)
+	autoApply := false
+	if unit.TFEAutoApply != nil {
+		autoApply = *unit.TFEAutoApply
+	}
+	
+	// Check if unit is locked
+	locked := unit.Locked
 	var currentRun *tfe.TFERun
-	if err == nil {
-		// Check if locked and get lock details
-		lockInfo, _ := h.stateStore.GetLock(c.Request().Context(), unitUUID)
-		if lockInfo != nil {
-			locked = true
-			// Populate CurrentRun with lock details for Terraform force-unlock
+	if locked && unit.LockID != "" {
 			currentRun = &tfe.TFERun{
-				ID: lockInfo.ID,
-			}
+			ID: unit.LockID,
 		}
 	}
 
@@ -423,28 +445,39 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		Actions:                    &tfe.TFEWorkspaceActions{IsDestroyable: true},
 		AgentPoolID:                tfe.NewTfeResourceIdentifier(tfe.AgentPoolType, "HzEaJWMP5YTatZaS").String(),
 		AllowDestroyPlan:           false,
-		AutoApply:                  false,
+		AutoApply:                  autoApply,
 		CanQueueDestroyPlan:        false,
 		CreatedAt:                  time.Time{},
 		UpdatedAt:                  time.Time{},
 		Description:                workspaceName,
 		Environment:                workspaceName,
-		ExecutionMode:              "local",
+		ExecutionMode:              executionMode,
 		FileTriggersEnabled:        false,
 		GlobalRemoteState:          false,
 		Locked:                     locked,
 		MigrationEnvironment:       "",
 		Name:                       workspaceName,
-		Operations:                 false,
-		Permissions:                nil,
+		Operations:                 true,
+		Permissions:                &tfe.TFEWorkspacePermissions{
+			CanDestroy:  true,
+			CanForceUnlock: true,
+			CanLock:      true,
+			CanQueueApply: true,
+			CanQueueDestroy: true,
+			CanQueueRun: true,
+			CanUnlock:   true,
+			CanUpdate:   true,
+			CanReadSettings: true,
+			CanUpdateVariable: false,
+		},
 		QueueAllRuns:               false,
-		SpeculativeEnabled:         false,
+		SpeculativeEnabled:         false,  // False = allow confirmable applies, True = all runs are plan-only
 		SourceName:                 "",
 		SourceURL:                  "",
 		StructuredRunOutputEnabled: false,
-		TerraformVersion:           nil,
-		TriggerPrefixes:            nil,
-		TriggerPatterns:            nil,
+		TerraformVersion:            "1.5.6",
+		TriggerPrefixes:            []string{},
+		TriggerPatterns:            []string{},
 		VCSRepo:                    nil,
 		WorkingDirectory:           "",
 		ResourceCount:              0,
@@ -453,7 +486,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		PolicyCheckFailures:        0,
 		RunFailures:                0,
 		RunsCount:                  0,
-		TagNames:                   nil,
+		TagNames:                   []string{},
 		CurrentRun:                 currentRun,  // Include lock details when workspace is locked
 		Organization: &tfe.TFEOrganization{
 			Name: orgParam,  // Return the full org param (includes display name if provided)
