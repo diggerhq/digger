@@ -4,6 +4,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/auth"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
+	"github.com/diggerhq/digger/opentaco/internal/sandbox"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 )
 
@@ -11,18 +12,20 @@ import (
 // Uses TFEOperations interface (6 methods) - cannot create, list, delete, or manage versions.
 type TfeHandler struct {
 	authHandler        *auth.Handler
-	stateStore         domain.TFEOperations  // RBAC-wrapped for authenticated operations
-	directStateStore   domain.TFEOperations  // Direct access for pre-authorized operations (signed URLs)
+	stateStore         domain.TFEOperations // RBAC-wrapped for authenticated operations
+	directStateStore   domain.TFEOperations // Direct access for pre-authorized operations (signed URLs)
 	rbacManager        *rbac.RBACManager
 	apiTokens          *auth.APITokenManager
 	identifierResolver domain.IdentifierResolver // For resolving org external IDs
 	
 	// TFE repositories for runs, plans, and configuration versions
-	runRepo        domain.TFERunRepository
-	planRepo       domain.TFEPlanRepository
-	configVerRepo  domain.TFEConfigurationVersionRepository
-	blobStore      storage.UnitStore
-	unitRepo       domain.UnitRepository  // Direct access for locking during plan/apply
+	runRepo         domain.TFERunRepository
+	planRepo        domain.TFEPlanRepository
+	configVerRepo   domain.TFEConfigurationVersionRepository
+	blobStore       storage.UnitStore
+	unitRepo        domain.UnitRepository // Direct access for locking during plan/apply
+	sandbox         sandbox.Sandbox
+	runActivityRepo domain.RemoteRunActivityRepository
 }
 
 // NewTFETokenHandler creates a new TFE handler.
@@ -38,6 +41,8 @@ func NewTFETokenHandler(
 	runRepo domain.TFERunRepository,
 	planRepo domain.TFEPlanRepository,
 	configVerRepo domain.TFEConfigurationVersionRepository,
+	sandboxProvider sandbox.Sandbox,
+	runActivityRepo domain.RemoteRunActivityRepository,
 ) *TfeHandler {
 	return &TfeHandler{
 		authHandler:        authHandler,
@@ -50,6 +55,8 @@ func NewTFETokenHandler(
 		planRepo:           planRepo,
 		configVerRepo:      configVerRepo,
 		blobStore:          blobStore,
-		unitRepo:           unwrappedRepo,  // Use unwrapped repo for direct lock access
+		unitRepo:           unwrappedRepo, // Use unwrapped repo for direct lock access
+		sandbox:            sandboxProvider,
+		runActivityRepo:    runActivityRepo,
 	}
 }

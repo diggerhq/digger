@@ -30,11 +30,12 @@ export default function UnitCreateForm({
 }: UnitCreateFormProps) {
   const [unitName, setUnitName] = React.useState('')
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
+  const [terraformVersion, setTerraformVersion] = React.useState('1.5.5')
   const [isCreating, setIsCreating] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   
-  // Check if remote runs feature is enabled via environment variable
-  const remoteRunsEnabled = import.meta.env.VITE_REMOTE_RUNS_ENABLED === 'true'
+  // Remote runs beta is now always enabled
+  const remoteRunsEnabled = true
 
   const handleCreate = async () => {
     if (!unitName.trim()) return
@@ -59,8 +60,10 @@ export default function UnitCreateForm({
           email,
           name: unitName.trim(),
           // Enable TFE remote execution for remote type
-          tfeAutoApply: finalUnitType === 'remote',
+          // Auto-apply defaults to false - user must explicitly approve applies
+          tfeAutoApply: false,
           tfeExecutionMode: finalUnitType === 'remote' ? 'remote' : 'local',
+          tfeTerraformVersion: finalUnitType === 'remote' ? terraformVersion : undefined,
         },
       })
       // analytics: track unit creation
@@ -164,6 +167,25 @@ export default function UnitCreateForm({
           </label>
         </RadioGroup>
       </div>
+
+      {unitType === 'remote' && (
+        <div>
+          <Label htmlFor="terraform-version">Terraform Version</Label>
+          <div className="mt-2 space-y-2">
+            <Input
+              id="terraform-version"
+              value={terraformVersion}
+              onChange={(e) => setTerraformVersion(e.target.value)}
+              placeholder="1.5.5"
+              className="font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              Default: 1.5.5 (pre-built template, fast startup). 
+              Custom versions will be installed at runtime (slower first run).
+            </p>
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {showBringOwnState ? (

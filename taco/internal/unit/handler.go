@@ -191,6 +191,90 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 	return c.JSON(http.StatusCreated, CreateUnitResponse{ID: metadata.ID, Created: metadata.Updated})
 }
 
+type UpdateUnitRequest struct {
+	TFEAutoApply         *bool   `json:"tfe_auto_apply"`
+	TFEExecutionMode     *string `json:"tfe_execution_mode"`
+	TFETerraformVersion  *string `json:"tfe_terraform_version"`
+	TFEWorkingDirectory  *string `json:"tfe_working_directory"`
+}
+
+func (h *Handler) UpdateUnit(c echo.Context) error {
+	logger := logging.FromContext(c)
+	ctx := c.Request().Context()
+	identifier := c.Param("id")
+
+	// Get org UUID from domain context
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		logger.Error("Organization context missing", "operation", "update_unit")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Organization context missing"})
+	}
+
+	// Resolve unit identifier to UUID
+	unitID, err := h.resolveUnitIdentifier(ctx, identifier)
+	if err != nil {
+		logger.Error("Failed to resolve unit identifier",
+			"operation", "update_unit",
+			"identifier", identifier,
+			"error", err)
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
+	}
+
+	logger.Info("Updating unit",
+		"operation", "update_unit",
+		"unit_id", unitID,
+		"org_id", orgCtx.OrgID)
+
+	// Verify unit exists and user has access
+	_, err = h.store.Get(ctx, unitID)
+	if err != nil {
+		logger.Error("Failed to get unit",
+			"operation", "update_unit",
+			"unit_id", unitID,
+			"error", err)
+		if err.Error() == "unauthorized" || err.Error() == "forbidden" {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
+	}
+
+	// Parse request body
+	var req UpdateUnitRequest
+	if err := c.Bind(&req); err != nil {
+		logger.Error("Failed to parse request body",
+			"operation", "update_unit",
+			"unit_id", unitID,
+			"error", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+	}
+
+	// Update TFE settings if any are provided
+	if req.TFEAutoApply != nil || req.TFEExecutionMode != nil || req.TFETerraformVersion != nil || req.TFEWorkingDirectory != nil {
+		if h.queryStore != nil {
+			if err := h.queryStore.UpdateUnitTFESettings(ctx, unitID, req.TFEAutoApply, req.TFEExecutionMode, req.TFETerraformVersion, req.TFEWorkingDirectory); err != nil {
+				logger.Error("Failed to update TFE settings for unit",
+					"operation", "update_unit",
+					"unit_id", unitID,
+					"error", err)
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"error": "Failed to update unit settings",
+					"detail": err.Error(),
+				})
+			}
+		}
+	}
+
+	logger.Info("Unit updated successfully",
+		"operation", "update_unit",
+		"unit_id", unitID,
+		"org_id", orgCtx.OrgID)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"id": unitID,
+		"message": "Unit updated successfully",
+	})
+}
+
 func (h *Handler) ListUnits(c echo.Context) error {
 	logger := logging.FromContext(c)
 	ctx := c.Request().Context()

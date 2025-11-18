@@ -22,10 +22,10 @@ type StateOperations interface {
 	Get(ctx context.Context, id string) (*storage.UnitMetadata, error)
 	Download(ctx context.Context, id string) ([]byte, error)
 	GetLock(ctx context.Context, id string) (*storage.LockInfo, error)
-	
+
 	// Write operations
 	Upload(ctx context.Context, id string, data []byte, lockID string) error
-	
+
 	// Lock operations
 	Lock(ctx context.Context, id string, info *storage.LockInfo) error
 	Unlock(ctx context.Context, id string, lockID string) error
@@ -40,12 +40,12 @@ type StateOperations interface {
 // All operations are org-scoped in the new architecture.
 type UnitManagement interface {
 	StateOperations
-	
+
 	// Admin operations (org-scoped)
 	Create(ctx context.Context, orgID string, name string) (*storage.UnitMetadata, error)
 	List(ctx context.Context, orgID string, prefix string) ([]*storage.UnitMetadata, error)
 	Delete(ctx context.Context, id string) error // Uses UUID
-	
+
 	// Version operations (UUID-based)
 	ListVersions(ctx context.Context, id string) ([]*storage.VersionInfo, error)
 	RestoreVersion(ctx context.Context, id string, versionTimestamp time.Time, lockID string) error
@@ -65,22 +65,22 @@ type TFEOperations interface {
 type TFERunRepository interface {
 	// Create a new run
 	CreateRun(ctx context.Context, run *TFERun) error
-	
+
 	// Get run by ID
 	GetRun(ctx context.Context, runID string) (*TFERun, error)
-	
+
 	// List runs for a unit (workspace)
 	ListRunsForUnit(ctx context.Context, unitID string, limit int) ([]*TFERun, error)
-	
+
 	// Update run status
 	UpdateRunStatus(ctx context.Context, runID string, status string) error
-	
+
 	// Update run with plan ID
 	UpdateRunPlanID(ctx context.Context, runID string, planID string) error
-	
+
 	// Update run status and can_apply together
 	UpdateRunStatusAndCanApply(ctx context.Context, runID string, status string, canApply bool) error
-	
+
 	// Update run with error message (when execution fails)
 	UpdateRunError(ctx context.Context, runID string, errorMessage string) error
 }
@@ -89,13 +89,13 @@ type TFERunRepository interface {
 type TFEPlanRepository interface {
 	// Create a new plan
 	CreatePlan(ctx context.Context, plan *TFEPlan) error
-	
+
 	// Get plan by ID
 	GetPlan(ctx context.Context, planID string) (*TFEPlan, error)
-	
+
 	// Update plan status and results
 	UpdatePlan(ctx context.Context, planID string, updates *TFEPlanUpdate) error
-	
+
 	// Get plan by run ID
 	GetPlanByRunID(ctx context.Context, runID string) (*TFEPlan, error)
 }
@@ -104,15 +104,22 @@ type TFEPlanRepository interface {
 type TFEConfigurationVersionRepository interface {
 	// Create a new configuration version
 	CreateConfigurationVersion(ctx context.Context, cv *TFEConfigurationVersion) error
-	
+
 	// Get configuration version by ID
 	GetConfigurationVersion(ctx context.Context, cvID string) (*TFEConfigurationVersion, error)
-	
+
 	// Update configuration version status (and optionally the archive blob ID)
 	UpdateConfigurationVersionStatus(ctx context.Context, cvID string, status string, uploadedAt *time.Time, archiveBlobID *string) error
-	
+
 	// List configuration versions for a unit (workspace)
 	ListConfigurationVersionsForUnit(ctx context.Context, unitID string, limit int) ([]*TFEConfigurationVersion, error)
+}
+
+// RemoteRunActivityRepository records compute usage for remote plan/apply executions
+type RemoteRunActivityRepository interface {
+	CreateActivity(ctx context.Context, activity *RemoteRunActivity) (string, error)
+	MarkRunning(ctx context.Context, activityID string, startedAt time.Time, sandboxProvider string) error
+	MarkCompleted(ctx context.Context, activityID string, status string, completedAt time.Time, duration time.Duration, sandboxJobID *string, errorMessage *string) error
 }
 
 // ============================================
@@ -188,12 +195,12 @@ func NormalizeUnitID(id string) string {
 	s := strings.TrimSpace(id)
 	s = strings.ToLower(s) // Normalize to lowercase for case-insensitivity
 	s = strings.Trim(s, "/")
-	
+
 	// Collapse multiple slashes
 	for strings.Contains(s, "//") {
 		s = strings.ReplaceAll(s, "//", "/")
 	}
-	
+
 	return s
 }
 
@@ -290,3 +297,22 @@ type TFEConfigurationVersion struct {
 	CreatedBy        string
 }
 
+// RemoteRunActivity tracks remote sandbox executions for billing/auditing
+type RemoteRunActivity struct {
+	ID              string
+	RunID           string
+	OrgID           string
+	UnitID          string
+	Operation       string
+	Status          string
+	TriggeredBy     string
+	TriggeredSource string
+	SandboxProvider string
+	SandboxJobID    *string
+	StartedAt       *time.Time
+	CompletedAt     *time.Time
+	DurationMS      *int64
+	ErrorMessage    *string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}

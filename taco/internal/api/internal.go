@@ -17,7 +17,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-
 func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	webhookSecret := os.Getenv("OPENTACO_ENABLE_INTERNAL_ENDPOINTS")
 	if webhookSecret == "" {
@@ -118,6 +117,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	internal.POST("/units", unitHandler.CreateUnit)
 	internal.GET("/units", unitHandler.ListUnits)
 	internal.GET("/units/:id", unitHandler.GetUnit)
+	internal.PATCH("/units/:id", unitHandler.UpdateUnit)
 	internal.DELETE("/units/:id", unitHandler.DeleteUnit)
 	internal.GET("/units/:id/download", unitHandler.DownloadUnit)
 	internal.POST("/units/:id/upload", unitHandler.UploadUnit)
@@ -145,6 +145,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	var runRepo domain.TFERunRepository
 	var planRepo domain.TFEPlanRepository
 	var configVerRepo domain.TFEConfigurationVersionRepository
+	var remoteRunActivityRepo domain.RemoteRunActivityRepository
 	
 	if deps.QueryStore != nil {
 		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
@@ -153,6 +154,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 			runRepo = repositories.NewTFERunRepository(db)
 			planRepo = repositories.NewTFEPlanRepository(db)
 			configVerRepo = repositories.NewTFEConfigurationVersionRepository(db)
+			remoteRunActivityRepo = repositories.NewRemoteRunActivityRepository(db)
 			log.Println("TFE repositories initialized successfully (internal routes)")
 		}
 	}
@@ -169,6 +171,8 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 		runRepo,
 		planRepo,
 		configVerRepo,
+		deps.Sandbox,
+		remoteRunActivityRepo,
 	)
 	
 	// TFE group with webhook auth (for UI pass-through)
@@ -206,7 +210,6 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	tfeInternal.GET("/plans/:id", tfeHandler.GetPlan)
 	tfeInternal.GET("/applies/:id", tfeHandler.GetApply)
 	tfeInternal.GET("/applies/:id/logs", tfeHandler.GetApplyLogs)
-
 
 	log.Println("TFE API endpoints registered at /internal/tfe/api/v2 with webhook auth")
 	
@@ -252,6 +255,7 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 
 	log.Printf("Internal routes registered at /internal/api/* with webhook authentication")
 }
+
 // wrapWithWebhookRBAC wraps a handler with RBAC permission checking
 func wrapWithWebhookRBAC(manager *rbac.RBACManager, action rbac.Action, resource string) func(echo.HandlerFunc) echo.HandlerFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -306,4 +310,3 @@ func wrapWithWebhookRBAC(manager *rbac.RBACManager, action rbac.Action, resource
 		}
 	}
 }
-

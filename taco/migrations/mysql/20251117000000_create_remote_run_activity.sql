@@ -1,0 +1,25 @@
+CREATE TABLE IF NOT EXISTS `remote_run_activity` (
+  `id` varchar(36) NOT NULL PRIMARY KEY,
+  `run_id` varchar(36) NOT NULL,
+  `org_id` varchar(36) NOT NULL,
+  `unit_id` varchar(36) NOT NULL,
+  `operation` varchar(16) NOT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'pending',
+  `triggered_by` varchar(255) DEFAULT NULL,
+  `triggered_source` varchar(50) DEFAULT NULL,
+  `sandbox_provider` varchar(50) DEFAULT NULL,
+  `sandbox_job_id` varchar(100) DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `duration_ms` bigint DEFAULT NULL,
+  `error_message` text,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_remote_runs_run_id` (`run_id`),
+  INDEX `idx_remote_runs_unit_id` (`unit_id`),
+  INDEX `idx_remote_runs_created_at` (`created_at` DESC),
+  INDEX `idx_remote_runs_operation` (`operation`),
+  CONSTRAINT `fk_remote_runs_tfe_runs` FOREIGN KEY (`run_id`) REFERENCES `tfe_runs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_remote_runs_units` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE CASCADE
+) CHARSET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+

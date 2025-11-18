@@ -1,0 +1,32 @@
+{
+  "name": "@diggerhq/sandbox-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@e2b/code-interpreter": "^1.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "e2b": "^2.7.0",
+    "express": "^4.19.2",
+    "nanoid": "^5.0.7",
+    "pino": "^9.4.0",
+    "tar": "^6.2.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.8.1",
+    "pino-pretty": "^11.2.2",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.8.1",
+    "tsx": "^4.16.3",
+    "typescript": "^5.6.3"
+  }
+}
