@@ -377,7 +377,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	//err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-	err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
+	batchCheckRunId, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"prNumber", prNumber,
@@ -495,6 +495,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		config.ReportTerraformOutputs,
 		coverAllImpactedProjects,
 		nil,
+		&batchCheckRunId,
+		jobsCheckRunIdsMap,
 	)
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",

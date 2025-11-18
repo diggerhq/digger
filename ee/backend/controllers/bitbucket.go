@@ -305,7 +305,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return fmt.Errorf("parseint error: %v", err)
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false, true, vcsConnectionId)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false, true, vcsConnectionId, nil, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

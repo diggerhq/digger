@@ -231,7 +231,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	if diggerYaml.ReportTerraformOutputs != nil {
 		diggerConfig.ReportTerraformOutputs = *diggerYaml.ReportTerraformOutputs
 	} else {
-		diggerConfig.ReportTerraformOutputs = false
+		diggerConfig.ReportTerraformOutputs = true
 	}
 
 	diggerConfig.Reporting = copyReporterConfig(diggerYaml.Reporting)

@@ -866,7 +866,7 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
-func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool, VCSConnectionId *uint, commitSha string) (*DiggerBatch, error) {
+func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool, VCSConnectionId *uint, commitSha string, checkRunId *string) (*DiggerBatch, error) {
 	uid := uuid.New()
 	batch := &DiggerBatch{
 		ID:                       uid,
@@ -879,6 +879,7 @@ func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationI
 		PrNumber:                 PRNumber,
 		CommitSha:                commitSha,
 		CommentId:                commentId,
+		CheckRunId:               checkRunId,
 		Status:                   scheduler.BatchJobCreated,
 		BranchName:               branchName,
 		DiggerConfig:             diggerConfig,
@@ -945,7 +946,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	return nil
 }
 
-func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string) (*DiggerJob, error) {
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string, checkRunId *string) (*DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
@@ -959,8 +960,16 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	}
 
 	workflowUrl := "#"
-	job := &DiggerJob{DiggerJobID: jobId, Status: scheduler.DiggerJobCreated,
-		BatchID: &batchIdStr, SerializedJobSpec: serializedJob, DiggerJobSummary: *summary, WorkflowRunUrl: &workflowUrl, WorkflowFile: workflowFile}
+	job := &DiggerJob{
+		DiggerJobID: jobId,
+		Status: scheduler.DiggerJobCreated,
+		BatchID: &batchIdStr,
+		CheckRunId: checkRunId,
+		SerializedJobSpec: serializedJob,
+		DiggerJobSummary: *summary,
+		WorkflowRunUrl: &workflowUrl,
+		WorkflowFile: workflowFile,
+	}
 	result = db.GormDB.Save(job)
 	if result.Error != nil {
 		return nil, result.Error
