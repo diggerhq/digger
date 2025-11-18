@@ -788,6 +788,7 @@ func (e *PlanExecutor) executePlanInSandbox(ctx context.Context, run *domain.TFE
 		ConfigurationVersionID: run.ConfigurationVersionID,
 		IsDestroy:              run.IsDestroy,
 		TerraformVersion:       terraformVersionForUnit(unit),
+		Engine:                 engineForUnit(unit),
 		WorkingDirectory:       workingDirectoryForUnit(unit),
 		ConfigArchive:          archive,
 		State:                  stateData,

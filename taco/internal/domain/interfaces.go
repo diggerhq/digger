@@ -150,6 +150,13 @@ type Unit struct {
 	Updated      time.Time `json:"updated"`
 	Locked       bool      `json:"locked"`
 	LockInfo     *Lock     `json:"lock_info,omitempty"`
+	
+	// TFE workspace settings
+	TFEAutoApply        *bool   `json:"tfe_auto_apply,omitempty"`
+	TFETerraformVersion *string `json:"tfe_terraform_version,omitempty"`
+	TFEEngine           *string `json:"tfe_engine,omitempty"`
+	TFEWorkingDirectory *string `json:"tfe_working_directory,omitempty"`
+	TFEExecutionMode    *string `json:"tfe_execution_mode,omitempty"`
 }
 
 // Lock represents a Terraform state lock in API responses

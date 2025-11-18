@@ -2,16 +2,17 @@ import { Sandbox } from "@e2b/code-interpreter";
 import { SandboxRunner, RunnerOutput } from "./types.js";
 import { SandboxRunRecord, SandboxRunResult } from "../jobs/jobTypes.js";
 import { logger } from "../logger.js";
+import { findTemplate, getFallbackTemplateId } from "../templateRegistry.js";
 
 export interface E2BRunnerOptions {
   apiKey?: string;
-  defaultTemplateId?: string; // Pre-built with TF 1.5.5
-  bareBonesTemplateId?: string; // Base for custom versions
+  defaultTemplateId?: string; // Deprecated: kept for backward compatibility
+  bareBonesTemplateId?: string; // Optional fallback template for runtime installation
 }
 
 /**
  * E2B runner that executes Terraform commands inside an E2B sandbox.
- * Uses the official @e2b/sdk to create sandboxes, upload files, and run commands.
+ * Automatically selects pre-built templates from the registry or falls back to runtime installation.
  */
 export class E2BSandboxRunner implements SandboxRunner {
   readonly name = "e2b";
@@ -19,12 +20,6 @@ export class E2BSandboxRunner implements SandboxRunner {
   constructor(private readonly options: E2BRunnerOptions) {
     if (!options.apiKey) {
       throw new Error("E2B_API_KEY is required when SANDBOX_RUNNER=e2b");
-    }
-    if (!options.defaultTemplateId) {
-      throw new Error("E2B_DEFAULT_TEMPLATE_ID is required when SANDBOX_RUNNER=e2b");
-    }
-    if (!options.bareBonesTemplateId) {
-      throw new Error("E2B_BAREBONES_TEMPLATE_ID is required when SANDBOX_RUNNER=e2b");
     }
   }
 
@@ -37,7 +32,8 @@ export class E2BSandboxRunner implements SandboxRunner {
 
   private async runPlan(job: SandboxRunRecord): Promise<RunnerOutput> {
     const requestedVersion = job.payload.terraformVersion || "1.5.5";
-    const sandbox = await this.createSandbox(requestedVersion);
+    const requestedEngine = job.payload.engine || "terraform";
+    const sandbox = await this.createSandbox(requestedVersion, requestedEngine);
     try {
       // Install Terraform if not already present
       await this.ensureTerraform(sandbox);
@@ -86,7 +82,8 @@ export class E2BSandboxRunner implements SandboxRunner {
 
   private async runApply(job: SandboxRunRecord): Promise<RunnerOutput> {
     const requestedVersion = job.payload.terraformVersion || "1.5.5";
-    const sandbox = await this.createSandbox(requestedVersion);
+    const requestedEngine = job.payload.engine || "terraform";
+    const sandbox = await this.createSandbox(requestedVersion, requestedEngine);
     try {
       // Install Terraform if not already present
       await this.ensureTerraform(sandbox);
@@ -124,24 +121,26 @@ export class E2BSandboxRunner implements SandboxRunner {
     }
   }
 
-  private async createSandbox(requestedVersion?: string): Promise<Sandbox> {
-    // Select template based on requested Terraform version
-    let templateId: string;
-    let needsInstall = false;
+  private async createSandbox(requestedVersion?: string, requestedEngine?: string): Promise<Sandbox> {
     const version = requestedVersion || "1.5.5";
+    const engine = requestedEngine === "tofu" ? "tofu" : "terraform";
     
-    if (version === "1.5.5" && this.options.defaultTemplateId) {
-      // Use pre-built template with TF 1.5.5
-      templateId = this.options.defaultTemplateId;
+    // Try to find a pre-built template for this version
+    const prebuiltAlias = findTemplate(engine, version);
+    
+    let templateId: string;
+    let needsInstall: boolean;
+    
+    if (prebuiltAlias) {
+      // Use pre-built template with this version already installed
+      templateId = prebuiltAlias;
       needsInstall = false;
-      logger.info({ templateId, version: "1.5.5" }, "using pre-built template with Terraform 1.5.5");
-    } else if (this.options.bareBonesTemplateId) {
-      // Use bare-bones template for custom version
-      templateId = this.options.bareBonesTemplateId;
-      needsInstall = true;
-      logger.info({ templateId, version }, "using bare-bones template for custom Terraform version");
+      logger.info({ templateId, engine, version }, "using pre-built template");
     } else {
-      throw new Error("E2B templates not configured. Set E2B_DEFAULT_TEMPLATE_ID and E2B_BAREBONES_TEMPLATE_ID");
+      // Fall back to bare-bones template and install at runtime
+      templateId = getFallbackTemplateId(this.options.bareBonesTemplateId);
+      needsInstall = true;
+      logger.info({ templateId, engine, version }, "no pre-built template found, will install at runtime");
     }
     
     logger.info({ templateId }, "creating E2B sandbox");
@@ -150,50 +149,71 @@ export class E2BSandboxRunner implements SandboxRunner {
     });
     logger.info({ sandboxId: sandbox.sandboxId }, "E2B sandbox created");
     
-    // Store whether we need to install TF
+    // Store metadata for installation
     (sandbox as any)._needsTerraformInstall = needsInstall;
     (sandbox as any)._requestedTerraformVersion = version;
+    (sandbox as any)._requestedEngine = engine;
     
     return sandbox;
   }
 
   private async ensureTerraform(sandbox: Sandbox): Promise<void> {
-    // Always check if terraform is actually installed, even in pre-built templates
-    logger.info("checking for Terraform installation");
-    const checkResult = await sandbox.commands.run("which terraform 2>/dev/null || echo 'not-found'");
+    const engine = (sandbox as any)._requestedEngine || "terraform";
+    const binaryName = engine === "tofu" ? "tofu" : "terraform";
+    
+    // Always check if the binary is actually installed, even in pre-built templates
+    logger.info({ engine, binaryName }, "checking for IaC tool installation");
+    const checkResult = await sandbox.commands.run(`which ${binaryName} 2>/dev/null || echo 'not-found'`);
     if (!checkResult.stdout.includes("not-found")) {
-      const versionCheck = await sandbox.commands.run("terraform version");
+      const versionCheck = await sandbox.commands.run(`${binaryName} version`);
       logger.info({ 
+        engine,
         path: checkResult.stdout.trim(),
         version: versionCheck.stdout.split('\n')[0]
-      }, "Terraform already installed");
+      }, "IaC tool already installed");
       return;
     }
     
     // If we expected it to be pre-installed but it's not, log a warning
     if (!(sandbox as any)._needsTerraformInstall) {
-      logger.warn("Terraform not found in pre-built template, installing at runtime");
+      logger.warn({ engine }, "IaC tool not found in pre-built template, installing at runtime");
     }
 
     // Use requested version or default
-    const terraformVersion = (sandbox as any)._requestedTerraformVersion || "1.9.8";
-    logger.info({ version: terraformVersion }, "installing Terraform in sandbox");
+    const version = (sandbox as any)._requestedTerraformVersion || (engine === "tofu" ? "1.10.0" : "1.9.8");
+    logger.info({ engine, version }, "installing IaC tool in sandbox");
     
-    // Download and install Terraform binary directly (faster and simpler)
-    const installScript = `
-      set -e
-      cd /tmp
-      wget -q https://releases.hashicorp.com/terraform/${terraformVersion}/terraform_${terraformVersion}_linux_amd64.zip
-      unzip -q terraform_${terraformVersion}_linux_amd64.zip
-      sudo mv terraform /usr/local/bin/
-      sudo chmod +x /usr/local/bin/terraform
-      terraform version
-    `;
+    let installScript: string;
+    
+    if (engine === "tofu") {
+      // Download and install OpenTofu binary
+      installScript = `
+        set -e
+        cd /tmp
+        wget -q https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_amd64.tar.gz
+        tar -xzf tofu_${version}_linux_amd64.tar.gz
+        sudo mv tofu /usr/local/bin/
+        sudo chmod +x /usr/local/bin/tofu
+        tofu version
+      `;
+    } else {
+      // Download and install Terraform binary
+      installScript = `
+        set -e
+        cd /tmp
+        wget -q https://releases.hashicorp.com/terraform/${version}/terraform_${version}_linux_amd64.zip
+        unzip -q terraform_${version}_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        sudo chmod +x /usr/local/bin/terraform
+        terraform version
+      `;
+    }
 
     const result = await sandbox.commands.run(installScript);
     logger.info({ 
+      engine,
       version: result.stdout.trim() 
-    }, "Terraform installation complete");
+    }, "IaC tool installation complete");
   }
 
   private async setupWorkspace(
@@ -233,8 +253,10 @@ export class E2BSandboxRunner implements SandboxRunner {
     args: string[],
     logBuffer?: string[],
   ): Promise<{ stdout: string; stderr: string }> {
-    const cmdStr = `terraform ${args.join(" ")}`;
-    logger.info({ cmd: cmdStr, cwd }, "running terraform command in E2B sandbox");
+    const engine = (sandbox as any)._requestedEngine || "terraform";
+    const binaryName = engine === "tofu" ? "tofu" : "terraform";
+    const cmdStr = `${binaryName} ${args.join(" ")}`;
+    logger.info({ cmd: cmdStr, cwd, engine }, "running IaC command in E2B sandbox");
 
     const result = await sandbox.commands.run(cmdStr, {
       cwd,
@@ -254,7 +276,7 @@ export class E2BSandboxRunner implements SandboxRunner {
 
     if (exitCode !== 0) {
       throw new Error(
-        `terraform ${args[0]} exited with code ${exitCode}\n${mergedLogs}`,
+        `${binaryName} ${args[0]} exited with code ${exitCode}\n${mergedLogs}`,
       );
     }
 

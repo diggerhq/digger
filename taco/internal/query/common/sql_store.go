@@ -251,7 +251,7 @@ func (s *SQLStore) SyncDeleteUnit(ctx context.Context, blobPath string) error {
 }
 
 // UpdateUnitTFESettings updates TFE-specific settings for a unit
-func (s *SQLStore) UpdateUnitTFESettings(ctx context.Context, unitID string, autoApply *bool, executionMode *string, terraformVersion *string, workingDirectory *string) error {
+func (s *SQLStore) UpdateUnitTFESettings(ctx context.Context, unitID string, autoApply *bool, executionMode *string, terraformVersion *string, engine *string, workingDirectory *string) error {
 	updates := make(map[string]interface{})
 	
 	if autoApply != nil {
@@ -262,6 +262,9 @@ func (s *SQLStore) UpdateUnitTFESettings(ctx context.Context, unitID string, aut
 	}
 	if terraformVersion != nil {
 		updates["tfe_terraform_version"] = *terraformVersion
+	}
+	if engine != nil {
+		updates["tfe_engine"] = *engine
 	}
 	if workingDirectory != nil {
 		updates["tfe_working_directory"] = *workingDirectory

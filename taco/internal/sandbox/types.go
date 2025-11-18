@@ -2,7 +2,7 @@ package sandbox
 
 import "context"
 
-// PlanRequest bundles the inputs needed to execute a Terraform plan inside a sandbox.
+// PlanRequest bundles the inputs needed to execute a Terraform/OpenTofu plan inside a sandbox.
 type PlanRequest struct {
 	RunID                  string
 	PlanID                 string
@@ -11,6 +11,7 @@ type PlanRequest struct {
 	ConfigurationVersionID string
 	IsDestroy              bool
 	TerraformVersion       string
+	Engine                 string // "terraform" or "tofu"
 	WorkingDirectory       string
 	ConfigArchive          []byte
 	State                  []byte
@@ -28,7 +29,7 @@ type PlanResult struct {
 	RuntimeRunID         string
 }
 
-// ApplyRequest bundles the inputs needed to execute a Terraform apply inside a sandbox.
+// ApplyRequest bundles the inputs needed to execute a Terraform/OpenTofu apply inside a sandbox.
 type ApplyRequest struct {
 	RunID                  string
 	PlanID                 string
@@ -37,6 +38,7 @@ type ApplyRequest struct {
 	ConfigurationVersionID string
 	IsDestroy              bool
 	TerraformVersion       string
+	Engine                 string // "terraform" or "tofu"
 	WorkingDirectory       string
 	ConfigArchive          []byte
 	State                  []byte

@@ -30,6 +30,7 @@ export default function UnitCreateForm({
 }: UnitCreateFormProps) {
   const [unitName, setUnitName] = React.useState('')
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
+  const [engine, setEngine] = React.useState<'terraform' | 'tofu'>('terraform')
   const [terraformVersion, setTerraformVersion] = React.useState('1.5.5')
   const [isCreating, setIsCreating] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -64,6 +65,7 @@ export default function UnitCreateForm({
           tfeAutoApply: false,
           tfeExecutionMode: finalUnitType === 'remote' ? 'remote' : 'local',
           tfeTerraformVersion: finalUnitType === 'remote' ? terraformVersion : undefined,
+          tfeEngine: finalUnitType === 'remote' ? engine : undefined,
         },
       })
       // analytics: track unit creation
@@ -169,22 +171,71 @@ export default function UnitCreateForm({
       </div>
 
       {unitType === 'remote' && (
-        <div>
-          <Label htmlFor="terraform-version">Terraform Version</Label>
-          <div className="mt-2 space-y-2">
-            <Input
-              id="terraform-version"
-              value={terraformVersion}
-              onChange={(e) => setTerraformVersion(e.target.value)}
-              placeholder="1.5.5"
-              className="font-mono"
-            />
-            <p className="text-xs text-muted-foreground">
-              Default: 1.5.5 (pre-built template, fast startup). 
-              Custom versions will be installed at runtime (slower first run).
-            </p>
+        <>
+          <div>
+            <Label htmlFor="engine">Engine</Label>
+            <div className="mt-2">
+              <RadioGroup
+                value={engine}
+                onValueChange={(v) => {
+                  setEngine(v as 'terraform' | 'tofu')
+                  // Set default version based on engine
+                  if (v === 'tofu') {
+                    setTerraformVersion('1.10.0')
+                  } else {
+                    setTerraformVersion('1.5.5')
+                  }
+                }}
+                className="flex gap-4"
+              >
+                <label
+                  htmlFor="engine-terraform"
+                  className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'terraform' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                  onClick={() => {
+                    setEngine('terraform')
+                    setTerraformVersion('1.5.5')
+                  }}
+                >
+                  <RadioGroupItem id="engine-terraform" value="terraform" className="sr-only" />
+                  <div className="font-semibold">Terraform</div>
+                  <div className="text-xs text-muted-foreground">HashiCorp Terraform</div>
+                </label>
+                <label
+                  htmlFor="engine-tofu"
+                  className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'tofu' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                  onClick={() => {
+                    setEngine('tofu')
+                    setTerraformVersion('1.10.0')
+                  }}
+                >
+                  <RadioGroupItem id="engine-tofu" value="tofu" className="sr-only" />
+                  <div className="font-semibold">OpenTofu</div>
+                  <div className="text-xs text-muted-foreground">Open-source fork</div>
+                </label>
+              </RadioGroup>
+            </div>
           </div>
-        </div>
+          
+          <div>
+            <Label htmlFor="terraform-version">{engine === 'tofu' ? 'OpenTofu' : 'Terraform'} Version</Label>
+            <div className="mt-2 space-y-2">
+              <Input
+                id="terraform-version"
+                value={terraformVersion}
+                onChange={(e) => setTerraformVersion(e.target.value)}
+                placeholder={engine === 'tofu' ? '1.10.0' : '1.5.5'}
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                {engine === 'terraform' ? (
+                  <>Pre-built versions: 1.0.11, 1.3.9, 1.5.5 (fast startup). Custom versions installed at runtime.</>
+                ) : (
+                  <>Pre-built versions: 1.6.0, 1.10.0 (fast startup). Custom versions installed at runtime.</>
+                )}
+              </p>
+            </div>
+          </div>
+        </>
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}

@@ -158,6 +158,7 @@ type Unit struct {
 	// TFE workspace settings (nullable for non-TFE usage)
 	TFEAutoApply        *bool   `gorm:"default:null"`
 	TFETerraformVersion *string `gorm:"type:varchar(50);default:null"`
+	TFEEngine           *string `gorm:"type:varchar(20);default:'terraform'"` // 'terraform' or 'tofu'
 	TFEWorkingDirectory *string `gorm:"type:varchar(500);default:null"`
 	TFEExecutionMode    *string `gorm:"type:varchar(50);default:null"` // 'remote', 'local', 'agent'
 }

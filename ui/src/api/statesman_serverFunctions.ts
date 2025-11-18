@@ -74,6 +74,7 @@ export const createUnitFn = createServerFn({method: 'POST'})
     tfeAutoApply?: boolean,
     tfeExecutionMode?: string,
     tfeTerraformVersion?: string,
+    tfeEngine?: string,
     tfeWorkingDirectory?: string
   }) => data)
   .handler(async ({ data }) => {
@@ -85,6 +86,7 @@ export const createUnitFn = createServerFn({method: 'POST'})
       data.tfeAutoApply,
       data.tfeExecutionMode,
       data.tfeTerraformVersion,
+      data.tfeEngine,
       data.tfeWorkingDirectory
     );
     return unit;

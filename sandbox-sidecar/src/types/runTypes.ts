@@ -12,6 +12,7 @@ export const runRequestSchema = z.object({
   configuration_version_id: z.string().min(1),
   is_destroy: z.boolean(),
   terraform_version: z.string().optional(),
+  engine: z.enum(["terraform", "tofu"]).optional(),
   working_directory: z.string().optional(),
   config_archive: z.string().min(1),
   state: z.string().optional(),

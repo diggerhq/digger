@@ -11,6 +11,7 @@ export interface SandboxRunPayload {
   configurationVersionId: string;
   isDestroy: boolean;
   terraformVersion?: string;
+  engine?: "terraform" | "tofu";
   workingDirectory?: string;
   configArchive: string;
   state?: string;

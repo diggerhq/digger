@@ -419,6 +419,7 @@ func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.T
 		ConfigurationVersionID: run.ConfigurationVersionID,
 		IsDestroy:              run.IsDestroy,
 		TerraformVersion:       terraformVersionForUnit(unit),
+		Engine:                 engineForUnit(unit),
 		WorkingDirectory:       workingDirectoryForUnit(unit),
 		ConfigArchive:          archive,
 		State:                  stateData,

@@ -28,19 +28,23 @@ The service listens on `PORT` (default `9100`).
 | `PORT` | HTTP port for the sidecar (default `9100`). |
 | `SANDBOX_RUNNER` | `local` or `e2b`. Defaults to `local`. |
 | `E2B_API_KEY` | Required for `SANDBOX_RUNNER=e2b`. |
-| `E2B_DEFAULT_TEMPLATE_ID` | E2B template ID (use base template like `rki5dems9wqfm4r03t7g`). Required for E2B. |
-| `E2B_BAREBONES_TEMPLATE_ID` | Same as DEFAULT for now - both use runtime installation. Required for E2B. |
+| `E2B_BAREBONES_TEMPLATE_ID` | Optional fallback template ID for runtime installation (defaults to `rki5dems9wqfm4r03t7g`). |
 | `LOCAL_TERRAFORM_BIN` | Optional path to the `terraform` binary (defaults to `terraform` in `$PATH`). |
 
-### Terraform Version Selection
+### Terraform/OpenTofu Version Selection
 
-The sidecar installs Terraform at runtime for any requested version:
+The sidecar automatically selects the best execution environment:
 
-- **Any version** (including 1.5.5 default): Installs Terraform on-demand (~1-2 seconds)
-- Supports any Terraform version available from HashiCorp releases
-- No pre-built templates needed - simple and reliable
+1. **Pre-built templates** (instant startup): If a template exists for the requested version in `src/templateRegistry.ts`, it's used automatically
+2. **Runtime installation** (~1-2 seconds): For versions not in the registry, Terraform/OpenTofu is installed on-demand
 
-Users can specify the Terraform version when creating a unit in the UI, or it defaults to 1.5.5.
+**Pre-built versions** (see `templates/manifest.ts`):
+- Terraform: 1.0.11, 1.3.9, 1.5.5, 1.8.5
+- OpenTofu: 1.6.0, 1.10.0
+
+**Building templates**: Run `cd templates && npm run build` to build all templates defined in `manifest.ts`.
+
+Users specify the version when creating a unit in the UI (defaults to 1.5.5).
 
 ### Local Runner
 

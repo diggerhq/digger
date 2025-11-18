@@ -22,10 +22,13 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight, Save } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from '@/hooks/use-toast'
 import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn, downloadLatestStateFn, restoreUnitStateVersionFn } from '@/api/statesman_serverFunctions'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getPublicServerConfig } from '@/lib/env.server'
 import { DetailsSkeleton } from '@/components/LoadingSkeleton'
@@ -136,6 +139,26 @@ function RouteComponent() {
   const { unitData, unitVersions, unitStatus, organisationId, organisationName, publicHostname, user } = data
   const unit = unitData
   const router = useRouter()
+  
+  // Debug: log unit data to console
+  console.log('Unit data:', {
+    id: unit.id,
+    name: unit.name,
+    tfe_execution_mode: unit.tfe_execution_mode,
+    tfe_engine: unit.tfe_engine,
+    tfe_terraform_version: unit.tfe_terraform_version
+  })
+  
+  // Settings state - handle null/undefined with sensible defaults
+  const [engine, setEngine] = useState<'terraform' | 'tofu'>(
+    (unit.tfe_engine as 'terraform' | 'tofu') || 'terraform'
+  )
+  const [version, setVersion] = useState(
+    unit.tfe_terraform_version && unit.tfe_terraform_version.trim() !== '' 
+      ? unit.tfe_terraform_version 
+      : '1.5.5'
+  )
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
 
   const handleUnlock = async () => {
     try {
@@ -279,6 +302,41 @@ function RouteComponent() {
     }
   }
 
+  const handleUpdateSettings = async () => {
+    setIsSavingSettings(true)
+    try {
+      const { updateUnit } = await import('@/api/statesman_units')
+      await updateUnit(
+        organisationId || '',
+        user?.id || '',
+        user?.email || '',
+        unit.id,
+        undefined, // tfeAutoApply
+        undefined, // tfeExecutionMode
+        version,
+        engine,
+        undefined  // tfeWorkingDirectory
+      )
+      toast({
+        title: 'Settings updated',
+        description: 'Unit settings were updated successfully.',
+        duration: 2000,
+        variant: "default"
+      })
+      router.invalidate()
+    } catch (error) {
+      console.error('Failed to update settings', error)
+      toast({
+        title: 'Failed to update settings',
+        description: 'Failed to update unit settings.',
+        duration: 5000,
+        variant: "destructive"
+      })
+    } finally {
+      setIsSavingSettings(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
@@ -414,6 +472,87 @@ function RouteComponent() {
 
 
           <TabsContent value="settings" className="mt-6">
+            {(unit.tfe_execution_mode === 'remote' || unit.tfe_execution_mode === 'agent') && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Remote Execution Settings</CardTitle>
+                  <CardDescription>Configure the IaC engine and version for remote runs</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <Label htmlFor="settings-engine">Engine</Label>
+                      <div className="mt-2">
+                        <RadioGroup
+                          value={engine}
+                          onValueChange={(v) => {
+                            setEngine(v as 'terraform' | 'tofu')
+                            // Set default version based on engine
+                            if (v === 'tofu') {
+                              setVersion('1.10.0')
+                            } else {
+                              setVersion('1.5.5')
+                            }
+                          }}
+                          className="flex gap-4"
+                        >
+                          <label
+                            htmlFor="settings-engine-terraform"
+                            className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'terraform' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                            onClick={() => {
+                              setEngine('terraform')
+                              setVersion('1.5.5')
+                            }}
+                          >
+                            <RadioGroupItem id="settings-engine-terraform" value="terraform" className="sr-only" />
+                            <div className="font-semibold">Terraform</div>
+                            <div className="text-xs text-muted-foreground">HashiCorp Terraform</div>
+                          </label>
+                          <label
+                            htmlFor="settings-engine-tofu"
+                            className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'tofu' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
+                            onClick={() => {
+                              setEngine('tofu')
+                              setVersion('1.10.0')
+                            }}
+                          >
+                            <RadioGroupItem id="settings-engine-tofu" value="tofu" className="sr-only" />
+                            <div className="font-semibold">OpenTofu</div>
+                            <div className="text-xs text-muted-foreground">Open-source fork</div>
+                          </label>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="settings-version">{engine === 'tofu' ? 'OpenTofu' : 'Terraform'} Version</Label>
+                      <div className="mt-2 space-y-2">
+                        <Input
+                          id="settings-version"
+                          value={version}
+                          onChange={(e) => setVersion(e.target.value)}
+                          placeholder={engine === 'tofu' ? '1.10.0' : '1.5.5'}
+                          className="font-mono"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {engine === 'terraform' ? (
+                            <>Pre-built versions: 1.0.11, 1.3.9, 1.5.5 (fast startup). Custom versions installed at runtime.</>
+                          ) : (
+                            <>Pre-built versions: 1.6.0, 1.10.0 (fast startup). Custom versions installed at runtime.</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button onClick={handleUpdateSettings} disabled={isSavingSettings} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      {isSavingSettings ? 'Saving...' : 'Save Settings'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <Card>
               <CardHeader>
                 <CardTitle>Dangerous Operations</CardTitle>

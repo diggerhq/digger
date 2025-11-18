@@ -35,6 +35,17 @@ func terraformVersionForUnit(unit *storage.UnitMetadata) string {
 	return strings.TrimSpace(*unit.TFETerraformVersion)
 }
 
+func engineForUnit(unit *storage.UnitMetadata) string {
+	if unit == nil || unit.TFEEngine == nil {
+		return "terraform" // Default to terraform
+	}
+	engine := strings.TrimSpace(strings.ToLower(*unit.TFEEngine))
+	if engine == "tofu" || engine == "opentofu" {
+		return "tofu"
+	}
+	return "terraform"
+}
+
 func workingDirectoryForUnit(unit *storage.UnitMetadata) string {
 	if unit == nil || unit.TFEWorkingDirectory == nil {
 		return ""
