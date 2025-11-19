@@ -57,9 +57,14 @@ jobs:
       - name: Set up Depot
         uses: depot/setup-action@v1
       
+      - name: Set up Depot
+        uses: depot/setup-action@v1
+      
       - name: Build and push Docker image
         uses: depot/build-push-action@v1
         with:
+          project: 43l6gkbwqm
+          token: ${{ secrets.DEPOT_TOKEN }}
           project: 43l6gkbwqm
           token: ${{ secrets.DEPOT_TOKEN }}
           context: ./sandbox-sidecar
