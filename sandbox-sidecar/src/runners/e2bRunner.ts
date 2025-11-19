@@ -31,7 +31,7 @@ export class E2BSandboxRunner implements SandboxRunner {
   }
 
   private async runPlan(job: SandboxRunRecord): Promise<RunnerOutput> {
-    const requestedVersion = job.payload.terraformVersion || "1.5.5";
+    const requestedVersion = job.payload.terraformVersion || "1.5.7";
     const requestedEngine = job.payload.engine || "terraform";
     const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
     try {
@@ -83,7 +83,7 @@ export class E2BSandboxRunner implements SandboxRunner {
   }
 
   private async runApply(job: SandboxRunRecord): Promise<RunnerOutput> {
-    const requestedVersion = job.payload.terraformVersion || "1.5.5";
+    const requestedVersion = job.payload.terraformVersion || "1.5.7";
     const requestedEngine = job.payload.engine || "terraform";
     const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
     try {
@@ -126,7 +126,7 @@ export class E2BSandboxRunner implements SandboxRunner {
   }
 
   private async createSandbox(requestedVersion?: string, requestedEngine?: string): Promise<{ sandbox: Sandbox; needsInstall: boolean }> {
-    const version = requestedVersion || "1.5.5";
+    const version = requestedVersion || "1.5.7";
     const engine = requestedEngine === "tofu" ? "tofu" : "terraform";
     
     // Try to find a pre-built template for this version

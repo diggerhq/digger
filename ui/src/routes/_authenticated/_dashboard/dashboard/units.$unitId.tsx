@@ -157,7 +157,7 @@ function RouteComponent() {
   const [terraformVersion, setTerraformVersion] = useState(
     unit.tfe_engine === 'terraform' && unit.tfe_terraform_version && unit.tfe_terraform_version.trim() !== '' 
       ? unit.tfe_terraform_version 
-      : '1.5.5'
+      : '1.5.7'
   )
   const [tofuVersion, setTofuVersion] = useState(
     unit.tfe_engine === 'tofu' && unit.tfe_terraform_version && unit.tfe_terraform_version.trim() !== '' 
@@ -534,12 +534,23 @@ function RouteComponent() {
                           id="settings-version"
                           value={currentVersion}
                           onChange={(e) => setCurrentVersion(e.target.value)}
-                          placeholder={engine === 'tofu' ? '1.6.0' : '1.5.5'}
+                          placeholder={engine === 'tofu' ? '1.6.0' : '1.5.7'}
                           className="font-mono"
                         />
+                        {engine === 'terraform' && !!currentVersion && parseFloat(currentVersion) >= 1.6 && (
+                          <div className="flex items-start gap-2 rounded-md bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+                            <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                            <div>
+                              <strong className="font-semibold">Warning: Unsupported version</strong>
+                              <p className="mt-1">Terraform versions 1.6.0 and above are not officially supported.</p>
+                            </div>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {engine === 'terraform' ? (
-                            <>Pre-built versions: 1.0.11, 1.3.9, 1.5.5 (fast startup). Custom versions installed at runtime.</>
+                            <>Pre-built versions: 1.0.11, 1.3.9, 1.5.7 (fast startup). Custom versions installed at runtime.We do not support versions above 1.5.7</>
                           ) : (
                             <>Pre-built versions: 1.6.0, 1.10.0 (fast startup). Custom versions installed at runtime.</>
                           )}
@@ -547,7 +558,14 @@ function RouteComponent() {
                       </div>
                     </div>
 
-                    <Button onClick={handleUpdateSettings} disabled={isSavingSettings} className="gap-2">
+                    <Button 
+                      onClick={handleUpdateSettings} 
+                      disabled={
+                        isSavingSettings || 
+                        (engine === 'terraform' && !!currentVersion && parseFloat(currentVersion) >= 1.6)
+                      } 
+                      className="gap-2"
+                    >
                       <Save className="h-4 w-4" />
                       {isSavingSettings ? 'Saving...' : 'Save Settings'}
                     </Button>

@@ -31,7 +31,7 @@ export default function UnitCreateForm({
   const [unitName, setUnitName] = React.useState('')
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
   const [engine, setEngine] = React.useState<'terraform' | 'tofu'>('terraform')
-  const [terraformVersion, setTerraformVersion] = React.useState('1.5.5')
+  const [terraformVersion, setTerraformVersion] = React.useState('1.5.7')
   const [isCreating, setIsCreating] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   
@@ -183,7 +183,7 @@ export default function UnitCreateForm({
                   if (v === 'tofu') {
                     setTerraformVersion('1.10.0')
                   } else {
-                    setTerraformVersion('1.5.5')
+                    setTerraformVersion('1.5.7')
                   }
                 }}
                 className="flex gap-4"
@@ -193,7 +193,7 @@ export default function UnitCreateForm({
                   className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'terraform' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
                   onClick={() => {
                     setEngine('terraform')
-                    setTerraformVersion('1.5.5')
+                    setTerraformVersion('1.5.7')
                   }}
                 >
                   <RadioGroupItem id="engine-terraform" value="terraform" className="sr-only" />
@@ -223,12 +223,23 @@ export default function UnitCreateForm({
                 id="terraform-version"
                 value={terraformVersion}
                 onChange={(e) => setTerraformVersion(e.target.value)}
-                placeholder={engine === 'tofu' ? '1.10.0' : '1.5.5'}
+                placeholder={engine === 'tofu' ? '1.10.0' : '1.5.7'}
                 className="font-mono"
               />
+              {engine === 'terraform' && !!terraformVersion && parseFloat(terraformVersion) >= 1.6 && (
+                <div className="flex items-start gap-2 rounded-md bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+                  <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong className="font-semibold">Warning: Unsupported version</strong>
+                    <p className="mt-1">Terraform versions 1.6.0 and above are not officially supported.</p>
+                  </div>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 {engine === 'terraform' ? (
-                  <>Pre-built versions: 1.0.11, 1.3.9, 1.5.5 (fast startup). Custom versions installed at runtime.</>
+                  <>Pre-built versions: 1.0.11, 1.3.9, 1.5.7 (fast startup). Custom versions installed at runtime. We do not support versions above 1.5.7</>
                 ) : (
                   <>Pre-built versions: 1.6.0, 1.10.0 (fast startup). Custom versions installed at runtime.</>
                 )}
@@ -244,13 +255,27 @@ export default function UnitCreateForm({
           <Button variant="ghost" type="button" onClick={onBringOwnState}>
             I want to bring my own state
           </Button>
-          <Button onClick={handleCreate} disabled={!unitName.trim() || isCreating}>
+          <Button 
+            onClick={handleCreate} 
+            disabled={
+              !unitName.trim() || 
+              isCreating || 
+              (engine === 'terraform' && !!terraformVersion && parseFloat(terraformVersion) >= 1.6)
+            }
+          >
             {isCreating ? 'Creating...' : 'Create Unit'}
           </Button>
         </div>
       ) : (
         <div className="flex items-center justify-end">
-          <Button onClick={handleCreate} disabled={!unitName.trim() || isCreating}>
+          <Button 
+            onClick={handleCreate} 
+            disabled={
+              !unitName.trim() || 
+              isCreating || 
+              (engine === 'terraform' && !!terraformVersion && parseFloat(terraformVersion) >= 1.6)
+            }
+          >
             {isCreating ? 'Creating...' : 'Create Unit'}
           </Button>
         </div>

@@ -15,7 +15,6 @@ const (
 // E2BConfig contains the settings needed to talk to the sidecar service that speaks to E2B.
 type E2BConfig struct {
 	BaseURL      string
-	APIKey       string
 	PollInterval time.Duration
 	PollTimeout  time.Duration
 	HTTPTimeout  time.Duration
@@ -48,11 +47,6 @@ func loadE2BConfigFromEnv() (E2BConfig, error) {
 	}
 	baseURL = strings.TrimRight(baseURL, "/")
 
-	apiKey := strings.TrimSpace(os.Getenv("OPENTACO_E2B_API_KEY"))
-	if apiKey == "" {
-		return E2BConfig{}, fmt.Errorf("OPENTACO_E2B_API_KEY is required when using the E2B sandbox provider")
-	}
-
 	pollInterval, err := parseDurationWithDefault(os.Getenv("OPENTACO_E2B_POLL_INTERVAL"), 5*time.Second)
 	if err != nil {
 		return E2BConfig{}, fmt.Errorf("invalid OPENTACO_E2B_POLL_INTERVAL: %w", err)
@@ -70,7 +64,6 @@ func loadE2BConfigFromEnv() (E2BConfig, error) {
 
 	return E2BConfig{
 		BaseURL:      baseURL,
-		APIKey:       apiKey,
 		PollInterval: pollInterval,
 		PollTimeout:  pollTimeout,
 		HTTPTimeout:  httpTimeout,

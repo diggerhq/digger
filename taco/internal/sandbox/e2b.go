@@ -27,9 +27,6 @@ func NewE2BSandbox(cfg E2BConfig) (Sandbox, error) {
 	if cfg.BaseURL == "" {
 		return nil, fmt.Errorf("E2B sandbox requires a base URL")
 	}
-	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("E2B sandbox requires an API key")
-	}
 	// Timeouts are configured via env vars in config.go with sensible defaults:
 	// - PollInterval: 5s (OPENTACO_E2B_POLL_INTERVAL)
 	// - PollTimeout: 30m (OPENTACO_E2B_POLL_TIMEOUT)
@@ -285,7 +282,6 @@ func (s *e2bSandbox) fetchStatus(ctx context.Context, runID string) (*e2bRunStat
 
 func (s *e2bSandbox) decorateHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.cfg.APIKey)
 	req.Header.Set("Accept", "application/json")
 }
 
