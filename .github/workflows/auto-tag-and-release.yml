@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       force_services:
-        description: 'Force tag these services (comma-separated: backend_ee,drift,ui,statesman,token-service,projects-refresh)'
+        description: 'Force tag these services (comma-separated: backend_ee,drift,ui,statesman,token-service,projects-refresh,sidecar)'
         required: false
         default: ''
 
@@ -25,12 +25,14 @@ jobs:
       statesman_changed: ${{ steps.changes.outputs.statesman }}
       token_service_changed: ${{ steps.changes.outputs.token_service }}
       projects_refresh_changed: ${{ steps.changes.outputs.projects_refresh }}
+      sidecar_changed: ${{ steps.changes.outputs.sidecar }}
       backend_ee_version: ${{ steps.versions.outputs.backend_ee_version }}
       drift_version: ${{ steps.versions.outputs.drift_version }}
       ui_version: ${{ steps.versions.outputs.ui_version }}
       statesman_version: ${{ steps.versions.outputs.statesman_version }}
       token_service_version: ${{ steps.versions.outputs.token_service_version }}
       projects_refresh_version: ${{ steps.versions.outputs.projects_refresh_version }}
+      sidecar_version: ${{ steps.versions.outputs.sidecar_version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,6 +51,7 @@ jobs:
             [[ "$FORCE" == *"statesman"* ]] && echo "statesman=true" >> $GITHUB_OUTPUT || echo "statesman=false" >> $GITHUB_OUTPUT
             [[ "$FORCE" == *"token-service"* ]] && echo "token_service=true" >> $GITHUB_OUTPUT || echo "token_service=false" >> $GITHUB_OUTPUT
             [[ "$FORCE" == *"projects-refresh"* ]] && echo "projects_refresh=true" >> $GITHUB_OUTPUT || echo "projects_refresh=false" >> $GITHUB_OUTPUT
+            [[ "$FORCE" == *"sidecar"* ]] && echo "sidecar=true" >> $GITHUB_OUTPUT || echo "sidecar=false" >> $GITHUB_OUTPUT
           else
             # Auto-detect based on changed files
             PREV_COMMIT="${{ github.event.before }}"
@@ -94,6 +97,13 @@ jobs:
             else
               echo "projects_refresh=false" >> $GITHUB_OUTPUT
             fi
+            
+            # Check sidecar changes
+            if git diff --name-only $PREV_COMMIT HEAD | grep -E '^(sandbox-sidecar/|\.github/workflows/sidecar-release\.yml)'; then
+              echo "sidecar=true" >> $GITHUB_OUTPUT
+            else
+              echo "sidecar=false" >> $GITHUB_OUTPUT
+            fi
           fi
       
       - name: Calculate new versions
@@ -129,6 +139,7 @@ jobs:
           echo "statesman_version=$(get_next_version 'taco/statesman')" >> $GITHUB_OUTPUT
           echo "token_service_version=$(get_next_version 'taco/token-service')" >> $GITHUB_OUTPUT
           echo "projects_refresh_version=$(get_next_version 'projects-refresh')" >> $GITHUB_OUTPUT
+          echo "sidecar_version=$(get_next_version 'sandbox-sidecar')" >> $GITHUB_OUTPUT
 
   tag-backend-ee:
     needs: detect-changes
@@ -250,6 +261,26 @@ jobs:
           
           echo "Created and pushed tag: $TAG"
 
+  tag-sidecar:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.sidecar_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.HELM_CHARTS_PAT }}
+      
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="sandbox-sidecar/${{ needs.detect-changes.outputs.sidecar_version }}"
+          git tag -a "$TAG" -m "Release sandbox-sidecar ${{ needs.detect-changes.outputs.sidecar_version }}"
+          git push origin "$TAG"
+          
+          echo "Created and pushed tag: $TAG"
+
   summary:
     needs: 
       - detect-changes
@@ -259,6 +290,7 @@ jobs:
       - tag-statesman
       - tag-token-service
       - tag-projects-refresh
+      - tag-sidecar
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -274,6 +306,7 @@ jobs:
           echo "| statesman | ${{ needs.detect-changes.outputs.statesman_changed }} | ${{ needs.detect-changes.outputs.statesman_version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| token-service | ${{ needs.detect-changes.outputs.token_service_changed }} | ${{ needs.detect-changes.outputs.token_service_version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| projects-refresh | ${{ needs.detect-changes.outputs.projects_refresh_changed }} | ${{ needs.detect-changes.outputs.projects_refresh_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| sidecar | ${{ needs.detect-changes.outputs.sidecar_changed }} | ${{ needs.detect-changes.outputs.sidecar_version }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Tags have been created and pushed. Build workflows will trigger automatically." >> $GITHUB_STEP_SUMMARY
 
