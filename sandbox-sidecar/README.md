@@ -57,10 +57,9 @@ helm install taco-sidecar diggerhq/taco-sidecar
 | Variable | Description |
 | --- | --- |
 | `PORT` | HTTP port for the sidecar (default `9100`). |
-| `SANDBOX_RUNNER` | `local` or `e2b`. Defaults to `local`. |
-| `E2B_API_KEY` | Required for `SANDBOX_RUNNER=e2b`. |
-| `E2B_BAREBONES_TEMPLATE_ID` | Optional fallback template ID for runtime installation (defaults to `rki5dems9wqfm4r03t7g`). |
-| `LOCAL_TERRAFORM_BIN` | Optional path to the `terraform` binary (defaults to `terraform` in `$PATH`). |
+| `SANDBOX_RUNNER` | Must be `e2b`. |
+| `E2B_API_KEY` | Required. Your E2B API key. |
+| `E2B_BAREBONES_TEMPLATE_ID` | Required. Fallback template ID for runtime installation. |
 
 ### Terraform/OpenTofu Version Selection
 
@@ -77,20 +76,11 @@ The sidecar automatically selects the best execution environment:
 
 Users specify the version when creating a unit in the UI (defaults to 1.5.5).
 
-### Local Runner
-
-The bundled local runner is intended for development. It unpacks the provided
-archive, writes the optional state payload, and shells out to a Terraform binary
-installed on the same host. All stdout/stderr is captured and streamed back to
-the requester.
-
 ### E2B Runner
 
-An opinionated `E2BSandboxRunner` is included as a scaffold. Hook it up to the
-official SDK by wiring the `runPlan`/`runApply` helpers with the appropriate E2B API
-calls and file upload primitives (see `src/runners/e2bRunner.ts` for the TODOs).
-Once implemented, switch `SANDBOX_RUNNER=e2b` and provide `E2B_API_KEY` plus a
-template/blueprint identifier.
+The sidecar uses E2B sandboxes for secure, isolated Terraform/OpenTofu execution.
+Each run creates an ephemeral sandbox, executes the IaC commands, and returns
+results. Sandboxes are automatically cleaned up after execution.
 
 ## API Surface
 
@@ -131,9 +121,6 @@ failure, `error` contains the reason string. A `failed` response never includes
 
 - This package intentionally keeps job state in-memory. Use a persistent store
   (Redis, Postgres) before running multiple replicas.
-- The local runner shell-outs to `terraform`. Sandbox machines therefore need
-  Terraform installed and accessible in `$PATH`.
-- The E2B runner is wired as an interchangeable strategy: extend it or add
-  additional runners (Kubernetes, Nomad, etc.) as needed without touching
-  the Go control plane.
+- E2B sandboxes are ephemeral and isolated - each run gets a fresh environment.
+- Pre-built templates provide instant startup; custom versions install at runtime (~1-2s).
 
