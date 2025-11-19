@@ -13,7 +13,6 @@ export const TEMPLATES: TemplateSpec[] = [
   { engine: "terraform", engineVersion: "1.0.11", tplVersion: TEMPLATE_VERSION },
   { engine: "terraform", engineVersion: "1.3.9",  tplVersion: TEMPLATE_VERSION },
   { engine: "terraform", engineVersion: "1.5.5",  tplVersion: TEMPLATE_VERSION },
-  { engine: "terraform", engineVersion: "1.8.5",  tplVersion: TEMPLATE_VERSION },
   { engine: "tofu",      engineVersion: "1.6.0",  tplVersion: TEMPLATE_VERSION },
   { engine: "tofu",      engineVersion: "1.10.0", tplVersion: TEMPLATE_VERSION },
 ];
