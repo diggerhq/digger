@@ -161,7 +161,6 @@ export class E2BSandboxRunner implements SandboxRunner {
 
 
   private async installIacTool(sandbox: Sandbox, engine: string, version: string): Promise<void> {
-    const binaryName = engine === "tofu" ? "tofu" : "terraform";
     logger.info({ engine, version }, "installing IaC tool at runtime");
     
     let installScript: string;
