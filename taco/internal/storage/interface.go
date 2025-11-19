@@ -27,6 +27,7 @@ type UnitMetadata struct {
     // TFE workspace settings (nullable for non-TFE usage)
     TFEAutoApply        *bool   `json:"tfe_auto_apply,omitempty"`
     TFETerraformVersion *string `json:"tfe_terraform_version,omitempty"`
+    TFEEngine           *string `json:"tfe_engine,omitempty"` // 'terraform' or 'tofu'
     TFEWorkingDirectory *string `json:"tfe_working_directory,omitempty"`
     TFEExecutionMode    *string `json:"tfe_execution_mode,omitempty"` // 'remote', 'local', 'agent'
     LockID              string  `json:"lock_id,omitempty"`

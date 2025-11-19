@@ -38,16 +38,42 @@ func NewAuthorizingRepository(repo domain.UnitRepository, rbacMgr *rbac.RBACMana
 func (a *authorizingRepository) Get(ctx context.Context, id string) (*storage.UnitMetadata, error) {
 	principal, ok := rbac.PrincipalFromContext(ctx)
 	if !ok {
+		slog.Error("🔍 RBAC: No principal in context",
+			"operation", "Get",
+			"unit_id", id)
 		return nil, storage.ErrUnauthorized
 	}
 
+	slog.Info("🔍 RBAC: Checking permission",
+		"operation", "Get",
+		"unit_id", id,
+		"principal_subject", principal.Subject,
+		"principal_email", principal.Email,
+		"principal_roles", principal.Roles,
+		"principal_groups", principal.Groups)
+
 	allowed, err := a.rbac.Can(ctx, principal, rbac.ActionUnitRead, id)
 	if err != nil {
+		slog.Error("🔍 RBAC: Permission check error",
+			"operation", "Get",
+			"unit_id", id,
+			"principal", principal.Subject,
+			"error", err)
 		return nil, err
 	}
 	if !allowed {
+		slog.Warn("🔍 RBAC: Permission denied",
+			"operation", "Get",
+			"unit_id", id,
+			"principal", principal.Subject,
+			"action", rbac.ActionUnitRead)
 		return nil, storage.ErrForbidden
 	}
+
+	slog.Info("🔍 RBAC: Permission granted, calling underlying repository",
+		"operation", "Get",
+		"unit_id", id,
+		"principal", principal.Subject)
 
 	return a.underlying.Get(ctx, id)
 }

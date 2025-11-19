@@ -23,6 +23,11 @@
       "release-type": "go",
       "component": "taco/statesman",
       "changelog-path": ".changelog-ignore/CHANGELOG.md"
+    },
+    "sandbox-sidecar": {
+      "release-type": "node",
+      "component": "sandbox-sidecar",
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

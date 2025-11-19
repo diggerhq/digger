@@ -294,7 +294,11 @@ func (s *queryRBACStore) GetUserAssignment(ctx context.Context, orgID, subject s
 	var user types.User
 	err := s.db.WithContext(ctx).
 		Where("subject = ?", subject).
-		Preload("Roles", "org_id = ?", orgID). // Filter roles by org
+		Preload("Roles", func(db *gorm.DB) *gorm.DB {
+			// Join through user_roles to filter by org_id
+			return db.Joins("JOIN user_roles ON user_roles.role_id = roles.id").
+				Where("user_roles.org_id = ?", orgID)
+		}).
 		First(&user).Error
 
 	if err != nil {

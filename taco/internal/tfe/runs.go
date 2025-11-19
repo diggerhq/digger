@@ -338,22 +338,44 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
-	// Security: Check if remote runs are enabled via environment variable
+	// Security: Remote runs require an active sandbox provider.
 	executionMode := "local" // default
 	if unit.TFEExecutionMode != nil && *unit.TFEExecutionMode != "" {
 		executionMode = *unit.TFEExecutionMode
 	}
-	if executionMode == "remote" && os.Getenv("REMOTE_RUNS_ENABLED") != "true" {
-		logger.Warn("remote run creation blocked - feature not enabled",
+	
+	logger.Info("🔍 DECISION POINT: Checking execution mode",
+		slog.String("unit_id", unitID),
+		slog.String("unit_name", unit.Name),
+		slog.String("execution_mode", executionMode),
+		slog.Bool("sandbox_configured", h.sandbox != nil),
+		slog.String("sandbox_provider", func() string {
+			if h.sandbox != nil {
+				return h.sandbox.Name()
+			}
+			return "none"
+		}()))
+	
+	if executionMode == "remote" && h.sandbox == nil {
+		logger.Warn("❌ BLOCKED: remote run creation - sandbox provider not configured",
 			slog.String("unit_id", unitID),
 			slog.String("execution_mode", executionMode))
 		return c.JSON(http.StatusForbidden, map[string]interface{}{
 			"errors": []map[string]string{{
 				"status": "403",
 				"title":  "forbidden",
-				"detail": "Remote runs feature is not enabled on this server",
+				"detail": "Remote execution mode requires configuring OPENTACO_SANDBOX_PROVIDER",
 			}},
 		})
+	}
+	
+	if executionMode == "remote" {
+		logger.Info("✅ APPROVED: Remote execution will be used",
+			slog.String("unit_id", unitID),
+			slog.String("sandbox_provider", h.sandbox.Name()))
+	} else {
+		logger.Info("ℹ️  Local execution mode - sandbox will not be used",
+			slog.String("unit_id", unitID))
 	}
 
 	// Get the configuration version to check if it's speculative
@@ -467,7 +489,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		)
 		planLogger.Info("starting async plan execution")
 		// Create plan executor
-		executor := NewPlanExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo)
+		executor := NewPlanExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo, h.sandbox, h.runActivityRepo)
 		
 		// Execute the plan (this will run terraform plan)
 		if err := executor.ExecutePlan(planCtx, run.ID); err != nil {
@@ -604,7 +626,7 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 		)
 		applyLogger.Info("starting async apply execution")
 		// Create apply executor
-		executor := NewApplyExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo)
+		executor := NewApplyExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo, h.sandbox, h.runActivityRepo)
 		
 		// Execute the apply (this will run terraform apply)
 		if err := executor.ExecuteApply(applyCtx, runID); err != nil {

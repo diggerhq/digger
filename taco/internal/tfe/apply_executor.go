@@ -8,11 +8,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
+	"github.com/diggerhq/digger/opentaco/internal/sandbox"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
 // ApplyExecutor handles real Terraform apply execution
@@ -22,6 +24,8 @@ type ApplyExecutor struct {
 	configVerRepo domain.TFEConfigurationVersionRepository
 	blobStore     storage.UnitStore
 	unitRepo      domain.UnitRepository
+	sandbox       sandbox.Sandbox
+	activityRepo  domain.RemoteRunActivityRepository
 }
 
 // NewApplyExecutor creates a new apply executor
@@ -31,6 +35,8 @@ func NewApplyExecutor(
 	configVerRepo domain.TFEConfigurationVersionRepository,
 	blobStore storage.UnitStore,
 	unitRepo domain.UnitRepository,
+	sandboxProvider sandbox.Sandbox,
+	activityRepo domain.RemoteRunActivityRepository,
 ) *ApplyExecutor {
 	return &ApplyExecutor{
 		runRepo:       runRepo,
@@ -38,6 +44,8 @@ func NewApplyExecutor(
 		configVerRepo: configVerRepo,
 		blobStore:     blobStore,
 		unitRepo:      unitRepo,
+		sandbox:       sandboxProvider,
+		activityRepo:  activityRepo,
 	}
 }
 
@@ -47,7 +55,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		slog.String("operation", "execute_apply"),
 		slog.String("run_id", runID),
 	)
-	
+
 	logger.Info("starting apply execution")
 
 	// Get run
@@ -57,11 +65,41 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		return fmt.Errorf("failed to get run: %w", err)
 	}
 
+	unitMeta, err := e.unitRepo.Get(ctx, run.UnitID)
+	if err != nil {
+		logger.Error("failed to load unit metadata", slog.String("error", err.Error()))
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to load workspace metadata: %v", err))
+	}
+
+	useSandbox := requiresSandbox(unitMeta)
+	var applyActivityID string
+	var applyActivityStart time.Time
+	var applySandboxResult *sandbox.ApplyResult
+	if useSandbox && e.activityRepo != nil {
+		activity := &domain.RemoteRunActivity{
+			RunID:           run.ID,
+			OrgID:           run.OrgID,
+			UnitID:          run.UnitID,
+			Operation:       "apply",
+			Status:          "pending",
+			TriggeredBy:     run.CreatedBy,
+			TriggeredSource: run.Source,
+		}
+		if id, err := e.activityRepo.CreateActivity(ctx, activity); err != nil {
+			logger.Warn("failed to create remote apply activity", slog.String("error", err.Error()))
+		} else {
+			applyActivityID = id
+		}
+	}
+	if useSandbox && e.sandbox == nil {
+		return e.handleApplyError(ctx, run.ID, logger, "Workspace execution mode is remote, but no sandbox provider is configured")
+	}
+
 	// Check if run can be applied
 	// Allow apply from "planned" (waiting for confirmation) or "apply_queued" status
 	if run.Status != "planned" && run.Status != "apply_queued" {
 		logger.Error("run cannot be applied", slog.String("status", run.Status))
-		return fmt.Errorf("run cannot be applied in status: %s", run.Status)
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Run cannot be applied in status: %s", run.Status))
 	}
 
 	// Acquire lock before starting terraform apply
@@ -72,18 +110,18 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		Version: "1.0.0",
 		Created: time.Now(),
 	}
-	
-	logger.Info("acquiring unit lock", 
+
+	logger.Info("acquiring unit lock",
 		slog.String("unit_id", run.UnitID),
 		slog.String("lock_id", lockInfo.ID))
-	
+
 	if err := e.unitRepo.Lock(ctx, run.UnitID, lockInfo); err != nil {
 		if err == storage.ErrLockConflict {
 			// Unit is locked by another operation
 			currentLock, _ := e.unitRepo.GetLock(ctx, run.UnitID)
-			errMsg := fmt.Sprintf("Unit is locked by another operation (locked by: %s). Please wait and try again.", 
+			errMsg := fmt.Sprintf("Unit is locked by another operation (locked by: %s). Please wait and try again.",
 				currentLock.Who)
-			logger.Warn("lock conflict - unit already locked", 
+			logger.Warn("lock conflict - unit already locked",
 				slog.String("unit_id", run.UnitID),
 				slog.String("locked_by", currentLock.Who),
 				slog.String("lock_id", currentLock.ID))
@@ -92,14 +130,14 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		logger.Error("failed to acquire lock", slog.String("error", err.Error()))
 		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to acquire lock: %v", err))
 	}
-	
+
 	logger.Info("unit lock acquired successfully")
-	
+
 	// Ensure lock is released when we're done (success or failure)
 	defer func() {
 		logger.Info("releasing unit lock", slog.String("unit_id", run.UnitID))
 		if unlockErr := e.unitRepo.Unlock(ctx, run.UnitID, lockInfo.ID); unlockErr != nil {
-			logger.Error("failed to release lock", 
+			logger.Error("failed to release lock",
 				slog.String("error", unlockErr.Error()),
 				slog.String("unit_id", run.UnitID),
 				slog.String("lock_id", lockInfo.ID))
@@ -111,15 +149,15 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	// Update run status to "applying"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "applying"); err != nil {
 		logger.Error("failed to update run status", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to update run status: %w", err)
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to update run status: %v", err))
 	}
-	
+
 	logger.Info("updated run status to applying")
 
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
 	if err != nil {
-		return fmt.Errorf("failed to get configuration version: %w", err)
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to get configuration version: %v", err))
 	}
 
 	// Download configuration archive
@@ -143,28 +181,77 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to remove backend configuration: %v", err))
 	}
 
+	var workspaceArchive []byte
+	if useSandbox {
+		workspaceArchive, err = createWorkspaceArchive(workDir)
+		if err != nil {
+			return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to package workspace for sandbox apply: %v", err))
+		}
+		logger.Info("packaged workspace for sandbox apply", slog.Int("bytes", len(workspaceArchive)))
+	}
+
 	// Download current state for this unit (must exist before apply)
 	// Construct org-scoped state ID: <orgID>/<unitID>
 	stateID := fmt.Sprintf("%s/%s", run.OrgID, run.UnitID)
 	stateData, err := e.blobStore.Download(ctx, stateID)
 	if err != nil {
-		logger.Warn("failed to download state, continuing anyway", 
+		logger.Warn("failed to download state, continuing anyway",
 			slog.String("state_id", stateID),
 			slog.String("error", err.Error()))
 		// Continue anyway - might be a fresh deployment
+	} else if useSandbox {
+		logger.Info("downloaded existing state for sandbox apply",
+			slog.String("state_id", stateID),
+			slog.Int("bytes", len(stateData)))
 	} else {
 		// Write state to terraform.tfstate in the working directory
 		statePath := filepath.Join(workDir, "terraform.tfstate")
 		if err := os.WriteFile(statePath, stateData, 0644); err != nil {
 			return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to write state file: %v", err))
 		}
-		logger.Info("downloaded and wrote existing state", 
+		logger.Info("downloaded and wrote existing state",
 			slog.String("state_id", stateID),
 			slog.Int("bytes", len(stateData)))
 	}
 
-	// Run terraform apply
-	logs, err := e.runTerraformApply(ctx, workDir, run.IsDestroy)
+	// Run terraform apply (locally or via sandbox)
+	var (
+		logs         string
+		applyErr     error
+		updatedState []byte
+	)
+
+	if useSandbox {
+		if applyActivityID != "" && e.activityRepo != nil {
+			applyActivityStart = time.Now()
+			if err := e.activityRepo.MarkRunning(ctx, applyActivityID, applyActivityStart, e.sandbox.Name()); err != nil {
+				logger.Warn("failed to mark remote apply running", slog.String("error", err.Error()))
+			}
+		}
+
+		result, execErr := e.executeApplyInSandbox(ctx, run, unitMeta, workspaceArchive, stateData)
+		applySandboxResult = result
+		applyErr = execErr
+		if result != nil {
+			logs = result.Logs
+			updatedState = result.State
+		}
+		if logs == "" {
+			logs = "remote sandbox did not return apply logs"
+		}
+	} else {
+		localLogs, execErr := e.runTerraformApply(ctx, workDir, run.IsDestroy)
+		logs = localLogs
+		applyErr = execErr
+		if execErr == nil {
+			statePath := filepath.Join(workDir, "terraform.tfstate")
+			if data, readErr := os.ReadFile(statePath); readErr != nil {
+				logger.Warn("failed to read updated state file", slog.String("error", readErr.Error()))
+			} else {
+				updatedState = data
+			}
+		}
+	}
 
 	// Store apply logs in blob storage (use UploadBlob - no lock checks needed for logs)
 	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
@@ -174,41 +261,35 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 
 	// Update run status
 	runStatus := "applied"
-	if err != nil {
+	if applyErr != nil {
 		runStatus = "errored"
-		logs = logs + "\n\nError: " + err.Error()
-		// Store error logs even on failure
+		logs = logs + "\n\nError: " + applyErr.Error()
 		_ = e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs))
-		// Store error in run for user visibility
-		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, err.Error()); updateErr != nil {
+		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, applyErr.Error()); updateErr != nil {
 			logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 		}
 	} else {
-		// Upload the updated state back to storage after successful apply
-		// Construct org-scoped state ID: <orgID>/<unitID>
 		stateID := fmt.Sprintf("%s/%s", run.OrgID, run.UnitID)
-		statePath := filepath.Join(workDir, "terraform.tfstate")
-		newStateData, readErr := os.ReadFile(statePath)
-		if readErr != nil {
-			logger.Warn("failed to read updated state file", slog.String("error", readErr.Error()))
+		if len(updatedState) == 0 {
+			logger.Warn("no updated state returned after apply; state upload skipped",
+				slog.String("state_id", stateID))
 		} else {
-			// Upload state with lock ID to unlock it after upload
-			if uploadErr := e.blobStore.Upload(ctx, stateID, newStateData, lockInfo.ID); uploadErr != nil {
-				logger.Error("failed to upload updated state", 
+			if uploadErr := e.blobStore.Upload(ctx, stateID, updatedState, lockInfo.ID); uploadErr != nil {
+				logger.Error("failed to upload updated state",
 					slog.String("state_id", stateID),
 					slog.String("error", uploadErr.Error()))
-				// This is critical - mark as errored
 				runStatus = "errored"
 				errMsg := fmt.Sprintf("Failed to upload state: %v", uploadErr)
 				logs = logs + "\n\nCritical Error: " + errMsg + "\n"
-				// Store error in database
+				_ = e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs))
 				if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, errMsg); updateErr != nil {
 					logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 				}
+				applyErr = fmt.Errorf(errMsg)
 			} else {
-				logger.Info("successfully uploaded updated state", 
+				logger.Info("successfully uploaded updated state",
 					slog.String("state_id", stateID),
-					slog.Int("bytes", len(newStateData)))
+					slog.Int("bytes", len(updatedState)))
 			}
 		}
 	}
@@ -220,8 +301,27 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 
 	logger.Info("apply execution completed", slog.String("status", runStatus))
 
-	if err != nil {
-		return fmt.Errorf("apply failed: %w", err)
+	if applyErr != nil {
+		return fmt.Errorf("apply failed: %w", applyErr)
+	}
+
+	if useSandbox && applyActivityID != "" && e.activityRepo != nil && !applyActivityStart.IsZero() {
+		completedAt := time.Now()
+		status := "succeeded"
+		var errMsg *string
+		if applyErr != nil {
+			status = "failed"
+			msg := applyErr.Error()
+			errMsg = &msg
+		}
+		var sandboxJobID *string
+		if applySandboxResult != nil && applySandboxResult.RuntimeRunID != "" {
+			id := applySandboxResult.RuntimeRunID
+			sandboxJobID = &id
+		}
+		if err := e.activityRepo.MarkCompleted(ctx, applyActivityID, status, completedAt, completedAt.Sub(applyActivityStart), sandboxJobID, errMsg); err != nil {
+			logger.Warn("failed to mark remote apply completion", slog.String("error", err.Error()))
+		}
 	}
 
 	return nil
@@ -262,7 +362,7 @@ func (e *ApplyExecutor) runTerraformApply(ctx context.Context, workDir string, i
 
 	// Run terraform apply
 	logger.Info("running terraform apply", slog.Bool("is_destroy", isDestroy))
-	
+
 	if isDestroy {
 		err = tf.Destroy(ctx)
 	} else {
@@ -293,3 +393,37 @@ func (e *ApplyExecutor) handleApplyError(ctx context.Context, runID string, logg
 	return fmt.Errorf("apply execution failed: %s", errorMsg)
 }
 
+func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.TFERun, unit *storage.UnitMetadata, archive []byte, stateData []byte) (*sandbox.ApplyResult, error) {
+	if e.sandbox == nil {
+		return nil, fmt.Errorf("sandbox provider not configured")
+	}
+	if len(archive) == 0 {
+		return nil, fmt.Errorf("sandbox apply requires configuration archive")
+	}
+
+	metadata := map[string]string{
+		"auto_apply": strconv.FormatBool(run.AutoApply),
+	}
+
+	planID := ""
+	if run.PlanID != nil {
+		planID = *run.PlanID
+		metadata["plan_id"] = planID
+	}
+
+	req := &sandbox.ApplyRequest{
+		RunID:                  run.ID,
+		PlanID:                 planID,
+		OrgID:                  run.OrgID,
+		UnitID:                 run.UnitID,
+		ConfigurationVersionID: run.ConfigurationVersionID,
+		IsDestroy:              run.IsDestroy,
+		TerraformVersion:       terraformVersionForUnit(unit),
+		Engine:                 engineForUnit(unit),
+		WorkingDirectory:       workingDirectoryForUnit(unit),
+		ConfigArchive:          archive,
+		State:                  stateData,
+		Metadata:               metadata,
+	}
+	return e.sandbox.ExecuteApply(ctx, req)
+}

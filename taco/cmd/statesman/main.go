@@ -19,6 +19,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/queryfactory"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/repositories"
+	"github.com/diggerhq/digger/opentaco/internal/sandbox"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo/v4"
@@ -61,7 +62,6 @@ func main() {
 
 	slog.Info("Query backend initialized", "backend", queryCfg.Backend)
 
-
 	// Initialize storage
 	var blobStore storage.UnitStore
 	switch *storageType {
@@ -88,7 +88,6 @@ func main() {
 		blobStore = storage.NewMemStore()
 		slog.Info("Using in-memory storage")
 	}
-
 
 	// sync units to query index 
 	existingUnits, err := queryStore.ListUnits(context.Background(), "")
@@ -193,6 +192,23 @@ func main() {
 	}
 	analytics.SendEssential("service_startup")
 
+	// Initialize sandbox provider (optional)
+	slog.Info("🔍 Initializing sandbox provider from environment...")
+	sandboxProvider, err := sandbox.NewFromEnv()
+	if err != nil {
+		slog.Error("❌ Failed to initialize sandbox provider", "error", err)
+		os.Exit(1)
+	}
+	if sandboxProvider != nil {
+		slog.Info("✅ Sandbox provider configured and ready",
+			"provider", sandboxProvider.Name(),
+			"env_OPENTACO_SANDBOX_PROVIDER", os.Getenv("OPENTACO_SANDBOX_PROVIDER"),
+			"env_OPENTACO_E2B_SIDECAR_URL", os.Getenv("OPENTACO_E2B_SIDECAR_URL"))
+	} else {
+		slog.Info("ℹ️  Sandbox provider disabled or not configured - remote execution will not be available",
+			"env_OPENTACO_SANDBOX_PROVIDER", os.Getenv("OPENTACO_SANDBOX_PROVIDER"))
+	}
+
 	// Create Echo instance
 	e := echo.New()
 	e.HideBanner = true
@@ -207,7 +223,6 @@ func main() {
 	e.Use(echomiddleware.Gzip())
 	e.Use(echomiddleware.Secure())
 	e.Use(echomiddleware.CORS())
-
 
 	// Create a signer for JWTs (this may need to be configured from env vars)
 	signer, err := auth.NewSignerFromEnv()
@@ -225,6 +240,7 @@ func main() {
 		RBACManager:         rbacManager,   // RBAC management
 		Signer:              signer,        // JWT signing
 		AuthEnabled:         !*authDisable, // Auth flag
+		Sandbox:             sandboxProvider,
 	})
 
 	// Start server
@@ -259,4 +275,3 @@ func main() {
 	analytics.SendEssential("server_shutdown_complete")
 	slog.Info("Server shutdown complete")
 }
-

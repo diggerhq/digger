@@ -178,6 +178,7 @@ export async function createUnit(
     tfeAutoApply?: boolean,
     tfeExecutionMode?: string,
     tfeTerraformVersion?: string,
+    tfeEngine?: string,
     tfeWorkingDirectory?: string
 ) {
     const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
@@ -195,12 +196,50 @@ export async function createUnit(
             tfe_auto_apply: tfeAutoApply,
             tfe_execution_mode: tfeExecutionMode,
             tfe_terraform_version: tfeTerraformVersion,
+            tfe_engine: tfeEngine,
             tfe_working_directory: tfeWorkingDirectory,
         }),
     });
 
     if (!response.ok) {
         throw new Error(`Failed to create unit: ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+export async function updateUnit(
+    orgId: string, 
+    userId: string, 
+    email: string, 
+    unitId: string,
+    tfeAutoApply?: boolean,
+    tfeExecutionMode?: string,
+    tfeTerraformVersion?: string,
+    tfeEngine?: string,
+    tfeWorkingDirectory?: string
+) {
+    const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units/${unitId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.STATESMAN_BACKEND_WEBHOOK_SECRET}`,
+            'X-Org-ID': orgId,
+            'X-User-ID': userId,
+            'X-Email': email,
+            'X-Request-ID': generateRequestId(),
+        },
+        body: JSON.stringify({
+            tfe_auto_apply: tfeAutoApply,
+            tfe_execution_mode: tfeExecutionMode,
+            tfe_terraform_version: tfeTerraformVersion,
+            tfe_engine: tfeEngine,
+            tfe_working_directory: tfeWorkingDirectory,
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to update unit: ${response.statusText}`);
     }
 
     return response.json();

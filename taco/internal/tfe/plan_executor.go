@@ -11,12 +11,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
+	"github.com/diggerhq/digger/opentaco/internal/sandbox"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
+	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
 // PlanExecutor handles real Terraform plan execution
@@ -26,6 +28,8 @@ type PlanExecutor struct {
 	configVerRepo domain.TFEConfigurationVersionRepository
 	blobStore     storage.UnitStore
 	unitRepo      domain.UnitRepository
+	sandbox       sandbox.Sandbox
+	activityRepo  domain.RemoteRunActivityRepository
 }
 
 // NewPlanExecutor creates a new plan executor
@@ -35,6 +39,8 @@ func NewPlanExecutor(
 	configVerRepo domain.TFEConfigurationVersionRepository,
 	blobStore storage.UnitStore,
 	unitRepo domain.UnitRepository,
+	sandboxProvider sandbox.Sandbox,
+	activityRepo domain.RemoteRunActivityRepository,
 ) *PlanExecutor {
 	return &PlanExecutor{
 		runRepo:       runRepo,
@@ -42,6 +48,8 @@ func NewPlanExecutor(
 		configVerRepo: configVerRepo,
 		blobStore:     blobStore,
 		unitRepo:      unitRepo,
+		sandbox:       sandboxProvider,
+		activityRepo:  activityRepo,
 	}
 }
 
@@ -63,6 +71,67 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	logger.Info("retrieved run", 
 		slog.String("config_version_id", run.ConfigurationVersionID),
 		slog.String("unit_id", run.UnitID))
+
+	unitMeta, err := e.unitRepo.Get(ctx, run.UnitID)
+	if err != nil {
+		logger.Error("failed to load unit metadata", slog.String("error", err.Error()))
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to load workspace metadata: %v", err))
+	}
+
+	logger.Info("🔍 PLAN EXECUTOR: Checking execution path",
+		slog.String("unit_id", run.UnitID),
+		slog.String("unit_name", unitMeta.Name),
+		slog.String("execution_mode", func() string {
+			if unitMeta.TFEExecutionMode != nil {
+				return *unitMeta.TFEExecutionMode
+			}
+			return "not set"
+		}()),
+		slog.Bool("sandbox_available", e.sandbox != nil),
+		slog.String("sandbox_provider", func() string {
+			if e.sandbox != nil {
+				return e.sandbox.Name()
+			}
+			return "none"
+		}()))
+
+	useSandbox := requiresSandbox(unitMeta)
+	var planActivityID string
+	var planActivityStart time.Time
+	var planSandboxResult *sandbox.PlanResult
+	
+	if useSandbox {
+		logger.Info("✅ PLAN EXECUTOR: Remote execution path selected",
+			slog.String("unit_id", run.UnitID),
+			slog.Bool("activity_repo_available", e.activityRepo != nil))
+	} else {
+		logger.Info("ℹ️  PLAN EXECUTOR: Local execution path selected",
+			slog.String("unit_id", run.UnitID))
+	}
+	
+	if useSandbox && e.activityRepo != nil {
+		activity := &domain.RemoteRunActivity{
+			RunID:            run.ID,
+			OrgID:            run.OrgID,
+			UnitID:           run.UnitID,
+			Operation:        "plan",
+			Status:           "pending",
+			TriggeredBy:      run.CreatedBy,
+			TriggeredSource:  run.Source,
+		}
+
+		if id, err := e.activityRepo.CreateActivity(ctx, activity); err != nil {
+			logger.Warn("⚠️  failed to create remote run activity record", slog.String("error", err.Error()))
+		} else {
+			planActivityID = id
+			logger.Info("📝 Created remote run activity record", slog.String("activity_id", planActivityID))
+		}
+	}
+
+	if useSandbox && e.sandbox == nil {
+		logger.Error("❌ FATAL: Workspace requires remote execution but no sandbox provider configured")
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, "Workspace execution mode is remote, but no sandbox provider is configured")
+	}
 
 	// Acquire lock before starting terraform operations
 	// This prevents concurrent plans/applies on the same unit
@@ -118,14 +187,14 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	// Update run status to "planning"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "planning"); err != nil {
 		logger.Error("failed to update status to planning", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to update run status: %w", err)
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to update run status: %v", err))
 	}
 	logger.Info("updated run status to planning")
 
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
 	if err != nil {
-		return fmt.Errorf("failed to get configuration version: %w", err)
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to get configuration version: %v", err))
 	}
 
 	// Check if configuration was uploaded
@@ -159,11 +228,25 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to create backend override: %v", err))
 	}
 
+	var workspaceArchive []byte
+	if useSandbox {
+		workspaceArchive, err = createWorkspaceArchive(workDir)
+		if err != nil {
+			return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to package workspace for sandbox execution: %v", err))
+		}
+		logger.Info("packaged workspace for sandbox execution", slog.Int("bytes", len(workspaceArchive)))
+	}
+
 	// Download current state for this unit (if it exists)
 	// Construct org-scoped state ID: <orgID>/<unitID>
 	stateID := fmt.Sprintf("%s/%s", run.OrgID, run.UnitID)
 	stateData, err := e.blobStore.Download(ctx, stateID)
 	if err == nil {
+		if useSandbox {
+			logger.Info("downloaded existing state for sandbox execution",
+				slog.String("state_id", stateID),
+				slog.Int("bytes", len(stateData)))
+		} else {
 		// Write state to terraform.tfstate in the working directory
 		statePath := filepath.Join(workDir, "terraform.tfstate")
 		if err := os.WriteFile(statePath, stateData, 0644); err != nil {
@@ -172,14 +255,108 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 			logger.Info("downloaded and wrote existing state", 
 				slog.String("state_id", stateID),
 				slog.Int("bytes", len(stateData)))
+			}
 		}
 	} else {
 		logger.Info("no existing state found, starting fresh", 
 			slog.String("state_id", stateID))
 	}
 
-	// Run terraform plan
-	_, logs, hasChanges, adds, changes, destroys, err := e.runTerraformPlan(ctx, workDir, run.IsDestroy)
+	var (
+		logs       string
+		hasChanges bool
+		adds       int
+		changes    int
+		destroys   int
+		planJSON   []byte
+		planErr    error
+	)
+
+	if useSandbox {
+		logger.Info("🚀 EXECUTING PLAN IN SANDBOX",
+			slog.String("run_id", run.ID),
+			slog.String("unit_id", run.UnitID),
+			slog.String("sandbox_provider", e.sandbox.Name()),
+			slog.Int("workspace_archive_bytes", len(workspaceArchive)),
+			slog.Int("state_bytes", len(stateData)))
+		
+		if planActivityID != "" && e.activityRepo != nil {
+			planActivityStart = time.Now()
+			if err := e.activityRepo.MarkRunning(ctx, planActivityID, planActivityStart, e.sandbox.Name()); err != nil {
+				logger.Warn("⚠️  failed to mark remote plan running", slog.String("error", err.Error()))
+			} else {
+				logger.Info("📝 Marked activity as running", slog.String("activity_id", planActivityID))
+			}
+		}
+
+		result, execErr := e.executePlanInSandbox(ctx, run, unitMeta, workspaceArchive, stateData)
+		planSandboxResult = result
+		planErr = execErr
+		
+		if execErr != nil {
+			logger.Error("❌ SANDBOX PLAN FAILED",
+				slog.String("run_id", run.ID),
+				slog.String("error", execErr.Error()))
+		} else {
+			logger.Info("✅ SANDBOX PLAN SUCCEEDED",
+				slog.String("run_id", run.ID),
+				slog.Bool("has_changes", result != nil && result.HasChanges))
+		}
+		
+		if result != nil {
+			logs = result.Logs
+			hasChanges = result.HasChanges
+			adds = result.ResourceAdditions
+			changes = result.ResourceChanges
+			destroys = result.ResourceDestructions
+			planJSON = result.PlanJSON
+		}
+		if logs == "" {
+			logs = "remote sandbox did not return plan logs"
+		}
+	} else {
+		logger.Info("🏠 EXECUTING PLAN LOCALLY",
+			slog.String("run_id", run.ID),
+			slog.String("unit_id", run.UnitID),
+			slog.String("work_dir", workDir))
+		
+		_, planLogs, planHasChanges, planAdds, planChanges, planDestroys, execErr := e.runTerraformPlan(ctx, workDir, run.IsDestroy)
+		logs = planLogs
+		hasChanges = planHasChanges
+		adds = planAdds
+		changes = planChanges
+		destroys = planDestroys
+		planErr = execErr
+		
+		if execErr != nil {
+			logger.Error("❌ LOCAL PLAN FAILED",
+				slog.String("run_id", run.ID),
+				slog.String("error", execErr.Error()))
+		} else {
+			logger.Info("✅ LOCAL PLAN SUCCEEDED",
+				slog.String("run_id", run.ID),
+				slog.Bool("has_changes", planHasChanges))
+		}
+	}
+
+	if useSandbox && planActivityID != "" && e.activityRepo != nil && !planActivityStart.IsZero() {
+		completedAt := time.Now()
+		status := "succeeded"
+		var errMsg *string
+		if planErr != nil {
+			status = "failed"
+			msg := planErr.Error()
+			errMsg = &msg
+		}
+		var sandboxJobID *string
+		if planSandboxResult != nil && planSandboxResult.RuntimeRunID != "" {
+			id := planSandboxResult.RuntimeRunID
+			sandboxJobID = &id
+		}
+		if err := e.activityRepo.MarkCompleted(ctx, planActivityID, status, completedAt, completedAt.Sub(planActivityStart), sandboxJobID, errMsg); err != nil {
+			logger.Warn("failed to mark remote plan completion", slog.String("error", err.Error()))
+		}
+	}
 
 	// Store logs in blob storage (use UploadBlob - no lock checks needed for logs)
 	logBlobID := fmt.Sprintf("plans/%s/logs.txt", *run.PlanID)
@@ -192,11 +369,11 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 
 	// Update plan with results
 	planStatus := "finished"
-	if err != nil {
+	if planErr != nil {
 		planStatus = "errored"
-		logs = logs + "\n\nError: " + err.Error()
+		logs = logs + "\n\nError: " + planErr.Error()
 		// Store error in run for user visibility
-		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, err.Error()); updateErr != nil {
+		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, planErr.Error()); updateErr != nil {
 			logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 		}
 	}
@@ -210,7 +387,10 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		LogBlobID:            &logBlobID,
 		LogReadURL:           &logReadURL,
 	}
-
+	if len(planJSON) > 0 {
+		jsonStr := string(planJSON)
+		planUpdates.PlanOutputJSON = &jsonStr
+	}
 
 	if err := e.planRepo.UpdatePlan(ctx, *run.PlanID, planUpdates); err != nil {
 		return fmt.Errorf("failed to update plan: %w", err)
@@ -219,9 +399,9 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	// Update run status and can_apply
 	// Use "planned" status (not "planned_and_finished") - this is what Terraform CLI expects
 	runStatus := "planned"
-	canApply := (err == nil) // Can apply if plan succeeded (regardless of whether there are changes)
+	canApply := (planErr == nil) // Can apply if plan succeeded (regardless of whether there are changes)
 	
-	if err != nil {
+	if planErr != nil {
 		runStatus = "errored"
 	}
 
@@ -245,9 +425,9 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	// Only auto-trigger apply if AutoApply flag is true (i.e., terraform apply -auto-approve)
 	logger.Debug("auto-apply check", 
 		slog.Bool("auto_apply", run.AutoApply),
-		slog.Bool("plan_succeeded", err == nil))
+		slog.Bool("plan_succeeded", planErr == nil))
 	
-	if run.AutoApply && err == nil {
+	if run.AutoApply && planErr == nil {
 		logger.Info("triggering auto-apply")
 		
 		// Queue the apply by updating the run status
@@ -278,7 +458,7 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 				slog.String("run_id", run.ID),
 			)
 			applyLogger.Info("starting async apply execution")
-			applyExecutor := NewApplyExecutor(e.runRepo, e.planRepo, e.configVerRepo, e.blobStore, e.unitRepo)
+			applyExecutor := NewApplyExecutor(e.runRepo, e.planRepo, e.configVerRepo, e.blobStore, e.unitRepo, e.sandbox, e.activityRepo)
 			if err := applyExecutor.ExecuteApply(applyCtx, run.ID); err != nil {
 				applyLogger.Error("apply execution failed", slog.String("error", err.Error()))
 			} else {
@@ -578,4 +758,105 @@ func createBackendOverride(workDir string) error {
 	
 	slog.Info("successfully removed cloud/backend configuration from terraform files")
 	return nil
+}
+
+func (e *PlanExecutor) executePlanInSandbox(ctx context.Context, run *domain.TFERun, unit *storage.UnitMetadata, archive []byte, stateData []byte) (*sandbox.PlanResult, error) {
+	if e.sandbox == nil {
+		return nil, fmt.Errorf("sandbox provider not configured")
+	}
+	if len(archive) == 0 {
+		return nil, fmt.Errorf("sandbox plan requires configuration archive")
+	}
+
+	planID := ""
+	if run.PlanID != nil {
+		planID = *run.PlanID
+	}
+
+	metadata := map[string]string{
+		"auto_apply": strconv.FormatBool(run.AutoApply),
+	}
+	if planID != "" {
+		metadata["plan_id"] = planID
+	}
+
+	req := &sandbox.PlanRequest{
+		RunID:                  run.ID,
+		PlanID:                 planID,
+		OrgID:                  run.OrgID,
+		UnitID:                 run.UnitID,
+		ConfigurationVersionID: run.ConfigurationVersionID,
+		IsDestroy:              run.IsDestroy,
+		TerraformVersion:       terraformVersionForUnit(unit),
+		Engine:                 engineForUnit(unit),
+		WorkingDirectory:       workingDirectoryForUnit(unit),
+		ConfigArchive:          archive,
+		State:                  stateData,
+		Metadata:               metadata,
+	}
+	return e.sandbox.ExecutePlan(ctx, req)
+}
+
+func createWorkspaceArchive(workDir string) ([]byte, error) {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+
+	err := filepath.Walk(workDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip .terraform directories to avoid uploading cache/modules
+		if info.IsDir() && strings.HasPrefix(info.Name(), ".terraform") {
+			return filepath.SkipDir
+		}
+
+		relPath, err := filepath.Rel(workDir, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+		relPath = filepath.ToSlash(relPath)
+
+		header, err := tar.FileInfoHeader(info, path)
+		if err != nil {
+			return err
+		}
+		header.Name = relPath
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if info.Mode().IsRegular() {
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(tw, file); err != nil {
+				file.Close()
+				return err
+			}
+			file.Close()
+		}
+		return nil
+	})
+	if err != nil {
+		tw.Close()
+		gz.Close()
+		return nil, err
+	}
+
+	if err := tw.Close(); err != nil {
+		gz.Close()
+		return nil, err
+	}
+	if err := gz.Close(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

@@ -1,4 +1,5 @@
 {
   "taco/cmd/taco": "0.1.10",
-  "taco/cmd/statesman": "0.1.10"
+  "taco/cmd/statesman": "0.1.10",
+  "sandbox-sidecar": "0.1.0"
 }

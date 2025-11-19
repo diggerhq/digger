@@ -74,6 +74,7 @@ export const createUnitFn = createServerFn({method: 'POST'})
     tfeAutoApply?: boolean,
     tfeExecutionMode?: string,
     tfeTerraformVersion?: string,
+    tfeEngine?: string,
     tfeWorkingDirectory?: string
   }) => data)
   .handler(async ({ data }) => {
@@ -85,6 +86,35 @@ export const createUnitFn = createServerFn({method: 'POST'})
       data.tfeAutoApply,
       data.tfeExecutionMode,
       data.tfeTerraformVersion,
+      data.tfeEngine,
+      data.tfeWorkingDirectory
+    );
+    return unit;
+})
+
+export const updateUnitFn = createServerFn({method: 'POST'})
+  .inputValidator((data : {
+    userId: string, 
+    organisationId: string, 
+    email: string, 
+    unitId: string,
+    tfeAutoApply?: boolean,
+    tfeExecutionMode?: string,
+    tfeTerraformVersion?: string,
+    tfeEngine?: string,
+    tfeWorkingDirectory?: string
+  }) => data)
+  .handler(async ({ data }) => {
+    const { updateUnit } = await import("./statesman_units")
+    const unit : any = await updateUnit(
+      data.organisationId, 
+      data.userId, 
+      data.email, 
+      data.unitId,
+      data.tfeAutoApply,
+      data.tfeExecutionMode,
+      data.tfeTerraformVersion,
+      data.tfeEngine,
       data.tfeWorkingDirectory
     );
     return unit;

@@ -8,6 +8,7 @@ on:
       - "UI Docker Release"
       - "taco-release"
       - "Projects Refresh Service Docker Release"
+      - "Sidecar Release"
     types:
       - completed
 
@@ -52,6 +53,10 @@ jobs:
             # Projects refresh doesn't have a dedicated section yet
             echo "Projects refresh service detected, skipping helm update (no chart section)"
             exit 0
+          elif [[ $TAG_NAME == sandbox-sidecar/v* ]]; then
+            SERVICE="sandbox-sidecar"
+            VERSION="${TAG_NAME##sandbox-sidecar/}"
+            YAML_PATH=".taco-sidecar.sidecar.image.tag"
           else
             echo "Not a recognized release tag, skipping"
             exit 0

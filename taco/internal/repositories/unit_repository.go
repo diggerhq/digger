@@ -152,6 +152,7 @@ func (r *UnitRepository) Get(ctx context.Context, uuid string) (*storage.UnitMet
 		// Include TFE workspace settings
 		TFEAutoApply:        unit.TFEAutoApply,
 		TFETerraformVersion: unit.TFETerraformVersion,
+		TFEEngine:           unit.TFEEngine,
 		TFEWorkingDirectory: unit.TFEWorkingDirectory,
 		TFEExecutionMode:    unit.TFEExecutionMode,
 	}

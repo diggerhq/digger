@@ -20,6 +20,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/repositories"
 	"github.com/diggerhq/digger/opentaco/internal/s3compat"
+	"github.com/diggerhq/digger/opentaco/internal/sandbox"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
 	"github.com/diggerhq/digger/opentaco/internal/sts"
 	unithandlers "github.com/diggerhq/digger/opentaco/internal/unit"
@@ -36,6 +37,7 @@ type Dependencies struct {
 	RBACManager         *rbac.RBACManager     // RBAC management (RBAC routes only)
 	Signer              *authpkg.Signer       // JWT signing (auth, middleware)
 	AuthEnabled         bool                  // Whether auth is enabled
+	Sandbox             sandbox.Sandbox       // Optional sandbox provider for remote runs
 }
 
 // RegisterRoutes registers all API routes with interface-scoped dependencies.
@@ -167,6 +169,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 		// ListUnits does its own RBAC filtering internally, no middleware needed
 		v1.GET("/units", unitHandler.ListUnits)
 		v1.GET("/units/:id", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "{id}")(unitHandler.GetUnit))
+		v1.PATCH("/units/:id", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "{id}")(unitHandler.UpdateUnit))
 		v1.DELETE("/units/:id", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitDelete, "{id}")(unitHandler.DeleteUnit))
 		v1.GET("/units/:id/download", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitRead, "{id}")(unitHandler.DownloadUnit))
 		v1.POST("/units/:id/upload", middleware.JWTOnlyRBACMiddleware(deps.RBACManager, deps.Signer, rbac.ActionUnitWrite, "{id}")(unitHandler.UploadUnit))
@@ -182,6 +185,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 		v1.POST("/units", unitHandler.CreateUnit)
 		v1.GET("/units", unitHandler.ListUnits)
 		v1.GET("/units/:id", unitHandler.GetUnit)
+		v1.PATCH("/units/:id", unitHandler.UpdateUnit)
 		v1.DELETE("/units/:id", unitHandler.DeleteUnit)
 		v1.GET("/units/:id/download", unitHandler.DownloadUnit)
 		v1.POST("/units/:id/upload", unitHandler.UploadUnit)
@@ -253,6 +257,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 	var runRepo domain.TFERunRepository
 	var planRepo domain.TFEPlanRepository
 	var configVerRepo domain.TFEConfigurationVersionRepository
+	var remoteRunActivityRepo domain.RemoteRunActivityRepository
 	
 	if deps.QueryStore != nil {
 		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
@@ -261,6 +266,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 			runRepo = repositories.NewTFERunRepository(db)
 			planRepo = repositories.NewTFEPlanRepository(db)
 			configVerRepo = repositories.NewTFEConfigurationVersionRepository(db)
+			remoteRunActivityRepo = repositories.NewRemoteRunActivityRepository(db)
 			log.Println("TFE repositories initialized successfully")
 		}
 	}
@@ -275,6 +281,8 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 		runRepo,
 		planRepo,
 		configVerRepo,
+		deps.Sandbox,
+		remoteRunActivityRepo,
 	)
 
 	// Create protected TFE group - opaque tokens only
