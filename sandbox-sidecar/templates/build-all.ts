@@ -28,8 +28,8 @@ async function main() {
 
     await Template.build(buildTemplateObject(spec), {
       alias,
-      cpuCount: 1,
-      memoryMB: 1024,
+      cpuCount: 2,
+      memoryMB: 4096,
       onBuildLogs: defaultBuildLogger(),
     });
 
