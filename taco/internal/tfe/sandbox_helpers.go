@@ -36,10 +36,22 @@ func terraformVersionForUnit(unit *storage.UnitMetadata) string {
 }
 
 func engineForUnit(unit *storage.UnitMetadata) string {
-	if unit == nil || unit.TFEEngine == nil {
+	if unit == nil {
+		slog.Warn("🔍 engineForUnit: unit is nil, defaulting to terraform")
+		return "terraform"
+	}
+	if unit.TFEEngine == nil {
+		slog.Warn("🔍 engineForUnit: TFEEngine is nil, defaulting to terraform",
+			slog.String("unit_id", unit.ID),
+			slog.String("unit_name", unit.Name))
 		return "terraform" // Default to terraform
 	}
 	engine := strings.TrimSpace(strings.ToLower(*unit.TFEEngine))
+	slog.Info("🔍 engineForUnit: engine determined",
+		slog.String("unit_id", unit.ID),
+		slog.String("unit_name", unit.Name),
+		slog.String("raw_engine", *unit.TFEEngine),
+		slog.String("normalized_engine", engine))
 	if engine == "tofu" || engine == "opentofu" {
 		return "tofu"
 	}

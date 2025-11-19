@@ -26,6 +26,7 @@ export function createRunRouter(
         configurationVersionId: parsed.configuration_version_id,
         isDestroy: parsed.is_destroy,
         terraformVersion: parsed.terraform_version,
+        engine: parsed.engine,
         workingDirectory: parsed.working_directory,
         configArchive: parsed.config_archive,
         state: parsed.state,

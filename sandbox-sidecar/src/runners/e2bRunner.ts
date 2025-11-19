@@ -33,10 +33,12 @@ export class E2BSandboxRunner implements SandboxRunner {
   private async runPlan(job: SandboxRunRecord): Promise<RunnerOutput> {
     const requestedVersion = job.payload.terraformVersion || "1.5.5";
     const requestedEngine = job.payload.engine || "terraform";
-    const sandbox = await this.createSandbox(requestedVersion, requestedEngine);
+    const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
     try {
-      // Install Terraform if not already present
-      await this.ensureTerraform(sandbox);
+      // Install IaC tool if using fallback template
+      if (needsInstall) {
+        await this.installIacTool(sandbox, requestedEngine, requestedVersion);
+      }
       
       const workDir = await this.setupWorkspace(sandbox, job);
       const logs: string[] = [];
@@ -83,10 +85,12 @@ export class E2BSandboxRunner implements SandboxRunner {
   private async runApply(job: SandboxRunRecord): Promise<RunnerOutput> {
     const requestedVersion = job.payload.terraformVersion || "1.5.5";
     const requestedEngine = job.payload.engine || "terraform";
-    const sandbox = await this.createSandbox(requestedVersion, requestedEngine);
+    const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
     try {
-      // Install Terraform if not already present
-      await this.ensureTerraform(sandbox);
+      // Install IaC tool if using fallback template
+      if (needsInstall) {
+        await this.installIacTool(sandbox, requestedEngine, requestedVersion);
+      }
       
       const workDir = await this.setupWorkspace(sandbox, job);
       const logs: string[] = [];
@@ -121,7 +125,7 @@ export class E2BSandboxRunner implements SandboxRunner {
     }
   }
 
-  private async createSandbox(requestedVersion?: string, requestedEngine?: string): Promise<Sandbox> {
+  private async createSandbox(requestedVersion?: string, requestedEngine?: string): Promise<{ sandbox: Sandbox; needsInstall: boolean }> {
     const version = requestedVersion || "1.5.5";
     const engine = requestedEngine === "tofu" ? "tofu" : "terraform";
     
@@ -140,7 +144,7 @@ export class E2BSandboxRunner implements SandboxRunner {
       // Fall back to bare-bones template and install at runtime
       templateId = getFallbackTemplateId(this.options.bareBonesTemplateId);
       needsInstall = true;
-      logger.info({ templateId, engine, version }, "no pre-built template found, will install at runtime");
+      logger.warn({ templateId, engine, version }, "no pre-built template found, will install at runtime");
     }
     
     logger.info({ templateId }, "creating E2B sandbox");
@@ -149,39 +153,16 @@ export class E2BSandboxRunner implements SandboxRunner {
     });
     logger.info({ sandboxId: sandbox.sandboxId }, "E2B sandbox created");
     
-    // Store metadata for installation
-    (sandbox as any)._needsTerraformInstall = needsInstall;
-    (sandbox as any)._requestedTerraformVersion = version;
+    // Store engine metadata for command execution
     (sandbox as any)._requestedEngine = engine;
     
-    return sandbox;
+    return { sandbox, needsInstall };
   }
 
-  private async ensureTerraform(sandbox: Sandbox): Promise<void> {
-    const engine = (sandbox as any)._requestedEngine || "terraform";
-    const binaryName = engine === "tofu" ? "tofu" : "terraform";
-    
-    // Always check if the binary is actually installed, even in pre-built templates
-    logger.info({ engine, binaryName }, "checking for IaC tool installation");
-    const checkResult = await sandbox.commands.run(`which ${binaryName} 2>/dev/null || echo 'not-found'`);
-    if (!checkResult.stdout.includes("not-found")) {
-      const versionCheck = await sandbox.commands.run(`${binaryName} version`);
-      logger.info({ 
-        engine,
-        path: checkResult.stdout.trim(),
-        version: versionCheck.stdout.split('\n')[0]
-      }, "IaC tool already installed");
-      return;
-    }
-    
-    // If we expected it to be pre-installed but it's not, log a warning
-    if (!(sandbox as any)._needsTerraformInstall) {
-      logger.warn({ engine }, "IaC tool not found in pre-built template, installing at runtime");
-    }
 
-    // Use requested version or default
-    const version = (sandbox as any)._requestedTerraformVersion || (engine === "tofu" ? "1.10.0" : "1.9.8");
-    logger.info({ engine, version }, "installing IaC tool in sandbox");
+  private async installIacTool(sandbox: Sandbox, engine: string, version: string): Promise<void> {
+    const binaryName = engine === "tofu" ? "tofu" : "terraform";
+    logger.info({ engine, version }, "installing IaC tool at runtime");
     
     let installScript: string;
     
@@ -190,8 +171,8 @@ export class E2BSandboxRunner implements SandboxRunner {
       installScript = `
         set -e
         cd /tmp
-        wget -q https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_amd64.tar.gz
-        tar -xzf tofu_${version}_linux_amd64.tar.gz
+        wget -q -O tofu.zip https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_amd64.zip
+        unzip -q tofu.zip
         sudo mv tofu /usr/local/bin/
         sudo chmod +x /usr/local/bin/tofu
         tofu version

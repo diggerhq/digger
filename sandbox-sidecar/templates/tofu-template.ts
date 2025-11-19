@@ -5,16 +5,19 @@ export function tofuTemplate(version: string) {
   return Template()
     .fromUbuntuImage("22.04")
     .setUser("root")
-    .runCmd("apt-get update && apt-get install -y wget ca-certificates")
+    .runCmd("apt-get update && apt-get install -y wget unzip ca-certificates")
     .runCmd(`
       set -e
       cd /tmp
       echo "Installing OpenTofu ${version}..."
-      wget -O tofu.tar.gz https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_amd64.tar.gz
-      tar -xzf tofu.tar.gz
+      # OpenTofu releases use a zip file, not tar.gz
+      wget -O tofu.zip https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_amd64.zip
+      unzip tofu.zip
+      chmod +x tofu
       mv tofu /usr/local/bin/tofu
-      chmod +x /usr/local/bin/tofu
-      rm tofu.tar.gz
+      rm tofu.zip
+      # Verify installation
+      /usr/local/bin/tofu version
     `)
     .setUser("user");
 }
