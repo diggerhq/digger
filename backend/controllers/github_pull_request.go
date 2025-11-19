@@ -377,7 +377,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	//err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-	batchCheckRunId, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
+	batchCheckRunData, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"prNumber", prNumber,
@@ -495,7 +495,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		config.ReportTerraformOutputs,
 		coverAllImpactedProjects,
 		nil,
-		&batchCheckRunId,
+		batchCheckRunData,
 		jobsCheckRunIdsMap,
 	)
 	if err != nil {

@@ -501,7 +501,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	segment.Track(*org, repoOwner, vcsActorID, "github", "issue_digger_comment", map[string]string{"comment": commentBody})
 
 	//err = utils.SetPRCommitStatusForJobs(ghService, issueNumber, jobs)
-	batchCheckRunId, jobCheckRunIds, err := utils.SetPRCheckForJobs(ghService, issueNumber, jobs, *commitSha)
+	batchCheckRunData, jobCheckRunDataMap, err := utils.SetPRCheckForJobs(ghService, issueNumber, jobs, *commitSha)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"issueNumber", issueNumber,
@@ -559,7 +559,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"jobCount", len(impactedProjectsJobMap),
 	)
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *prSourceBranch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, &batchCheckRunId, jobCheckRunIds)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *prSourceBranch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobCheckRunDataMap)
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"issueNumber", issueNumber,

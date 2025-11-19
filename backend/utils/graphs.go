@@ -15,7 +15,7 @@ import (
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.DiggerVCSType, organisationId uint, jobsMap map[string]scheduler.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutput bool, coverAllImpactedProjects bool, VCSConnectionId *uint, batchCheckRunId *string, jobsCheckRunIdsMap map[string]string) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.DiggerVCSType, organisationId uint, jobsMap map[string]scheduler.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutput bool, coverAllImpactedProjects bool, VCSConnectionId *uint, batchCheckRunData *CheckRunData, jobsCheckRunIdsMap map[string]CheckRunData) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	slog.Info("Converting jobs to Digger jobs",
 		"jobType", jobType,
 		"vcsType", vcsType,
@@ -72,7 +72,13 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 		)
 	}
 
-	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId, aiSummaryCommentId, reportTerraformOutput, coverAllImpactedProjects, VCSConnectionId, commitSha, batchCheckRunId)
+	var batchCheckRunId *string = nil
+	var batchCheckRunUrl *string = nil
+	if batchCheckRunData != nil {
+		batchCheckRunId = &batchCheckRunData.Id
+		batchCheckRunUrl = &batchCheckRunData.Url
+	}
+	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId, aiSummaryCommentId, reportTerraformOutput, coverAllImpactedProjects, VCSConnectionId, commitSha, batchCheckRunId, batchCheckRunUrl)
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
@@ -94,16 +100,16 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 
 	visit := func(value string) bool {
 		var jobCheckRunId *string = nil
+		var jobCheckRunUrl *string = nil
 		if jobsCheckRunIdsMap != nil {
 			if v, ok := jobsCheckRunIdsMap[value]; ok {
-				jobCheckRunId = &v
-			} else {
-				jobCheckRunId = nil
+				jobCheckRunId = &v.Id
+				jobCheckRunUrl = &v.Url
 			}
 		}
 		if predecessorMap[value] == nil || len(predecessorMap[value]) == 0 {
 			slog.Debug("Processing node with no parents", "projectName", value)
-			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId)
+			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl)
 			if err != nil {
 				slog.Error("Failed to create job",
 					"projectName", value,
@@ -140,7 +146,7 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, vcsType models.Dig
 				parent := edge.Source
 				parentDiggerJob := result[parent]
 
-				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId)
+				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl)
 				if err != nil {
 					slog.Error("Failed to create child job",
 						"projectName", value,

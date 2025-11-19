@@ -166,7 +166,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 
 	}
 
-	batch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationid, repoOwner, repoName, repoFullName, 0, "", branch, scheduler.DiggerCommandPlan, nil, 0, "", true, false, nil, "", nil)
+	batch, err := models.DB.CreateDiggerBatch(models.DiggerVCSGithub, installationid, repoOwner, repoName, repoFullName, 0, "", branch, scheduler.DiggerCommandPlan, nil, 0, "", true, false, nil, "", nil, nil)
 	if err != nil {
 		log.Printf("error creating the batch: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error creating batch entry")})

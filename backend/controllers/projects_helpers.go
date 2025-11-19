@@ -4,13 +4,110 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
+	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 )
+
+
+func GenerateChecksSummaryForBatch(prService ci.PullRequestService, batch *models.DiggerBatch) (string, error) {
+	summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
+	if summaryEndpoint == "" {
+		slog.Error("DIGGER_AI_SUMMARY_ENDPOINT not set")
+		return"", fmt.Errorf("could not generate AI summary, ai summary endpoint missing")
+	}
+	apiToken := os.Getenv("DIGGER_AI_SUMMARY_API_TOKEN")
+
+	jobs, err := models.DB.GetDiggerJobsForBatch(batch.ID)
+	if err != nil {
+		slog.Error("Could not get jobs for batch",
+			"batchId", batch.ID,
+			"error", err,
+		)
+
+		return "", fmt.Errorf("could not get jobs for batch: %v", err)
+	}
+
+	terraformOutputs := ""
+	for _, job := range jobs {
+		var jobSpec orchestrator_scheduler.JobJson
+		err := json.Unmarshal(job.SerializedJobSpec, &jobSpec)
+		if err != nil {
+			slog.Error("Could not unmarshal job spec",
+				"jobId", job.DiggerJobID,
+				"error", err,
+			)
+
+			return "", fmt.Errorf("could not summarize plans due to unmarshalling error: %v", err)
+		}
+
+		projectName := jobSpec.ProjectName
+		slog.Debug("Adding Terraform output for project",
+			"projectName", projectName,
+			"jobId", job.DiggerJobID,
+			"outputLength", len(job.TerraformOutput),
+		)
+
+		terraformOutputs += fmt.Sprintf("<PLAN_START>terraform output for %v: %v <PLAN_END>\n\n", projectName, job.TerraformOutput)
+	}
+
+	aiSummary, err := utils.GetAiSummaryFromTerraformPlans(terraformOutputs, summaryEndpoint, apiToken)
+	if err != nil {
+		slog.Error("Could not generate AI summary from Terraform outputs",
+			"batchId", batch.ID,
+			"error", err,
+		)
+
+		return "", fmt.Errorf("could not summarize terraform outputs: %v", err)
+	}
+
+	summary := ""
+	if aiSummary != "FOUR_OH_FOUR" {
+		summary = fmt.Sprintf("**AI summary:** %v", aiSummary)
+	}
+
+
+	return summary, nil
+}
+
+func GenerateChecksSummaryForJob(prService ci.PullRequestService, job *models.DiggerJob) (string, error) {
+	batch := job.Batch
+	summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
+	if summaryEndpoint == "" {
+		slog.Error("AI summary endpoint not configured", "batch", batch.ID, "jobId", job.ID, "DiggerJobId", job.DiggerJobID)
+		return"", fmt.Errorf("could not generate AI summary, ai summary endpoint missing")
+	}
+	apiToken := os.Getenv("DIGGER_AI_SUMMARY_API_TOKEN")
+
+	if job.TerraformOutput == "" {
+		slog.Warn("Terraform output not set yet, ignoring this call")
+		return "", nil
+	}
+	terraformOutput := fmt.Sprintf("<PLAN_START>Terraform output for: %v<PLAN_END>\n\n", job.TerraformOutput)
+	aiSummary, err := utils.GetAiSummaryFromTerraformPlans(terraformOutput, summaryEndpoint, apiToken)
+	if err != nil {
+		slog.Error("Could not generate AI summary from Terraform outputs",
+			"batchId", batch.ID,
+			"error", err,
+		)
+
+		return "", fmt.Errorf("could not summarize terraform outputs: %v", err)
+	}
+
+	summary := ""
+	if aiSummary != "FOUR_OH_FOUR" {
+		summary = fmt.Sprintf("**AI summary:** %v", aiSummary)
+	}
+	return summary, nil
+}
+
+
+
 
 func UpdateCommitStatusForBatch(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
 	slog.Info("Updating PR status for batch",
@@ -154,11 +251,16 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 		return fmt.Errorf("error generating realtime comment message: %v", err)
 	}
 
+	summary, err := GenerateChecksSummaryForBatch(ghPrService, batch)
+	if err != nil {
+		slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+	}
+
 	if isPlanBatch {
-		ghPrService.UpdateCheckRun(*batch.CheckRunId, serializedBatch.ToCheckRunStatus(), serializedBatch.ToCheckRunConclusion(), "1/1 planned", "summary goes here", message)
+		ghPrService.UpdateCheckRun(*batch.CheckRunId, serializedBatch.ToCheckRunStatus(), serializedBatch.ToCheckRunConclusion(), "Plans Summary", summary, message)
 	} else {
 		if disableDiggerApplyStatusCheck == false {
-			ghPrService.UpdateCheckRun(*batch.CheckRunId, serializedBatch.ToCheckRunStatus(), serializedBatch.ToCheckRunConclusion(), "1/1 applied", "summary goes here", message)
+			ghPrService.UpdateCheckRun(*batch.CheckRunId, serializedBatch.ToCheckRunStatus(), serializedBatch.ToCheckRunConclusion(), "Apply Summary", summary, message)
 		}
 	}
 	return nil
@@ -258,16 +360,22 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 		job.TerraformOutput +
 		"```\n"
 
-	title := fmt.Sprintf("%v created %v updated %v deleted", job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
+
+	summary, err := GenerateChecksSummaryForJob(ghService, job)
+	if err != nil {
+		slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+	}
 
 	slog.Debug("Updating PR status for job", "jobId", job.DiggerJobID, "status", status, "conclusion", conclusion)
 	if isPlan {
-		_, err = ghService.UpdateCheckRun(*job.CheckRunId, status, conclusion, title, "", text)
+		title := fmt.Sprintf("%v to create %v to update %v to delete", job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
+		_, err = ghService.UpdateCheckRun(*job.CheckRunId, status, conclusion, title, summary, text)
 		if err != nil {
 			slog.Error("Error updating PR status for job", "error", err)
 		}
 	} else {
-		_, err = ghService.UpdateCheckRun(*job.CheckRunId, status, conclusion, title, "", text)
+		title := fmt.Sprintf("%v created %v updated %v deleted", job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
+		_, err = ghService.UpdateCheckRun(*job.CheckRunId, status, conclusion, title, summary, text)
 		slog.Error("Error updating PR status for job", "error", err)
 	}
 	return nil

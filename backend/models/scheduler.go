@@ -44,6 +44,7 @@ type DiggerBatch struct {
 	CommitSha                string
 	CommentId                *int64
 	CheckRunId               *string
+	CheckRunUrl              *string
 	AiSummaryCommentId       string
 	Status                   orchestrator_scheduler.DiggerBatchStatus
 	BranchName               string
@@ -73,6 +74,7 @@ type DiggerJob struct {
 	PRCommentUrl                 string
 	PRCommentId                  *int64
 	CheckRunId                   *string
+	CheckRunUrl                  *string
 	DiggerJobSummary             DiggerJobSummary
 	DiggerJobSummaryID           uint
 	SerializedJobSpec            []byte

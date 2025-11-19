@@ -330,9 +330,6 @@ func (svc GithubService) CreateCheckRun(name string, status string, conclusion s
 
 	ctx := context.Background()
 	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repoName, opts)
-
-	slog.Debug("created check run", "checkRunId", *checkRun.ID, "externalId", *checkRun.ExternalID)
-
 	return checkRun, err
 }
 
