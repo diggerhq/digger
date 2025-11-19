@@ -267,7 +267,7 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 				cr, err = ghService.CreateCheckRun(job.GetProjectAlias()+"/plan", "in_progress", "", "Waiting for plan..." , "", "Plan result will appear here", commitSha)
 				jobCheckRunIds[job.ProjectName] = CheckRunData{
 						Id: strconv.FormatInt(*cr.ID, 10),
-						Url: *cr.URL,
+						Url: *cr.HTMLURL,
 					}
 
 			case "digger apply":
@@ -294,19 +294,20 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 	}
 
 	// Report aggregate status for digger/plan or digger/apply
+	jobsSummaryTable := GetInitialJobSummary(jobs)
 	if len(jobs) > 0 {
 		var err error
 		var cr *github.CheckRun
 		if scheduler.IsPlanJobs(jobs) {
 			slog.Debug("Setting aggregate plan status", "prNumber", prNumber)
-			cr, err = ghService.CreateCheckRun("digger/plan", "in_progress", "", "Pending start..." , "", "Planning Summary will appear here", commitSha)
+			cr, err = ghService.CreateCheckRun("digger/plan", "in_progress", "", "Pending start..." , "", jobsSummaryTable, commitSha)
 			batchCheckRunId = CheckRunData{
 				Id: strconv.FormatInt(*cr.ID, 10),
 				Url: *cr.HTMLURL,
 			}
 		} else {
 			slog.Debug("Setting aggregate apply status", "prNumber", prNumber)
-			cr, err = ghService.CreateCheckRun("digger/apply", "in_progress", "", "Pending start..." , "", "Apply Summary will appear here", commitSha)
+			cr, err = ghService.CreateCheckRun("digger/apply", "in_progress", "", "Pending start..." , "", jobsSummaryTable, commitSha)
 			batchCheckRunId = CheckRunData{
 				Id: strconv.FormatInt(*cr.ID, 10),
 				Url: *cr.HTMLURL,

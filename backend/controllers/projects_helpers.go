@@ -8,14 +8,13 @@ import (
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/digger_config"
 	orchestrator_scheduler "github.com/diggerhq/digger/libs/scheduler"
 )
 
 
-func GenerateChecksSummaryForBatch(prService ci.PullRequestService, batch *models.DiggerBatch) (string, error) {
+func GenerateChecksSummaryForBatch( batch *models.DiggerBatch) (string, error) {
 	summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
 	if summaryEndpoint == "" {
 		slog.Error("DIGGER_AI_SUMMARY_ENDPOINT not set")
@@ -68,14 +67,13 @@ func GenerateChecksSummaryForBatch(prService ci.PullRequestService, batch *model
 
 	summary := ""
 	if aiSummary != "FOUR_OH_FOUR" {
-		summary = fmt.Sprintf("**AI summary:** %v", aiSummary)
+		summary = fmt.Sprintf(":sparkles: **AI summary:** %v", aiSummary)
 	}
-
 
 	return summary, nil
 }
 
-func GenerateChecksSummaryForJob(prService ci.PullRequestService, job *models.DiggerJob) (string, error) {
+func GenerateChecksSummaryForJob( job *models.DiggerJob) (string, error) {
 	batch := job.Batch
 	summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
 	if summaryEndpoint == "" {
@@ -100,9 +98,15 @@ func GenerateChecksSummaryForJob(prService ci.PullRequestService, job *models.Di
 	}
 
 	summary := ""
-	if aiSummary != "FOUR_OH_FOUR" {
-		summary = fmt.Sprintf("**AI summary:** %v", aiSummary)
+
+	if job.WorkflowRunUrl != nil {
+		summary += fmt.Sprintf(":link: <a href='%v'>CI job</a>\n\n", *job.WorkflowRunUrl )
 	}
+
+	if aiSummary != "FOUR_OH_FOUR" {
+		summary += fmt.Sprintf(":sparkles: **AI summary:** %v", aiSummary)
+	}
+
 	return summary, nil
 }
 
@@ -251,7 +255,7 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 		return fmt.Errorf("error generating realtime comment message: %v", err)
 	}
 
-	summary, err := GenerateChecksSummaryForBatch(ghPrService, batch)
+	summary, err := GenerateChecksSummaryForBatch(batch)
 	if err != nil {
 		slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
 	}
@@ -361,7 +365,7 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 		"```\n"
 
 
-	summary, err := GenerateChecksSummaryForJob(ghService, job)
+	summary, err := GenerateChecksSummaryForJob(job)
 	if err != nil {
 		slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
 	}

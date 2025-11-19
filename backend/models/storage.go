@@ -966,6 +966,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 		Status: scheduler.DiggerJobCreated,
 		BatchID: &batchIdStr,
 		CheckRunId: checkRunId,
+		CheckRunUrl: checkRunUrl,
 		SerializedJobSpec: serializedJob,
 		DiggerJobSummary: *summary,
 		WorkflowRunUrl: &workflowUrl,

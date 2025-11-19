@@ -201,6 +201,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			commentReporterManager.UpdateComment(":construction_worker: No projects impacted")
 		}
 		err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
+		_, _, err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
 		return nil
 	}
 

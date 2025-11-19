@@ -133,9 +133,15 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		}
 
 		// Safe handling of WorkflowRunUrl pointer
-		workflowUrl := "#"
+
+		var checkRunUrl = "#"
+		if job.CheckRunUrl != nil {
+			checkRunUrl = *job.CheckRunUrl
+		}
+
+		workflowRunUrl := "#"
 		if job.WorkflowRunUrl != nil {
-			workflowUrl = *job.WorkflowRunUrl
+			workflowRunUrl = *job.WorkflowRunUrl
 		}
 
 		// Get project name from job spec
@@ -173,9 +179,9 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
 			projectDisplayName,
-			workflowUrl,
+			workflowRunUrl,
 			job.Status.ToString(),
-			prCommentUrl,
+			checkRunUrl,
 			jobTypeTitle,
 			resourcesCreated,
 			resourcesUpdated,
