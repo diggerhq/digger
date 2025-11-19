@@ -187,14 +187,14 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	// Update run status to "planning"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "planning"); err != nil {
 		logger.Error("failed to update status to planning", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to update run status: %w", err)
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to update run status: %v", err))
 	}
 	logger.Info("updated run status to planning")
 
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
 	if err != nil {
-		return fmt.Errorf("failed to get configuration version: %w", err)
+		return e.handlePlanError(ctx, run.ID, run.PlanID, logger, fmt.Sprintf("Failed to get configuration version: %v", err))
 	}
 
 	// Check if configuration was uploaded

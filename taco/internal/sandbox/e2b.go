@@ -30,15 +30,10 @@ func NewE2BSandbox(cfg E2BConfig) (Sandbox, error) {
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("E2B sandbox requires an API key")
 	}
-	if cfg.PollInterval <= 0 {
-		cfg.PollInterval = 5 * time.Second
-	}
-	if cfg.PollTimeout <= 0 {
-		cfg.PollTimeout = 30 * time.Minute
-	}
-	if cfg.HTTPTimeout <= 0 {
-		cfg.HTTPTimeout = 60 * time.Second
-	}
+	// Timeouts are configured via env vars in config.go with sensible defaults:
+	// - PollInterval: 5s (OPENTACO_E2B_POLL_INTERVAL)
+	// - PollTimeout: 30m (OPENTACO_E2B_POLL_TIMEOUT)
+	// - HTTPTimeout: 60s (OPENTACO_E2B_HTTP_TIMEOUT)
 
 	return &e2bSandbox{
 		cfg: cfg,
@@ -56,6 +51,14 @@ func (s *e2bSandbox) ExecutePlan(ctx context.Context, req *PlanRequest) (*PlanRe
 	if req == nil {
 		return nil, fmt.Errorf("plan request cannot be nil")
 	}
+	
+	// Validate engine field is set
+	if req.Engine == "" {
+		return nil, fmt.Errorf("engine field is required but was empty")
+	}
+	if req.Engine != "terraform" && req.Engine != "tofu" {
+		return nil, fmt.Errorf("invalid engine %q, must be 'terraform' or 'tofu'", req.Engine)
+	}
 
 	jobID, err := s.startRun(ctx, e2bRunRequest{
 		Operation:              "plan",
@@ -66,6 +69,7 @@ func (s *e2bSandbox) ExecutePlan(ctx context.Context, req *PlanRequest) (*PlanRe
 		ConfigurationVersionID: req.ConfigurationVersionID,
 		IsDestroy:              req.IsDestroy,
 		TerraformVersion:       req.TerraformVersion,
+		Engine:                 req.Engine,
 		WorkingDirectory:       req.WorkingDirectory,
 		ConfigArchive:          base64.StdEncoding.EncodeToString(req.ConfigArchive),
 		State:                  encodeOptional(req.State),
@@ -108,6 +112,14 @@ func (s *e2bSandbox) ExecuteApply(ctx context.Context, req *ApplyRequest) (*Appl
 	if req == nil {
 		return nil, fmt.Errorf("apply request cannot be nil")
 	}
+	
+	// Validate engine field is set
+	if req.Engine == "" {
+		return nil, fmt.Errorf("engine field is required but was empty")
+	}
+	if req.Engine != "terraform" && req.Engine != "tofu" {
+		return nil, fmt.Errorf("invalid engine %q, must be 'terraform' or 'tofu'", req.Engine)
+	}
 
 	jobID, err := s.startRun(ctx, e2bRunRequest{
 		Operation:              "apply",
@@ -118,6 +130,7 @@ func (s *e2bSandbox) ExecuteApply(ctx context.Context, req *ApplyRequest) (*Appl
 		ConfigurationVersionID: req.ConfigurationVersionID,
 		IsDestroy:              req.IsDestroy,
 		TerraformVersion:       req.TerraformVersion,
+		Engine:                 req.Engine,
 		WorkingDirectory:       req.WorkingDirectory,
 		ConfigArchive:          base64.StdEncoding.EncodeToString(req.ConfigArchive),
 		State:                  encodeOptional(req.State),
@@ -154,31 +167,58 @@ func (s *e2bSandbox) startRun(ctx context.Context, payload e2bRunRequest) (strin
 		return "", fmt.Errorf("failed to marshal sandbox payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.endpoint(e2bRunsPath), bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("failed to build sandbox request: %w", err)
-	}
-	s.decorateHeaders(req)
+	// Retry logic for transient failures (network issues, sidecar temporarily unavailable)
+	maxRetries := 3
+	var lastErr error
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		if attempt > 1 {
+			// Exponential backoff: 1s, 2s, 4s
+			backoff := time.Duration(1<<uint(attempt-2)) * time.Second
+			select {
+			case <-ctx.Done():
+				return "", fmt.Errorf("context cancelled during retry backoff: %w", ctx.Err())
+			case <-time.After(backoff):
+			}
+		}
 
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to start sandbox run: %w", err)
-	}
-	defer resp.Body.Close()
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.endpoint(e2bRunsPath), bytes.NewReader(body))
+		if err != nil {
+			return "", fmt.Errorf("failed to build sandbox request: %w", err)
+		}
+		s.decorateHeaders(req)
 
-	if resp.StatusCode >= 300 {
-		msg, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("sandbox returned %d: %s", resp.StatusCode, strings.TrimSpace(string(msg)))
-	}
+		resp, err := s.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to start sandbox run (attempt %d/%d): %w", attempt, maxRetries, err)
+			continue // Retry on network errors
+		}
+		defer resp.Body.Close()
 
-	var startResp e2bRunStartResponse
-	if err := json.NewDecoder(resp.Body).Decode(&startResp); err != nil {
-		return "", fmt.Errorf("failed to decode sandbox start response: %w", err)
+		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
+			// Server error - retry
+			msg, _ := io.ReadAll(resp.Body)
+			lastErr = fmt.Errorf("sandbox returned %d (attempt %d/%d): %s", resp.StatusCode, attempt, maxRetries, strings.TrimSpace(string(msg)))
+			continue
+		}
+
+		if resp.StatusCode >= 300 {
+			// Client error - don't retry
+			msg, _ := io.ReadAll(resp.Body)
+			return "", fmt.Errorf("sandbox returned %d: %s", resp.StatusCode, strings.TrimSpace(string(msg)))
+		}
+
+		var startResp e2bRunStartResponse
+		if err := json.NewDecoder(resp.Body).Decode(&startResp); err != nil {
+			return "", fmt.Errorf("failed to decode sandbox start response: %w", err)
+		}
+		if startResp.ID == "" {
+			return "", fmt.Errorf("sandbox did not return a run identifier")
+		}
+		return startResp.ID, nil
 	}
-	if startResp.ID == "" {
-		return "", fmt.Errorf("sandbox did not return a run identifier")
-	}
-	return startResp.ID, nil
+	
+	return "", fmt.Errorf("failed to start sandbox run after %d attempts: %w", maxRetries, lastErr)
 }
 
 func (s *e2bSandbox) waitForCompletion(ctx context.Context, runID string) (*e2bRunStatusResponse, error) {
@@ -286,6 +326,7 @@ type e2bRunRequest struct {
 	ConfigurationVersionID string            `json:"configuration_version_id"`
 	IsDestroy              bool              `json:"is_destroy"`
 	TerraformVersion       string            `json:"terraform_version,omitempty"`
+	Engine                 string            `json:"engine,omitempty"`
 	WorkingDirectory       string            `json:"working_directory,omitempty"`
 	ConfigArchive          string            `json:"config_archive"`
 	State                  string            `json:"state,omitempty"`

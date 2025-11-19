@@ -6,6 +6,7 @@ import { JobStore } from "./jobs/jobStore.js";
 import { createRunner } from "./runners/index.js";
 import { JobRunner } from "./jobs/jobRunner.js";
 import { createRunRouter } from "./routes/runRoutes.js";
+import { validateTemplates } from "./templateRegistry.js";
 
 const config = loadConfig();
 const app = express();
@@ -34,6 +35,23 @@ app.use(
       .json({ error: err.name || "error", message: err.message });
   },
 );
+
+// Validate templates at startup (async)
+validateTemplates(config.e2b.apiKey)
+  .then((results) => {
+    const failed = results.filter((r) => !r.valid);
+    if (failed.length > 0) {
+      logger.warn(
+        { failedTemplates: failed.map((f) => f.templateId) },
+        "Some E2B templates failed validation - they may not exist or be inaccessible",
+      );
+    } else {
+      logger.info("All E2B templates validated successfully");
+    }
+  })
+  .catch((err) => {
+    logger.error({ err }, "Failed to validate E2B templates");
+  });
 
 app.listen(config.port, () => {
   logger.info(

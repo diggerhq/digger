@@ -99,7 +99,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	// Allow apply from "planned" (waiting for confirmation) or "apply_queued" status
 	if run.Status != "planned" && run.Status != "apply_queued" {
 		logger.Error("run cannot be applied", slog.String("status", run.Status))
-		return fmt.Errorf("run cannot be applied in status: %s", run.Status)
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Run cannot be applied in status: %s", run.Status))
 	}
 
 	// Acquire lock before starting terraform apply
@@ -149,7 +149,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	// Update run status to "applying"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "applying"); err != nil {
 		logger.Error("failed to update run status", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to update run status: %w", err)
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to update run status: %v", err))
 	}
 
 	logger.Info("updated run status to applying")
@@ -157,7 +157,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
 	if err != nil {
-		return fmt.Errorf("failed to get configuration version: %w", err)
+		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to get configuration version: %v", err))
 	}
 
 	// Download configuration archive

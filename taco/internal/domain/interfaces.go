@@ -120,6 +120,32 @@ type RemoteRunActivityRepository interface {
 	CreateActivity(ctx context.Context, activity *RemoteRunActivity) (string, error)
 	MarkRunning(ctx context.Context, activityID string, startedAt time.Time, sandboxProvider string) error
 	MarkCompleted(ctx context.Context, activityID string, status string, completedAt time.Time, duration time.Duration, sandboxJobID *string, errorMessage *string) error
+	
+	// Query operations
+	ListActivities(ctx context.Context, filters ActivityFilters) ([]*RemoteRunActivity, error)
+	GetUsageSummary(ctx context.Context, orgID string, startDate, endDate *time.Time) (*UsageSummary, error)
+}
+
+// ActivityFilters for querying remote run activities
+type ActivityFilters struct {
+	OrgID     string
+	UnitID    *string
+	Status    *string
+	StartDate *time.Time
+	EndDate   *time.Time
+	Limit     int
+	Offset    int
+}
+
+// UsageSummary aggregates remote run usage for billing
+type UsageSummary struct {
+	TotalRuns        int
+	TotalMinutes     float64
+	SuccessfulRuns   int
+	FailedRuns       int
+	ByOperation      map[string]int     // "plan" -> count, "apply" -> count
+	ByUnit           map[string]float64 // unit_id -> minutes
+	EstimatedCostUSD float64            // Based on minutes * rate
 }
 
 // ============================================

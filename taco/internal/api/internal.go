@@ -29,10 +29,14 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	// Create repositories first (needed for webhook middleware)
 	var orgRepo domain.OrganizationRepository
 	var userRepo domain.UserRepository
+	var remoteRunActivityRepo domain.RemoteRunActivityRepository
 	
 	if deps.QueryStore != nil {
 		orgRepo = repositories.NewOrgRepositoryFromQueryStore(deps.QueryStore)
 		userRepo = repositories.NewUserRepositoryFromQueryStore(deps.QueryStore)
+		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
+			remoteRunActivityRepo = repositories.NewRemoteRunActivityRepository(db)
+		}
 	}
 
 	// Create internal group with webhook auth
@@ -145,7 +149,6 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 	var runRepo domain.TFERunRepository
 	var planRepo domain.TFEPlanRepository
 	var configVerRepo domain.TFEConfigurationVersionRepository
-	var remoteRunActivityRepo domain.RemoteRunActivityRepository
 	
 	if deps.QueryStore != nil {
 		if db := repositories.GetDBFromQueryStore(deps.QueryStore); db != nil {
@@ -154,7 +157,6 @@ func RegisterInternalRoutes(e *echo.Echo, deps Dependencies) {
 			runRepo = repositories.NewTFERunRepository(db)
 			planRepo = repositories.NewTFEPlanRepository(db)
 			configVerRepo = repositories.NewTFEConfigurationVersionRepository(db)
-			remoteRunActivityRepo = repositories.NewRemoteRunActivityRepository(db)
 			log.Println("TFE repositories initialized successfully (internal routes)")
 		}
 	}

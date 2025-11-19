@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Lock, Unlock, MoreVertical, History, Trash2, Download, Upload, RefreshCcw, Copy, Check, ArrowUpRight, Save } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from '@/hooks/use-toast'
-import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn, downloadLatestStateFn, restoreUnitStateVersionFn } from '@/api/statesman_serverFunctions'
+import { getUnitFn, getUnitVersionsFn, lockUnitFn, unlockUnitFn, getUnitStatusFn, deleteUnitFn, downloadLatestStateFn, restoreUnitStateVersionFn, updateUnitFn } from '@/api/statesman_serverFunctions'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -150,15 +150,25 @@ function RouteComponent() {
   })
   
   // Settings state - handle null/undefined with sensible defaults
+  // Track versions separately for each engine to avoid confusion when switching
   const [engine, setEngine] = useState<'terraform' | 'tofu'>(
     (unit.tfe_engine as 'terraform' | 'tofu') || 'terraform'
   )
-  const [version, setVersion] = useState(
-    unit.tfe_terraform_version && unit.tfe_terraform_version.trim() !== '' 
+  const [terraformVersion, setTerraformVersion] = useState(
+    unit.tfe_engine === 'terraform' && unit.tfe_terraform_version && unit.tfe_terraform_version.trim() !== '' 
       ? unit.tfe_terraform_version 
       : '1.5.5'
   )
+  const [tofuVersion, setTofuVersion] = useState(
+    unit.tfe_engine === 'tofu' && unit.tfe_terraform_version && unit.tfe_terraform_version.trim() !== '' 
+      ? unit.tfe_terraform_version 
+      : '1.6.0'
+  )
   const [isSavingSettings, setIsSavingSettings] = useState(false)
+  
+  // Get the current version based on selected engine
+  const currentVersion = engine === 'terraform' ? terraformVersion : tofuVersion
+  const setCurrentVersion = engine === 'terraform' ? setTerraformVersion : setTofuVersion
 
   const handleUnlock = async () => {
     try {
@@ -305,18 +315,19 @@ function RouteComponent() {
   const handleUpdateSettings = async () => {
     setIsSavingSettings(true)
     try {
-      const { updateUnit } = await import('@/api/statesman_units')
-      await updateUnit(
-        organisationId || '',
-        user?.id || '',
-        user?.email || '',
-        unit.id,
-        undefined, // tfeAutoApply
-        undefined, // tfeExecutionMode
-        version,
-        engine,
-        undefined  // tfeWorkingDirectory
-      )
+      await updateUnitFn({
+        data: {
+          userId: user?.id || '',
+          organisationId: organisationId || '',
+          email: user?.email || '',
+          unitId: unit.id,
+          tfeAutoApply: undefined,
+          tfeExecutionMode: undefined,
+          tfeTerraformVersion: currentVersion,
+          tfeEngine: engine,
+          tfeWorkingDirectory: undefined
+        }
+      })
       toast({
         title: 'Settings updated',
         description: 'Unit settings were updated successfully.',
@@ -487,12 +498,6 @@ function RouteComponent() {
                           value={engine}
                           onValueChange={(v) => {
                             setEngine(v as 'terraform' | 'tofu')
-                            // Set default version based on engine
-                            if (v === 'tofu') {
-                              setVersion('1.10.0')
-                            } else {
-                              setVersion('1.5.5')
-                            }
                           }}
                           className="flex gap-4"
                         >
@@ -501,7 +506,6 @@ function RouteComponent() {
                             className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'terraform' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
                             onClick={() => {
                               setEngine('terraform')
-                              setVersion('1.5.5')
                             }}
                           >
                             <RadioGroupItem id="settings-engine-terraform" value="terraform" className="sr-only" />
@@ -513,7 +517,6 @@ function RouteComponent() {
                             className={`flex-1 cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/50 ${engine === 'tofu' ? 'ring-2 ring-primary border-primary' : 'border-muted'}`}
                             onClick={() => {
                               setEngine('tofu')
-                              setVersion('1.10.0')
                             }}
                           >
                             <RadioGroupItem id="settings-engine-tofu" value="tofu" className="sr-only" />
@@ -529,9 +532,9 @@ function RouteComponent() {
                       <div className="mt-2 space-y-2">
                         <Input
                           id="settings-version"
-                          value={version}
-                          onChange={(e) => setVersion(e.target.value)}
-                          placeholder={engine === 'tofu' ? '1.10.0' : '1.5.5'}
+                          value={currentVersion}
+                          onChange={(e) => setCurrentVersion(e.target.value)}
+                          placeholder={engine === 'tofu' ? '1.6.0' : '1.5.5'}
                           className="font-mono"
                         />
                         <p className="text-xs text-muted-foreground">

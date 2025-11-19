@@ -46,3 +46,46 @@ export function getFallbackTemplateId(fallbackId?: string): string {
   return fallbackId || "rki5dems9wqfm4r03t7g"; // Default E2B base template
 }
 
+/**
+ * Validate that E2B templates exist and are accessible
+ * Returns an array of validation results
+ */
+export async function validateTemplates(apiKey?: string): Promise<Array<{ templateId: string; valid: boolean; error?: string }>> {
+  if (!apiKey) {
+    return [{ templateId: "N/A", valid: false, error: "No E2B API key provided" }];
+  }
+
+  const results: Array<{ templateId: string; valid: boolean; error?: string }> = [];
+
+  // Validate each template alias
+  for (const template of TEMPLATE_REGISTRY) {
+    try {
+      // Try to resolve the template alias via E2B API
+      const response = await fetch(`https://api.e2b.dev/templates/${template.alias}`, {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+        },
+      });
+
+      if (response.ok) {
+        results.push({ templateId: template.alias, valid: true });
+      } else {
+        results.push({
+          templateId: template.alias,
+          valid: false,
+          error: `HTTP ${response.status}: ${response.statusText}`,
+        });
+      }
+    } catch (err) {
+      results.push({
+        templateId: template.alias,
+        valid: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return results;
+}
+
