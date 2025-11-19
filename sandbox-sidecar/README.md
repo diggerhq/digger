@@ -69,12 +69,12 @@ The sidecar automatically selects the best execution environment:
 2. **Runtime installation** (~1-2 seconds): For versions not in the registry, Terraform/OpenTofu is installed on-demand
 
 **Pre-built versions** (see `templates/manifest.ts`):
-- Terraform: 1.0.11, 1.3.9, 1.5.5, 1.8.5
+- Terraform: 1.0.11, 1.3.9, 1.5.7, 1.8.5
 - OpenTofu: 1.6.0, 1.10.0
 
 **Building templates**: Run `cd templates && npm run build` to build all templates defined in `manifest.ts`.
 
-Users specify the version when creating a unit in the UI (defaults to 1.5.5).
+Users specify the version when creating a unit in the UI (defaults to 1.5.7).
 
 ### E2B Runner
 

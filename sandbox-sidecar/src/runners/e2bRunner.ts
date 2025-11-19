@@ -209,8 +209,8 @@ export class E2BSandboxRunner implements SandboxRunner {
     const archiveBuffer = Buffer.from(job.payload.configArchive, "base64");
     await sandbox.files.write(archivePath, archiveBuffer.buffer);
 
-    // Extract the archive
-    await sandbox.commands.run(`cd ${workDir} && tar -xzf bundle.tar.gz`);
+    // Extract the archive (excluding any existing state files to avoid conflicts)
+    await sandbox.commands.run(`cd ${workDir} && tar -xzf bundle.tar.gz --exclude='terraform.tfstate' --exclude='terraform.tfstate.backup'`);
 
     // Determine the execution directory
     const execDir = job.payload.workingDirectory
@@ -221,7 +221,28 @@ export class E2BSandboxRunner implements SandboxRunner {
     if (job.payload.state) {
       const statePath = `${execDir}/terraform.tfstate`;
       const stateBuffer = Buffer.from(job.payload.state, "base64");
-      await sandbox.files.write(statePath, stateBuffer.buffer);
+      const stateText = stateBuffer.toString('utf-8');
+      logger.info({ 
+        stateSize: stateBuffer.length,
+        statePreview: stateText.slice(0, 200),
+        statePath
+      }, "writing state file to sandbox");
+      
+      // Write as text string instead of ArrayBuffer to avoid padding issues
+      await sandbox.files.write(statePath, stateText);
+      
+      // Verify the state was written correctly
+      const verifyResult = await sandbox.commands.run(`wc -c < ${statePath}`);
+      const writtenSize = parseInt(verifyResult.stdout.trim());
+      logger.info({ 
+        expectedSize: stateBuffer.length,
+        writtenSize,
+        match: writtenSize === stateBuffer.length
+      }, "verified state file write");
+      
+      if (writtenSize !== stateBuffer.length) {
+        throw new Error(`State file size mismatch: expected ${stateBuffer.length}, got ${writtenSize}`);
+      }
     }
 
     return execDir;
