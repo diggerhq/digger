@@ -10,6 +10,8 @@ This package hosts a lightweight Node.js/TypeScript service that exposes the
 
 ## Getting Started
 
+### Local Development
+
 ```bash
 cd sandbox-sidecar
 npm install
@@ -20,6 +22,35 @@ npm start
 ```
 
 The service listens on `PORT` (default `9100`).
+
+### Docker
+
+```bash
+# Build the image
+docker build -f Dockerfile_sidecar -t sandbox-sidecar:latest .
+
+# Run the container
+docker run -p 9100:9100 \
+  -e SANDBOX_RUNNER=e2b \
+  -e E2B_API_KEY=your-api-key \
+  -e E2B_BAREBONES_TEMPLATE_ID=your-template-id \
+  sandbox-sidecar:latest
+```
+
+### Using Pre-built Images
+
+```bash
+# Pull from GitHub Container Registry
+docker pull ghcr.io/diggerhq/sandbox-sidecar:latest
+
+# Run with environment file
+docker run -p 9100:9100 \
+  --env-file .env \
+  ghcr.io/diggerhq/sandbox-sidecar:latest
+
+# Or with Kubernetes/Helm (see helm-charts repo)
+helm install taco-sidecar diggerhq/taco-sidecar
+```
 
 ## Configuration
 
