@@ -23,7 +23,6 @@ export const TEMPLATE_REGISTRY: TemplateInfo[] = [
   { engine: "terraform", version: "1.0.11", alias: aliasFor("terraform", "1.0.11", TEMPLATE_VERSION) },
   { engine: "terraform", version: "1.3.9",  alias: aliasFor("terraform", "1.3.9",  TEMPLATE_VERSION) },
   { engine: "terraform", version: "1.5.5",  alias: aliasFor("terraform", "1.5.5",  TEMPLATE_VERSION) },
-  { engine: "terraform", version: "1.8.5",  alias: aliasFor("terraform", "1.8.5",  TEMPLATE_VERSION) },
   { engine: "tofu",      version: "1.6.0",  alias: aliasFor("tofu",      "1.6.0",  TEMPLATE_VERSION) },
   { engine: "tofu",      version: "1.10.0", alias: aliasFor("tofu",      "1.10.0", TEMPLATE_VERSION) },
 ];
