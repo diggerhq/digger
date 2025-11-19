@@ -210,7 +210,8 @@ export class E2BSandboxRunner implements SandboxRunner {
     await sandbox.files.write(archivePath, archiveBuffer.buffer);
 
     // Extract the archive (excluding any existing state files to avoid conflicts)
-    await sandbox.commands.run(`cd ${workDir} && tar -xzf bundle.tar.gz --exclude='terraform.tfstate' --exclude='terraform.tfstate.backup'`);
+    // Use gunzip + tar separately for better compatibility across tar versions
+    await sandbox.commands.run(`cd ${workDir} && gunzip -c bundle.tar.gz | tar -x --exclude='terraform.tfstate' --exclude='terraform.tfstate.backup'`);
 
     // Determine the execution directory
     const execDir = job.payload.workingDirectory
