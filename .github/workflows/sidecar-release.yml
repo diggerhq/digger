@@ -54,16 +54,20 @@ jobs:
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Set up Depot
+        uses: depot/setup-action@v1
+      
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        id: build-push
+        uses: depot/build-push-action@v1
         with:
+          project: 43l6gkbwqm
+          token: ${{ secrets.DEPOT_TOKEN }}
           context: ./sandbox-sidecar
           file: ./sandbox-sidecar/Dockerfile_sidecar
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
 
       - name: Generate artifact attestation
@@ -71,6 +75,6 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-digest: ${{ steps.build-push.outputs.digest }}
           push-to-registry: true
 
