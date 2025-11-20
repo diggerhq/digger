@@ -207,7 +207,15 @@ export class E2BSandboxRunner implements SandboxRunner {
     // Write the config archive
     const archivePath = `${workDir}/bundle.tar.gz`;
     const archiveBuffer = Buffer.from(job.payload.configArchive, "base64");
-    await sandbox.files.write(archivePath, archiveBuffer.buffer);
+    
+    // IMPORTANT: Extract exact-sized ArrayBuffer to avoid writing extra padding bytes
+    // archiveBuffer.buffer can include unused bytes if the Buffer is a slice/view of a larger ArrayBuffer
+    // This was causing intermittent "gzip: invalid header" errors
+    const exactBuffer = archiveBuffer.buffer.slice(
+      archiveBuffer.byteOffset,
+      archiveBuffer.byteOffset + archiveBuffer.byteLength
+    );
+    await sandbox.files.write(archivePath, exactBuffer);
 
     // Extract the archive (excluding any existing state files to avoid conflicts)
     // Use gunzip + tar separately for better compatibility across tar versions
