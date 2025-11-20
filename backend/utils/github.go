@@ -264,7 +264,8 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 					"prNumber", prNumber,
 					"project", job.ProjectName,
 				)
-				cr, err = ghService.CreateCheckRun(job.GetProjectAlias()+"/plan", "in_progress", "", "Waiting for plan..." , "", "Plan result will appear here", commitSha)
+				var actions []*github.CheckRunAction
+				cr, err = ghService.CreateCheckRun(job.GetProjectAlias()+"/plan", "in_progress", "", "Waiting for plan...", "", "Plan result will appear here", commitSha, actions)
 				jobCheckRunIds[job.ProjectName] = CheckRunData{
 						Id: strconv.FormatInt(*cr.ID, 10),
 						Url: *cr.HTMLURL,
@@ -275,7 +276,7 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 					"prNumber", prNumber,
 					"project", job.ProjectName,
 				)
-				cr, err = ghService.CreateCheckRun(job.GetProjectAlias()+"/apply", "in_progress", "", "Waiting for apply..." , "", "Apply result will appear here", commitSha)
+				cr, err = ghService.CreateCheckRun(job.GetProjectAlias()+"/apply", "in_progress", "", "Waiting for apply...", "", "Apply result will appear here", commitSha, nil)
 				jobCheckRunIds[job.ProjectName] = CheckRunData{
 					Id: strconv.FormatInt(*cr.ID, 10),
 					Url: *cr.URL,
@@ -300,14 +301,14 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 		var cr *github.CheckRun
 		if scheduler.IsPlanJobs(jobs) {
 			slog.Debug("Setting aggregate plan status", "prNumber", prNumber)
-			cr, err = ghService.CreateCheckRun("digger/plan", "in_progress", "", "Pending start..." , "", jobsSummaryTable, commitSha)
+			cr, err = ghService.CreateCheckRun("digger/plan", "in_progress", "", "Pending start...", "", jobsSummaryTable, commitSha, nil)
 			batchCheckRunId = CheckRunData{
 				Id: strconv.FormatInt(*cr.ID, 10),
 				Url: *cr.HTMLURL,
 			}
 		} else {
 			slog.Debug("Setting aggregate apply status", "prNumber", prNumber)
-			cr, err = ghService.CreateCheckRun("digger/apply", "in_progress", "", "Pending start..." , "", jobsSummaryTable, commitSha)
+			cr, err = ghService.CreateCheckRun("digger/apply", "in_progress", "", "Pending start...", "", jobsSummaryTable, commitSha, nil)
 			batchCheckRunId = CheckRunData{
 				Id: strconv.FormatInt(*cr.ID, 10),
 				Url: *cr.HTMLURL,
@@ -322,13 +323,13 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 		}
 	} else {
 		slog.Debug("Setting success status for empty job list", "prNumber", prNumber)
-		_, err := ghService.CreateCheckRun("digger/plan", "completed", "success", "No impacted projects" , "Check your configuration and files changed if this is unexpected", "digger/plan", commitSha)
+		_, err := ghService.CreateCheckRun("digger/plan", "completed", "success", "No impacted projects", "Check your configuration and files changed if this is unexpected", "digger/plan", commitSha, nil)
 		if err != nil {
 			slog.Error("Failed to set success plan status", "prNumber", prNumber, "error", err)
 			return nil, nil, fmt.Errorf("error setting pr status: %v", err)
 		}
 
-		_, err = ghService.CreateCheckRun("digger/apply", "completed", "success", "No impacted projects" , "Check your configuration and files changed if this is unexpected", "digger/apply", commitSha)
+		_, err = ghService.CreateCheckRun("digger/apply", "completed", "success", "No impacted projects", "Check your configuration and files changed if this is unexpected", "digger/apply", commitSha, nil)
 		if err != nil {
 			slog.Error("Failed to set success apply status", "prNumber", prNumber, "error", err)
 			return nil, nil, fmt.Errorf("error setting pr status: %v", err)
@@ -337,6 +338,30 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 
 	slog.Info("Successfully set PR status", "prNumber", prNumber)
 	return &batchCheckRunId, jobCheckRunIds, nil
+}
+
+func GetActionsForBatch(batch *models.DiggerBatch) []*github.CheckRunAction {
+	batchActions := make([]*github.CheckRunAction, 0)
+	if batch.Status == scheduler.BatchJobSucceeded {
+		batchActions = append(batchActions, &github.CheckRunAction{
+			Label:       "Apply all", // max 20 chars
+			Description: "Apply all jobs", // max 40 chars
+			Identifier:  batch.DiggerBatchID, // max 20 chars
+		})
+	}
+	return batchActions
+}
+
+func GetActionsForJob(job *models.DiggerJob) []*github.CheckRunAction {
+	batchActions := make([]*github.CheckRunAction, 0)
+	if job.Status == scheduler.DiggerJobSucceeded {
+		batchActions = append(batchActions, &github.CheckRunAction{
+			Label:       "Apply job", // max 20 chars
+			Description: "Apply this job", // max 40 chars
+			Identifier:  job.DiggerJobID, // max 20 chars
+		})
+	}
+	return batchActions
 }
 
 func GetGithubHostname() string {

@@ -2,6 +2,11 @@ package controllers
 
 import (
 	"context"
+	"log/slog"
+	"net/http"
+	"reflect"
+	"strconv"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/logging"
 	"github.com/diggerhq/digger/backend/middleware"
@@ -9,10 +14,6 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v61/github"
-	"log/slog"
-	"net/http"
-	"reflect"
-	"strconv"
 )
 
 type IssueCommentHook func(gh utils.GithubClientProvider, payload *github.IssueCommentEvent, ciBackendProvider ci_backends.CiBackendProvider) error
@@ -114,6 +115,26 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			handlePullRequestEvent(gh, event, d.CiBackendProvider, appId64)
 		}(c.Request.Context())
 
+	case *github.CheckRunEvent:
+		slog.Info("Processing CheckRunEvent",
+			"action", event.GetAction(),
+			"checkRunID", event.GetCheckRun().GetID(),
+		)
+
+		// Only care about button clicks:
+		if event.GetAction() != "requested_action" {
+			// e.g. "created", "completed", etc. – ignore for now
+			return
+		}
+
+		ra := event.GetRequestedAction()
+		if ra == nil {
+			slog.Warn("requested_action is nil in CheckRunEvent")
+			return
+		}
+
+		identifier := ra.Identifier
+		slog.Info("Processing CheckRun requested_action", "identifier", identifier)
 	default:
 		slog.Debug("Unhandled event type", "eventType", reflect.TypeOf(event))
 	}

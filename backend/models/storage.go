@@ -868,8 +868,10 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 
 func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool, VCSConnectionId *uint, commitSha string, checkRunId *string, checkRunUrl *string) (*DiggerBatch, error) {
 	uid := uuid.New()
+	diggerBatchId := uniuri.NewLen(20)
 	batch := &DiggerBatch{
 		ID:                       uid,
+		DiggerBatchID:            diggerBatchId,
 		VCS:                      vcsType,
 		VCSConnectionId:          VCSConnectionId,
 		GithubInstallationId:     githubInstallationId,

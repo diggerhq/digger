@@ -309,7 +309,7 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 }
 
 // modern check runs for github (not the commit status)
-func (svc GithubService) CreateCheckRun(name string, status string, conclusion string, title string, summary string, text string, headSHA string) (*github.CheckRun, error) {
+func (svc GithubService) CreateCheckRun(name string, status string, conclusion string, title string, summary string, text string, headSHA string, actions []*github.CheckRunAction) (*github.CheckRun, error) {
 	client := svc.Client
 	owner := svc.Owner
 	repoName := svc.RepoName
@@ -328,12 +328,32 @@ func (svc GithubService) CreateCheckRun(name string, status string, conclusion s
 		opts.Conclusion = github.String(conclusion)
 	}
 
+	if actions != nil {
+		opts.Actions = actions
+	}
+
 	ctx := context.Background()
 	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repoName, opts)
 	return checkRun, err
 }
 
-func (svc GithubService) UpdateCheckRun(checkRunId string, status string, conclusion string, title string, summary string, text string) (*github.CheckRun, error) {
+type GithubCheckRunUpdateOptions struct {
+	Status *string
+	Conclusion *string
+	Title *string
+	Summary *string
+	Text *string
+	Actions []*github.CheckRunAction
+}
+
+func (svc GithubService) UpdateCheckRun(checkRunId string, options GithubCheckRunUpdateOptions) (*github.CheckRun, error) {
+	status := options.Status
+	conclusion := options.Conclusion
+	title := options.Title
+	summary := options.Summary
+	text := options.Text
+	actions := options.Actions
+
 	slog.Debug("Updating check run",
 		"checkRunId", checkRunId,
 		"status", status,
@@ -341,6 +361,7 @@ func (svc GithubService) UpdateCheckRun(checkRunId string, status string, conclu
 		"title", title,
 		"summary", summary,
 		"text", text,
+		"actions", actions,
 	)
 	client := svc.Client
 	owner := svc.Owner
@@ -376,33 +397,49 @@ func (svc GithubService) UpdateCheckRun(checkRunId string, status string, conclu
 		}
 	}
 
+	newActions := []*github.CheckRunAction{}
+	if actions != nil {
+		newActions = actions
+	}
+
 	// Update with new values (only update if provided and non-empty)
-	if title != "" {
-		output.Title = github.String(title)
+	if title != nil {
+		output.Title = github.String(*title)
 	} else if existingCheckRun.Output != nil && existingCheckRun.Output.Title != nil {
 		output.Title = existingCheckRun.Output.Title
 	}
 
-	if summary != "" {
-		output.Summary = github.String(summary)
+	if summary != nil {
+		output.Summary = github.String(*summary)
 	} else if existingCheckRun.Output != nil && existingCheckRun.Output.Summary != nil {
 		output.Summary = existingCheckRun.Output.Summary
 	}
 
-	if text != "" {
-		output.Text = github.String(text)
+	if text != nil {
+		output.Text = github.String(*text)
 	} else if existingCheckRun.Output != nil && existingCheckRun.Output.Text != nil {
 		output.Text = existingCheckRun.Output.Text
 	}
 
-	opts := github.UpdateCheckRunOptions{
-		Name:   *existingCheckRun.Name,
-		Status: github.String(status),
-		Output: output,
+	var newStatus *string = nil
+	if status != nil {
+		newStatus = status
+	} else {
+		newStatus = existingCheckRun.Status
 	}
 
-	if conclusion != "" {
-		opts.Conclusion = github.String(conclusion)
+	opts := github.UpdateCheckRunOptions{
+		Name:   *existingCheckRun.Name,
+		Output: output,
+		Actions: newActions,
+	}
+
+	if newStatus != nil {
+		opts.Status = github.String(*newStatus)
+	}
+
+	if conclusion != nil {
+		opts.Conclusion = github.String(*conclusion)
 	}
 
 	checkRun, _, err := client.Checks.UpdateCheckRun(ctx, owner, repoName, checkRunIdInt64, opts)
@@ -411,20 +448,6 @@ func (svc GithubService) UpdateCheckRun(checkRunId string, status string, conclu
 			"inputCheckRunId", checkRunId,
 			"error", err)
 		return checkRun, err
-	}
-
-	// Log both input and output IDs for verification
-	if checkRun != nil && checkRun.ID != nil {
-		returnedIdStr := strconv.FormatInt(*checkRun.ID, 10)
-		slog.Debug("Check run updated",
-			"inputCheckRunId", checkRunId,
-			"returnedCheckRunId", returnedIdStr,
-			"externalId", checkRun.ExternalID,
-			"status", status,
-			"conclusion", conclusion)
-	} else {
-		slog.Warn("Check run updated but returned nil ID",
-			"inputCheckRunId", checkRunId)
 	}
 
 	return checkRun, err

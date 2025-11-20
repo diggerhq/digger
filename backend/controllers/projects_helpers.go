@@ -261,10 +261,32 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 	}
 
 	if isPlanBatch {
-		ghPrService.UpdateCheckRun(*batch.CheckRunId, serializedBatch.ToCheckRunStatus(), serializedBatch.ToCheckRunConclusion(), "Plans Summary", summary, message)
+		status := serializedBatch.ToCheckRunStatus()
+		conclusion := serializedBatch.ToCheckRunConclusion()
+		title := "Plans Summary"
+		opts := github.GithubCheckRunUpdateOptions{
+			&status,
+			conclusion,
+			&title,
+			&summary,
+			&message,
+			utils.GetActionsForBatch(batch),
+		}
+		ghPrService.UpdateCheckRun(*batch.CheckRunId, opts)
 	} else {
 		if disableDiggerApplyStatusCheck == false {
-			ghPrService.UpdateCheckRun(*batch.CheckRunId, serializedBatch.ToCheckRunStatus(), serializedBatch.ToCheckRunConclusion(), "Apply Summary", summary, message)
+			status := serializedBatch.ToCheckRunStatus()
+			conclusion := serializedBatch.ToCheckRunConclusion()
+			title := "Apply Summary"
+			opts := github.GithubCheckRunUpdateOptions{
+				&status,
+				conclusion,
+				&title,
+				&summary,
+				&message,
+				utils.GetActionsForBatch(batch),
+			}
+			ghPrService.UpdateCheckRun(*batch.CheckRunId, opts)
 		}
 	}
 	return nil
@@ -373,13 +395,29 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 	slog.Debug("Updating PR status for job", "jobId", job.DiggerJobID, "status", status, "conclusion", conclusion)
 	if isPlan {
 		title := fmt.Sprintf("%v to create %v to update %v to delete", job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
-		_, err = ghService.UpdateCheckRun(*job.CheckRunId, status, conclusion, title, summary, text)
+		opts := github.GithubCheckRunUpdateOptions{
+			Status:     &status,
+			Conclusion: &conclusion,
+			Title:      &title,
+			Summary:    &summary,
+			Text:       &text,
+			Actions:    utils.GetActionsForJob(job),
+		}
+		_, err = ghService.UpdateCheckRun(*job.CheckRunId, opts)
 		if err != nil {
 			slog.Error("Error updating PR status for job", "error", err)
 		}
 	} else {
 		title := fmt.Sprintf("%v created %v updated %v deleted", job.DiggerJobSummary.ResourcesCreated, job.DiggerJobSummary.ResourcesUpdated, job.DiggerJobSummary.ResourcesDeleted)
-		_, err = ghService.UpdateCheckRun(*job.CheckRunId, status, conclusion, title, summary, text)
+		opts := github.GithubCheckRunUpdateOptions{
+			Status:     &status,
+			Conclusion: &conclusion,
+			Title:      &title,
+			Summary:    &summary,
+			Text:       &text,
+			Actions:    utils.GetActionsForJob(job),
+		}
+		_, err = ghService.UpdateCheckRun(*job.CheckRunId, opts)
 		slog.Error("Error updating PR status for job", "error", err)
 	}
 	return nil

@@ -38,6 +38,7 @@ const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 type DiggerBatch struct {
 	gorm.Model
 	ID                       uuid.UUID `gorm:"primary_key"`
+	DiggerBatchID            string    `gorm:"size:20,index:idx_digger_batch_id"` // shorter version of the ID to be able to use in check run
 	Layer                    uint
 	VCS                      DiggerVCSType
 	PrNumber                 int
@@ -217,7 +218,6 @@ func GetCommitStatusForJob(job *DiggerJob) (string, error) {
 	}
 	return "", fmt.Errorf("unknown job status: %v", job.Status)
 }
-
 
 func GetCheckRunStatusForJob(job *DiggerJob) (string, error) {
 	switch job.Status {

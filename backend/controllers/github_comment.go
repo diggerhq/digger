@@ -574,6 +574,16 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"batchId", batchId,
 	)
 
+	batch, err := models.DB.GetDiggerBatch(batchId)
+	if err != nil {
+		slog.Error("Error getting Digger batch",
+			"batchId", batchId,
+			"error", err,
+		)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not retrieve created batch: %v", err))
+		return fmt.Errorf("error getting digger batch")
+	}
+
 	if config.CommentRenderMode == digger_config.CommentRenderModeGroupByModule &&
 		(*diggerCommand == scheduler.DiggerCommandPlan || *diggerCommand == scheduler.DiggerCommandApply) {
 
@@ -589,15 +599,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			return fmt.Errorf("error posting initial comments")
 		}
 
-		batch, err := models.DB.GetDiggerBatch(batchId)
-		if err != nil {
-			slog.Error("Error getting Digger batch",
-				"batchId", batchId,
-				"error", err,
-			)
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
-			return fmt.Errorf("error getting digger batch")
-		}
 
 		batch.SourceDetails, err = json.Marshal(sourceDetails)
 		if err != nil {

@@ -176,18 +176,21 @@ func (b *SerializedBatch) ToCheckRunStatus() string {
 	}
 }
 
-func (b *SerializedBatch) ToCheckRunConclusion() string {
+func (b *SerializedBatch) ToCheckRunConclusion() *string {
 	switch b.Status {
 	case BatchJobCreated:
-		return ""
+		return nil
 	case BatchJobInvalidated:
-		return "cancelled"
+		res := "cancelled"
+		return &res
 	case BatchJobFailed:
-		return "failure"
+		res := "failure"
+		return &res
 	case BatchJobSucceeded:
-		return "success"
+		res := "success"
+		return &res
 	default:
-		return ""
+		return nil
 	}
 }
 
