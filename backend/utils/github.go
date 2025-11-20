@@ -350,7 +350,7 @@ func GetActionsForBatch(batch *models.DiggerBatch) []*github.CheckRunAction {
 		batchActions = append(batchActions, &github.CheckRunAction{
 			Label:       "Apply all", // max 20 chars
 			Description: "Apply all jobs", // max 40 chars
-			Identifier:  fmt.Sprintf(batch.DiggerBatchID), // max 20 chars
+			Identifier:  fmt.Sprintf("%v:%v", CheckedRunActionBatchApply, batch.DiggerBatchID), // max 20 chars
 		})
 	}
 	return batchActions
@@ -362,7 +362,7 @@ func GetActionsForJob(job *models.DiggerJob) []*github.CheckRunAction {
 		batchActions = append(batchActions, &github.CheckRunAction{
 			Label:       "Apply job", // max 20 chars
 			Description: "Apply this job", // max 40 chars
-			Identifier:  fmt.Sprintf("ajob:%v", job.DiggerJobID), // max 20 chars
+			Identifier:  fmt.Sprintf("%v:%v", CheckedRunActionJobApply,  job.DiggerJobID), // max 20 chars
 		})
 	}
 	return batchActions
