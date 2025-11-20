@@ -8,7 +8,10 @@ import (
 
 	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/backend/utils"
+	ci_github "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-github/v61/github"
 	"gorm.io/gorm"
 )
 
@@ -84,4 +87,83 @@ func LinkGithubInstallationToOrgApi(c *gin.Context) {
 	// Return status 200
 	c.JSON(http.StatusOK, gin.H{"status": "Successfully created Github installation link"})
 	return
+}
+
+func ResyncGithubInstallationApi(c *gin.Context) {
+	type ResyncInstallationRequest struct {
+		InstallationId string `json:"installation_id"`
+	}
+
+	var request ResyncInstallationRequest
+	if err := c.BindJSON(&request); err != nil {
+		slog.Error("Error binding JSON for resync", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid request format"})
+		return
+	}
+
+	installationId, err := strconv.ParseInt(request.InstallationId, 10, 64)
+	if err != nil {
+		slog.Error("Failed to convert InstallationId to int64", "installationId", request.InstallationId, "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "installationID should be a valid integer"})
+		return
+	}
+
+	link, err := models.DB.GetGithubAppInstallationLink(installationId)
+	if err != nil {
+		slog.Error("Could not get installation link for resync", "installationId", installationId, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Could not get installation link"})
+		return
+	}
+	if link == nil {
+		slog.Warn("Installation link not found for resync", "installationId", installationId)
+		c.JSON(http.StatusNotFound, gin.H{"status": "Installation link not found"})
+		return
+	}
+
+	var installationRecord models.GithubAppInstallation
+	if err := models.DB.GormDB.Where("github_installation_id = ?", installationId).Order("updated_at desc").First(&installationRecord).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			slog.Warn("No installation records found for resync", "installationId", installationId)
+			c.JSON(http.StatusNotFound, gin.H{"status": "No installation records found"})
+			return
+		}
+		slog.Error("Failed to fetch installation record for resync", "installationId", installationId, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Could not fetch installation records"})
+		return
+	}
+
+	appId := installationRecord.GithubAppId
+	ghProvider := utils.DiggerGithubRealClientProvider{}
+
+	client, _, err := ghProvider.Get(appId, installationId)
+	if err != nil {
+		slog.Error("Failed to create GitHub client for resync", "installationId", installationId, "appId", appId, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Failed to create GitHub client"})
+		return
+	}
+
+	repos, err := ci_github.ListGithubRepos(client)
+	if err != nil {
+		slog.Error("Failed to list repos for resync", "installationId", installationId, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Failed to list repos for resync"})
+		return
+	}
+
+	installationPayload := &github.Installation{
+		ID:    github.Int64(installationId),
+		AppID: github.Int64(appId),
+	}
+	resyncEvent := &github.InstallationEvent{
+		Installation: installationPayload,
+		Repositories: repos,
+	}
+
+	if err := handleInstallationUpsertEvent(c.Request.Context(), ghProvider, resyncEvent, appId); err != nil {
+		slog.Error("Resync failed", "installationId", installationId, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Resync failed"})
+		return
+	}
+
+	slog.Info("Resync completed", "installationId", installationId, "repoCount", len(repos))
+	c.JSON(http.StatusOK, gin.H{"status": "Resync completed", "repoCount": len(repos)})
 }

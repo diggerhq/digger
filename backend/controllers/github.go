@@ -72,6 +72,24 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 				c.String(http.StatusAccepted, "Failed to handle webhook event.")
 				return
 			}
+		} else if *event.Action == "created" || *event.Action == "unsuspended" || *event.Action == "new_permissions_accepted" {
+			if err := handleInstallationUpsertEvent(c.Request.Context(), gh, event, appId64); err != nil {
+				slog.Error("Failed to handle installation upsert event", "error", err)
+				c.String(http.StatusAccepted, "Failed to handle webhook event.")
+				return
+			}
+		}
+	case *github.InstallationRepositoriesEvent:
+		slog.Info("Processing InstallationRepositoriesEvent",
+			"action", event.GetAction(),
+			"installationId", event.Installation.GetID(),
+			"added", len(event.RepositoriesAdded),
+			"removed", len(event.RepositoriesRemoved),
+		)
+		if err := handleInstallationRepositoriesEvent(c.Request.Context(), gh, event, appId64); err != nil {
+			slog.Error("Failed to handle installation repositories event", "error", err)
+			c.String(http.StatusAccepted, "Failed to handle webhook event.")
+			return
 		}
 	case *github.PushEvent:
 		slog.Info("Processing PushEvent",

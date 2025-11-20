@@ -242,6 +242,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 		githubApiGroup := apiGroup.Group("/github")
 		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
+		githubApiGroup.POST("/resync", controllers.ResyncGithubInstallationApi)
 
 		vcsApiGroup := apiGroup.Group("/connections")
 		vcsApiGroup.GET("/:id", controllers.GetVCSConnection)

@@ -5,12 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/segment"
-	"github.com/diggerhq/digger/backend/utils"
-	"github.com/diggerhq/digger/libs/ci/github"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -172,120 +169,9 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		return
 	}
 
-	slog.Debug("Getting GitHub client",
-		"appId", *installation.AppID,
-		"installationId", installationId64,
-	)
-
-	client, _, err := d.GithubClientProvider.Get(*installation.AppID, installationId64)
-	if err != nil {
-		slog.Error("Error retrieving GitHub client",
-			"appId", *installation.AppID,
-			"installationId", installationId64,
-			"error", err,
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching organisation"})
-		return
-	}
-
-	// we get repos accessible to this installation
-	slog.Debug("Listing repositories for installation", "installationId", installationId64)
-
-	repos, err := github.ListGithubRepos(client)
-	if err != nil {
-		slog.Error("Failed to list existing repositories",
-			"installationId", installationId64,
-			"error", err,
-		)
-		c.String(http.StatusInternalServerError, "Failed to list existing repos: %v", err)
-		return
-	}
-
-	// resets all existing installations (soft delete)
-	slog.Debug("Resetting existing GitHub installations",
-		"installationId", installationId,
-	)
-
-	var AppInstallation models.GithubAppInstallation
-	err = models.DB.GormDB.Model(&AppInstallation).Where("github_installation_id=?", installationId).Update("status", models.GithubAppInstallDeleted).Error
-	if err != nil {
-		slog.Error("Failed to update GitHub installations",
-			"installationId", installationId,
-			"error", err,
-		)
-		c.String(http.StatusInternalServerError, "Failed to update github installations: %v", err)
-		return
-	}
-
-	// reset all existing repos (soft delete)
-	slog.Debug("Soft deleting existing repositories",
-		"orgId", orgId,
-	)
-
-	var ExistingRepos []models.Repo
-	err = models.DB.GormDB.Delete(ExistingRepos, "organisation_id=?", orgId).Error
-	if err != nil {
-		slog.Error("Could not delete repositories",
-			"orgId", orgId,
-			"error", err,
-		)
-		c.String(http.StatusInternalServerError, "could not delete repos: %v", err)
-		return
-	}
-
-	// here we mark repos that are available one by one
-	slog.Info("Adding repositories to organization",
-		"orgId", orgId,
-		"repoCount", len(repos),
-	)
-
-	for i, repo := range repos {
-		repoFullName := *repo.FullName
-		repoOwner := strings.Split(*repo.FullName, "/")[0]
-		repoName := *repo.Name
-		repoUrl := fmt.Sprintf("https://%v/%v", utils.GetGithubHostname(), repoFullName)
-
-		slog.Debug("Processing repository",
-			"index", i+1,
-			"repoFullName", repoFullName,
-			"repoOwner", repoOwner,
-			"repoName", repoName,
-		)
-
-		_, err := models.DB.GithubRepoAdded(
-			installationId64,
-			*installation.AppID,
-			*installation.Account.Login,
-			*installation.Account.ID,
-			repoFullName,
-		)
-		if err != nil {
-			slog.Error("Error recording GitHub repository",
-				"repoFullName", repoFullName,
-				"error", err,
-			)
-			c.String(http.StatusInternalServerError, "github repos added error: %v", err)
-			return
-		}
-
-		cloneUrl := *repo.CloneURL
-		defaultBranch := *repo.DefaultBranch
-
-		_, _, err = createOrGetDiggerRepoForGithubRepo(repoFullName, repoOwner, repoName, repoUrl, installationId64, *installation.AppID, defaultBranch, cloneUrl)
-		if err != nil {
-			slog.Error("Error creating or getting Digger repo",
-				"repoFullName", repoFullName,
-				"error", err,
-			)
-			c.String(http.StatusInternalServerError, "createOrGetDiggerRepoForGithubRepo error: %v", err)
-			return
-		}
-	}
-
-	slog.Info("GitHub app callback processed successfully",
+	slog.Info("GitHub app callback processed",
 		"installationId", installationId64,
 		"orgId", orgId,
-		"repoCount", len(repos),
 	)
 
 	c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
