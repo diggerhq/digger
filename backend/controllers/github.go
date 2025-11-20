@@ -137,7 +137,7 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 		// run it as a goroutine to avoid timeouts
 		go func(ctx context.Context) {
 			defer logging.InheritRequestLogger(ctx)()
-			handleCheckRunActionEvent(gh, event, d.CiBackendProvider, appId64)
+			handleCheckRunActionEvent(gh, identifier, event, d.CiBackendProvider, appId64)
 		}(c.Request.Context())
 		slog.Info("Processing CheckRun requested_action", "identifier", identifier)
 	default:
