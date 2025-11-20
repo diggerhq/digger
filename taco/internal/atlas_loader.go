@@ -111,7 +111,12 @@ func adaptSQL(sql, dialect string) string {
 		// Fix DEFAULT clause - PostgreSQL uses single quotes for string literals
 		sql = strings.ReplaceAll(sql, "DEFAULT \"allow\"", "DEFAULT 'allow'")
 		sql = strings.ReplaceAll(sql, "DEFAULT \"active\"", "DEFAULT 'active'")
+		sql = strings.ReplaceAll(sql, "DEFAULT \"terraform\"", "DEFAULT 'terraform'")
+		sql = strings.ReplaceAll(sql, "DEFAULT \"pending\"", "DEFAULT 'pending'")
+		sql = strings.ReplaceAll(sql, "DEFAULT \"cli\"", "DEFAULT 'cli'")
 		sql = strings.ReplaceAll(sql, "DEFAULT \"\"", "DEFAULT ''")
+		// PostgreSQL doesn't have longtext, use text instead
+		sql = strings.ReplaceAll(sql, "longtext", "text")
 	case "mysql":
 		// MySQL uses backticks (already correct from SQLite)
 		sql = strings.ReplaceAll(sql, "AUTOINCREMENT", "AUTO_INCREMENT")
