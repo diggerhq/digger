@@ -92,6 +92,7 @@ type DiggerJob struct {
 	WorkflowFile    string
 	WorkflowRunUrl  *string
 	StatusUpdatedAt time.Time
+	ReporterType string `gorm:"default:'lazy'"` // temporary, to be replaced by SerializedReporterSpec
 }
 
 type DiggerJobSummary struct {

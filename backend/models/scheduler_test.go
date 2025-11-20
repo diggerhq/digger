@@ -75,7 +75,7 @@ func TestCreateDiggerJob(t *testing.T) {
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
-	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil)
+	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil, "lazy")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
@@ -87,7 +87,7 @@ func TestCreateSingleJob(t *testing.T) {
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
-	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil)
+	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil, "lazy")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
@@ -99,20 +99,20 @@ func TestFindDiggerJobsByParentJobId(t *testing.T) {
 	defer teardownSuite(t)
 
 	batchId, _ := uuid.NewUUID()
-	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil)
+	job, err := database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil, "lazy")
 	parentJobId := job.DiggerJobID
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.NotZero(t, job.ID)
 
-	job, err = database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil)
+	job, err = database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil, "lazy")
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.NotZero(t, job.ID)
 	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobID)
 	assert.Nil(t, err)
 
-	job, err = database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil)
+	job, err = database.CreateDiggerJob(batchId, []byte{100}, "digger_workflow.yml", nil, nil, "lazy")
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	err = database.CreateDiggerJobParentLink(parentJobId, job.DiggerJobID)

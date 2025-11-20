@@ -553,13 +553,19 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		slog.Debug("Created AI summary comment", "commentId", aiSummaryCommentId)
 	}
 
+
+	reporterType := "lazy"
+	if config.Reporting.CommentsEnabled == false {
+		reporterType = "noop"
+	}
+
 	slog.Info("Converting jobs to Digger jobs",
 		"issueNumber", issueNumber,
 		"command", *diggerCommand,
 		"jobCount", len(impactedProjectsJobMap),
 	)
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *prSourceBranch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobCheckRunDataMap)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, reporterType, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *prSourceBranch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobCheckRunDataMap)
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"issueNumber", issueNumber,

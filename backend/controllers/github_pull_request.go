@@ -466,6 +466,10 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		slog.Debug("Created AI summary comment", "commentId", aiSummaryCommentId)
 	}
 
+	reporterType := "lazy"
+	if config.Reporting.CommentsEnabled == false {
+		reporterType = "noop"
+	}
 	slog.Info("Converting jobs to Digger jobs",
 		"prNumber", prNumber,
 		"command", *diggerCommand,
@@ -475,30 +479,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if config.RespectLayers {
 
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(
-		*diggerCommand,
-		models.DiggerVCSGithub,
-		organisationId,
-		impactedJobsMap,
-		impactedProjectsMap,
-		projectsGraph,
-		installationId,
-		branch,
-		prNumber,
-		repoOwner,
-		repoName,
-		repoFullName,
-		commitSha,
-		commentId,
-		diggerYmlStr,
-		0,
-		aiSummaryCommentId,
-		config.ReportTerraformOutputs,
-		coverAllImpactedProjects,
-		nil,
-		batchCheckRunData,
-		jobsCheckRunIdsMap,
-	)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, reporterType, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobsCheckRunIdsMap)
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"prNumber", prNumber,

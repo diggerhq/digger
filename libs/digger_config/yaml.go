@@ -31,6 +31,7 @@ type DiggerConfigYaml struct {
 
 type ReportingConfigYaml struct {
 	AiSummary bool `yaml:"ai_summary"`
+	CommentsEnabled bool `yaml:"comments_enabled"`
 }
 
 type DependencyConfigurationYaml struct {
@@ -189,6 +190,16 @@ type TerragruntParsingConfig struct {
 	AwsRoleToAssume                *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	AwsCognitoOidcConfig           *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
 	DependsOnOrdering              *bool                       `yaml:"dependsOnOrdering,omitempty"`
+}
+
+func (c *ReportingConfigYaml) UnmarshalYAML(unmarshal func(any) error) error {
+	// set defaults
+	c.AiSummary = false
+	c.CommentsEnabled = true
+
+	// overlay YAML values
+	type plain ReportingConfigYaml
+	return unmarshal((*plain)(c))
 }
 
 func (p *ProjectYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {

@@ -960,7 +960,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	return nil
 }
 
-func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string, checkRunId *string, checkRunUrl *string) (*DiggerJob, error) {
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string, checkRunId *string, checkRunUrl *string, reporterType string) (*DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
@@ -984,6 +984,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 		DiggerJobSummary: *summary,
 		WorkflowRunUrl: &workflowUrl,
 		WorkflowFile: workflowFile,
+		ReporterType: reporterType,
 	}
 	result = db.GormDB.Save(job)
 	if result.Error != nil {

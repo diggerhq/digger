@@ -194,11 +194,13 @@ func copyReporterConfig(r *ReportingConfigYaml) ReporterConfig {
 	if r == nil {
 		return ReporterConfig{
 			AiSummary: false,
+			CommentsEnabled: true,
 		}
 	}
 
 	return ReporterConfig{
 		AiSummary: r.AiSummary,
+		CommentsEnabled: r.CommentsEnabled,
 	}
 
 }
