@@ -14,6 +14,7 @@ app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
 app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 const store = new JobStore();
 const runner = createRunner(config);
