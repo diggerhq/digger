@@ -866,9 +866,20 @@ func (db *Database) GetDiggerBatch(batchId *uuid.UUID) (*DiggerBatch, error) {
 	return batch, nil
 }
 
+func (db *Database) GetDiggerBatchFromId(diggerBatchId string) (*DiggerBatch, error) {
+	batch := &DiggerBatch{}
+	result := db.GormDB.Where("digger_batch_id=? ", diggerBatchId).Find(batch)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
+	}
+	return batch, nil
+}
+
 func (db *Database) CreateDiggerBatch(vcsType DiggerVCSType, githubInstallationId int64, repoOwner string, repoName string, repoFullname string, PRNumber int, diggerConfig string, branchName string, batchType scheduler.DiggerCommand, commentId *int64, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutputs bool, coverAllImpactedProjects bool, VCSConnectionId *uint, commitSha string, checkRunId *string, checkRunUrl *string) (*DiggerBatch, error) {
 	uid := uuid.New()
-	diggerBatchId := uniuri.NewLen(20)
+	diggerBatchId := uniuri.NewLen(7)
 	batch := &DiggerBatch{
 		ID:                       uid,
 		DiggerBatchID:            diggerBatchId,
@@ -953,7 +964,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
-	jobId := uniuri.New()
+	jobId := uniuri.NewLen(10)
 	batchIdStr := batchId.String()
 
 	summary := &DiggerJobSummary{}

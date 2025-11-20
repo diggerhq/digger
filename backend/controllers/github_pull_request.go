@@ -523,7 +523,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not retrieve created batch: %v", err))
 		return fmt.Errorf("error getting digger batch")
 	}
-
+	
 	if config.CommentRenderMode == digger_config.CommentRenderModeGroupByModule {
 		slog.Info("Using GroupByModule render mode for comments", "prNumber", prNumber)
 
