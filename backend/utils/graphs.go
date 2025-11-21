@@ -15,7 +15,7 @@ import (
 )
 
 // ConvertJobsToDiggerJobs jobs is map with project name as a key and a Job as a value
-func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType string, vcsType models.DiggerVCSType, organisationId uint, jobsMap map[string]scheduler.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId int64, diggerConfigStr string, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutput bool, coverAllImpactedProjects bool, VCSConnectionId *uint, batchCheckRunData *CheckRunData, jobsCheckRunIdsMap map[string]CheckRunData) (*uuid.UUID, map[string]*models.DiggerJob, error) {
+func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType string, vcsType models.DiggerVCSType, organisationId uint, jobsMap map[string]scheduler.Job, projectMap map[string]configuration.Project, projectsGraph graph.Graph[string, configuration.Project], githubInstallationId int64, branch string, prNumber int, repoOwner string, repoName string, repoFullName string, commitSha string, commentId *int64, diggerConfigStr string, gitlabProjectId int, aiSummaryCommentId string, reportTerraformOutput bool, coverAllImpactedProjects bool, VCSConnectionId *uint, batchCheckRunData *CheckRunData, jobsCheckRunIdsMap map[string]CheckRunData) (*uuid.UUID, map[string]*models.DiggerJob, error) {
 	slog.Info("Converting jobs to Digger jobs",
 		"jobType", jobType,
 		"vcsType", vcsType,
@@ -78,7 +78,7 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType st
 		batchCheckRunId = &batchCheckRunData.Id
 		batchCheckRunUrl = &batchCheckRunData.Url
 	}
-	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, &commentId, gitlabProjectId, aiSummaryCommentId, reportTerraformOutput, coverAllImpactedProjects, VCSConnectionId, commitSha, batchCheckRunId, batchCheckRunUrl)
+	batch, err := models.DB.CreateDiggerBatch(vcsType, githubInstallationId, repoOwner, repoName, repoFullName, prNumber, diggerConfigStr, branch, jobType, commentId, gitlabProjectId, aiSummaryCommentId, reportTerraformOutput, coverAllImpactedProjects, VCSConnectionId, commitSha, batchCheckRunId, batchCheckRunUrl)
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
 		return nil, nil, fmt.Errorf("failed to create batch: %v", err)
@@ -109,7 +109,7 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType st
 		}
 		if predecessorMap[value] == nil || len(predecessorMap[value]) == 0 {
 			slog.Debug("Processing node with no parents", "projectName", value)
-			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl, jobReporterType)
+			parentJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl, jobReporterType, value)
 			if err != nil {
 				slog.Error("Failed to create job",
 					"projectName", value,
@@ -146,7 +146,7 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType st
 				parent := edge.Source
 				parentDiggerJob := result[parent]
 
-				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl, jobReporterType)
+				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl, jobReporterType, value)
 				if err != nil {
 					slog.Error("Failed to create child job",
 						"projectName", value,

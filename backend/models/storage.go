@@ -960,7 +960,7 @@ func (db *Database) UpdateBatchStatus(batch *DiggerBatch) error {
 	return nil
 }
 
-func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string, checkRunId *string, checkRunUrl *string, reporterType string) (*DiggerJob, error) {
+func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, workflowFile string, checkRunId *string, checkRunUrl *string, reporterType string, projectName string) (*DiggerJob, error) {
 	if serializedJob == nil || len(serializedJob) == 0 {
 		return nil, fmt.Errorf("serializedJob can't be empty")
 	}
@@ -977,6 +977,7 @@ func (db *Database) CreateDiggerJob(batchId uuid.UUID, serializedJob []byte, wor
 	job := &DiggerJob{
 		DiggerJobID: jobId,
 		Status: scheduler.DiggerJobCreated,
+		ProjectName: projectName,
 		BatchID: &batchIdStr,
 		CheckRunId: checkRunId,
 		CheckRunUrl: checkRunUrl,

@@ -55,6 +55,11 @@ func UpdatePRCommentRealtime(gh GithubClientProvider, batch *models.DiggerBatch)
 		return fmt.Errorf("error requerying jobs for batch: %v", err)
 	}
 
+	if freshBatch.CommentId == nil {
+		slog.Debug("No comment id found for batch, not updating", "batchId", batch.ID)
+		return nil
+	}
+
 	if len(freshJobs) == 0 {
 		slog.Debug("No jobs found after requery", "batchId", freshBatch.ID)
 		return nil

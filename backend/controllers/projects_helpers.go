@@ -67,7 +67,7 @@ func GenerateChecksSummaryForBatch( batch *models.DiggerBatch) (string, error) {
 
 	summary := ""
 	if aiSummary != "FOUR_OH_FOUR" {
-		summary = fmt.Sprintf(":sparkles: **AI summary:** %v", aiSummary)
+		summary = fmt.Sprintf(":sparkles: **AI summary (experimental):** %v", aiSummary)
 	}
 
 	return summary, nil
@@ -104,7 +104,7 @@ func GenerateChecksSummaryForJob( job *models.DiggerJob) (string, error) {
 	}
 
 	if aiSummary != "FOUR_OH_FOUR" {
-		summary += fmt.Sprintf(":sparkles: **AI summary:** %v", aiSummary)
+		summary += fmt.Sprintf(":sparkles: **AI summary (experimental):** %v", aiSummary)
 	}
 
 	return summary, nil

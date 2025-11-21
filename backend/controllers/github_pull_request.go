@@ -200,8 +200,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			// This one is for aggregate reporting
 			commentReporterManager.UpdateComment(":construction_worker: No projects impacted")
 		}
-		err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-		_, _, err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
+		_, _, err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha, repoName, repoOwner)
 		return nil
 	}
 
@@ -378,7 +377,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	//err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-	batchCheckRunData, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha)
+	batchCheckRunData, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha, repoName, repoOwner)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"prNumber", prNumber,
@@ -479,7 +478,8 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	if config.RespectLayers {
 
 	}
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, reporterType, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobsCheckRunIdsMap)
+
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, reporterType, models.DiggerVCSGithub, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, installationId, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, &commentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobsCheckRunIdsMap)
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"prNumber", prNumber,
