@@ -418,7 +418,9 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 			Actions:    utils.GetActionsForJob(job),
 		}
 		_, err = ghService.UpdateCheckRun(*job.CheckRunId, opts)
-		slog.Error("Error updating PR status for job", "error", err)
+		if err != nil {
+			slog.Error("Error updating PR status for job", "error", err)
+		}
 	}
 	return nil
 }

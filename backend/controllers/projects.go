@@ -1349,7 +1349,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 
 		summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
 		if summaryEndpoint == "" {
-			slog.Error("AI summary endpoint not configured", "batchId", batch.ID)
+			slog.Warn("AI summary endpoint not configured, ignorning", "batchId", batch.ID)
 			updateErr := prService.EditComment(batch.PrNumber, batch.AiSummaryCommentId,
 				":x: could not generate AI summary \n\n AI summary endpoint not configured")
 			if updateErr != nil {
