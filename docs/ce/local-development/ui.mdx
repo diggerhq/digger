@@ -1,0 +1,51 @@
+---
+title: UI local setup
+---
+
+The UI is a TanStack Start app that authenticates via WorkOS and calls both backend and statesman.
+
+## Quick start
+
+1. Copy `.env.example` to `.env.local` in `ui/` and fill the essentials:
+   ```bash
+   # URLs
+   PUBLIC_URL=http://localhost:3030
+   ALLOWED_HOSTS=localhost,127.0.0.1
+
+   # WorkOS (User Management)
+   WORKOS_CLIENT_ID=<your_workos_client_id>
+   WORKOS_API_KEY=<your_workos_api_key>
+   WORKOS_COOKIE_PASSWORD=<32+ random chars>
+   WORKOS_REDIRECT_URI=http://localhost:3030/api/auth/callback
+   WORKOS_WEBHOOK_SECRET=<if using webhooks locally via tunnel>
+
+   # Backend
+   ORCHESTRATOR_BACKEND_URL=http://localhost:3000
+   ORCHESTRATOR_BACKEND_SECRET=orchestrator-secret   # matches backend DIGGER_INTERNAL_SECRET
+   ORCHESTRATOR_GITHUB_APP_URL=http://localhost:3000/github/setup  # or your app install URL
+
+   # Statesman
+   STATESMAN_BACKEND_URL=http://localhost:8080
+   STATESMAN_BACKEND_WEBHOOK_SECRET=statesman-secret  # matches OPENTACO_ENABLE_INTERNAL_ENDPOINTS
+
+   # Optional
+   DRIFT_REPORTING_BACKEND_URL=http://localhost:3004
+   DRIFT_REPORTING_BACKEND_WEBHOOK_SECRET=...
+   POSTHOG_KEY=...
+   ```
+   In WorkOS, add `http://localhost:3030/api/auth/callback` as a redirect.
+2. Install deps and run:
+   ```bash
+   cd ui
+   pnpm install   # or npm install
+   pnpm dev --host --port 3030
+   ```
+   Open `http://localhost:3030` and sign in with a WorkOS user that belongs to at least one org.
+3. Ensure backend + statesman were started and the same secrets are in place (see [Backend](./backend) and [Statesman](./statesman)).
+4. Sync the WorkOS org/user to both services using the curl snippets on those pages (required for repos/units to load).
+
+## Common errors
+
+- **NotFound/Forbidden listing units**: statesman org/user not synced or webhook secret mismatch.
+- **404 on repos or GitHub connect**: backend missing org/user, `DIGGER_ENABLE_API_ENDPOINTS` not set, or `ORCHESTRATOR_GITHUB_APP_URL` points to a non-existent path.
+- **WorkOS login succeeds but dashboard redirects to / or errors**: the signed-in user has no WorkOS org membership; add to an org and resync to services.
