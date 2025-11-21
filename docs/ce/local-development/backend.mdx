@@ -1,0 +1,61 @@
+---
+title: Backend (orchestrator) local setup
+---
+
+The backend serves orchestration APIs, GitHub app endpoints, and internal APIs the UI relies on.
+
+## Quick start
+
+1. Create `backend/.env` with the essentials (adjust DB URL/ports):
+   ```bash
+   DATABASE_URL=postgres://postgres:root@localhost:5432/postgres?sslmode=disable
+   DIGGER_INTERNAL_SECRET=orchestrator-secret          # must match UI ORCHESTRATOR_BACKEND_SECRET
+   DIGGER_ENABLE_INTERNAL_ENDPOINTS=true               # enables /_internal/*
+   DIGGER_ENABLE_API_ENDPOINTS=true                    # enables /api/*
+   HOSTNAME=http://localhost:3000                      # used for GitHub app callbacks
+   ```
+   Optional but useful:
+   - `GITHUB_APP_ID`, `GITHUB_APP_PEM`, `GITHUB_APP_WEBHOOK_SECRET` if you already have an app.
+   - `GITHUB_ORG` if you want `/github/setup` to target an org.
+2. Start the service (from `backend/`):
+   ```bash
+   set -a; source .env; set +a
+   go run main.go              # or: make start
+   ```
+   Default port: `3000`.
+
+## Make the UI happy
+
+- The UI calls `/api/*` and `/github/*` with `Authorization: Bearer $DIGGER_INTERNAL_SECRET` and `DIGGER_ORG_ID`/`DIGGER_USER_ID` headers.
+- You must upsert the WorkOS org + user the UI is authenticated as:
+  ```bash
+  SECRET=$DIGGER_INTERNAL_SECRET
+  ORG_ID=org_xxx                           # WorkOS org id
+  ORG_NAME=my-org                          # slug shown in backend
+  ADMIN_EMAIL=you@example.com
+  USER_ID=user_xxx                         # WorkOS user id
+  USER_EMAIL=$ADMIN_EMAIL
+
+  # org
+  curl -s -X POST http://localhost:3000/_internal/api/upsert_org \
+    -H "Authorization: Bearer $SECRET" \
+    -H "Content-Type: application/json" \
+    -d '{"org_name":"'"$ORG_NAME"'","external_source":"workos","external_id":"'"$ORG_ID"'","admin_email":"'"$ADMIN_EMAIL"'"}'
+
+  # user
+  curl -s -X POST http://localhost:3000/_internal/api/create_user \
+    -H "Authorization: Bearer $SECRET" \
+    -H "Content-Type: application/json" \
+    -d '{"external_source":"workos","external_id":"'"$USER_ID"'","email":"'"$USER_EMAIL"'","external_org_id":"'"$ORG_ID"'"}'
+  ```
+
+## GitHub app integration
+
+- For a quick install link, set `ORCHESTRATOR_GITHUB_APP_URL` in `ui/.env.local` to your app’s install URL (`https://github.com/apps/<app>/installations/new`).
+- To create a new app via the backend, open `http://localhost:3000/github/setup` (requires `HOSTNAME` set to a reachable URL for callbacks).
+
+## Troubleshooting
+
+- **404 on /api/repos**: ensure `DIGGER_ENABLE_API_ENDPOINTS=true` and the org/user above are created.
+- **401/403**: verify `Authorization` header uses `DIGGER_INTERNAL_SECRET`.
+- **GitHub connect 404**: set `ORCHESTRATOR_GITHUB_APP_URL` as described.

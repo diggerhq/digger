@@ -1,0 +1,54 @@
+---
+title: Statesman local setup
+---
+
+Statesman serves state storage + Terraform Cloud-compatible APIs. The UI uses its internal endpoints, so enable webhook auth and sync your org/user.
+
+## Quick start
+
+1. Set env vars:
+   ```bash
+   OPENTACO_ENABLE_INTERNAL_ENDPOINTS=statesman-secret   # must match UI STATESMAN_BACKEND_WEBHOOK_SECRET
+   OPENTACO_AUTH_DISABLE=true                            # skips OIDC for local
+   OPENTACO_STORAGE=memory                               # default; uses SQLite query backend automatically
+   # Optional: OPENTACO_SECRET_KEY for signed URLs; OPENTACO_PORT=8080
+   ```
+2. Run the service (from repo root):
+   ```bash
+   cd taco
+   go run cmd/statesman/main.go -storage memory -auth-disable   # or ./statesman with the same flags
+   ```
+   Default port: `8080`.
+
+## Sync org and user (required for UI)
+
+Statesman resolves orgs by `external_org_id` (your WorkOS org id). If it cannot resolve, `/internal/api/units` will 500.
+
+```bash
+SECRET=$OPENTACO_ENABLE_INTERNAL_ENDPOINTS
+ORG_ID=org_xxx                        # WorkOS org id
+ORG_NAME=digger-org                   # slug to store
+ORG_DISPLAY="Digger Org"
+USER_ID=user_xxx                      # WorkOS user id
+USER_EMAIL=you@example.com
+
+# create/sync org
+curl -s -X POST http://localhost:8080/internal/api/orgs/sync \
+  -H "Authorization: Bearer $SECRET" \
+  -H "X-User-ID: $USER_ID" -H "X-Email: $USER_EMAIL" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"'"$ORG_NAME"'","display_name":"'"$ORG_DISPLAY"'","external_org_id":"'"$ORG_ID"'"}'
+
+# ensure user exists in that org
+curl -s -X POST http://localhost:8080/internal/api/users \
+  -H "Authorization: Bearer $SECRET" \
+  -H "X-Org-ID: '$ORG_ID'" -H "X-User-ID: $USER_ID" -H "X-Email: $USER_EMAIL" \
+  -H "Content-Type: application/json" \
+  -d '{"subject":"'"$USER_ID"'","email":"'"$USER_EMAIL"'"}'
+```
+
+## Troubleshooting
+
+- **403**: webhook secret mismatch (`OPENTACO_ENABLE_INTERNAL_ENDPOINTS` vs UI `STATESMAN_BACKEND_WEBHOOK_SECRET`).
+- **404/500 resolving org**: org not synced; rerun the `orgs/sync` call above.
+- **SQLite quirks**: defaults to SQLite in-process; no config needed for local. For Postgres/MySQL, set `TACO_QUERY_BACKEND` and related envs (see `docs/ce/state-management/query-backend`).
