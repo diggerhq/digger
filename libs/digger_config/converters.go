@@ -194,11 +194,13 @@ func copyReporterConfig(r *ReportingConfigYaml) ReporterConfig {
 	if r == nil {
 		return ReporterConfig{
 			AiSummary: false,
+			CommentsEnabled: true,
 		}
 	}
 
 	return ReporterConfig{
 		AiSummary: r.AiSummary,
+		CommentsEnabled: r.CommentsEnabled,
 	}
 
 }
@@ -231,7 +233,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	if diggerYaml.ReportTerraformOutputs != nil {
 		diggerConfig.ReportTerraformOutputs = *diggerYaml.ReportTerraformOutputs
 	} else {
-		diggerConfig.ReportTerraformOutputs = false
+		diggerConfig.ReportTerraformOutputs = true
 	}
 
 	diggerConfig.Reporting = copyReporterConfig(diggerYaml.Reporting)

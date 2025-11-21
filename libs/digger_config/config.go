@@ -34,6 +34,7 @@ type DiggerConfig struct {
 
 type ReporterConfig struct {
 	AiSummary bool
+	CommentsEnabled bool
 }
 
 type DependencyConfiguration struct {

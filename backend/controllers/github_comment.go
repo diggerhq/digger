@@ -492,14 +492,16 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			"command", *diggerCommand,
 		)
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
+		//err = utils.SetPRCommitStatusForJobs(ghService, issueNumber, jobs)
+		_, _, err = utils.SetPRCheckForJobs(ghService, issueNumber, jobs, *commitSha, repoName, repoOwner)
 		return nil
 	}
 
 	// If we reach here then we have created a comment that would have led to more events
 	segment.Track(*org, repoOwner, vcsActorID, "github", "issue_digger_comment", map[string]string{"comment": commentBody})
 
-	err = utils.SetPRStatusForJobs(ghService, issueNumber, jobs)
+	//err = utils.SetPRCommitStatusForJobs(ghService, issueNumber, jobs)
+	batchCheckRunData, jobCheckRunDataMap, err := utils.SetPRCheckForJobs(ghService, issueNumber, jobs, *commitSha, repoName, repoOwner)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"issueNumber", issueNumber,
@@ -551,34 +553,19 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		slog.Debug("Created AI summary comment", "commentId", aiSummaryCommentId)
 	}
 
+
+	reporterType := "lazy"
+	if config.Reporting.CommentsEnabled == false {
+		reporterType = "noop"
+	}
+
 	slog.Info("Converting jobs to Digger jobs",
 		"issueNumber", issueNumber,
 		"command", *diggerCommand,
 		"jobCount", len(impactedProjectsJobMap),
 	)
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(
-		*diggerCommand,
-		"github",
-		orgId,
-		impactedProjectsJobMap,
-		impactedProjectsMap,
-		projectsGraph,
-		installationId,
-		*prSourceBranch,
-		issueNumber,
-		repoOwner,
-		repoName,
-		repoFullName,
-		*commitSha,
-		reporterCommentId,
-		diggerYmlStr,
-		0,
-		aiSummaryCommentId,
-		config.ReportTerraformOutputs,
-		coverAllImpactedProjects,
-		nil,
-	)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, reporterType, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, *prSourceBranch, issueNumber, repoOwner, repoName, repoFullName, *commitSha, &reporterCommentId, diggerYmlStr, 0, aiSummaryCommentId, config.ReportTerraformOutputs, coverAllImpactedProjects, nil, batchCheckRunData, jobCheckRunDataMap)
 	if err != nil {
 		slog.Error("Error converting jobs to Digger jobs",
 			"issueNumber", issueNumber,
@@ -592,6 +579,16 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		"issueNumber", issueNumber,
 		"batchId", batchId,
 	)
+
+	batch, err := models.DB.GetDiggerBatch(batchId)
+	if err != nil {
+		slog.Error("Error getting Digger batch",
+			"batchId", batchId,
+			"error", err,
+		)
+		commentReporterManager.UpdateComment(fmt.Sprintf(":x: Could not retrieve created batch: %v", err))
+		return fmt.Errorf("error getting digger batch")
+	}
 
 	if config.CommentRenderMode == digger_config.CommentRenderModeGroupByModule &&
 		(*diggerCommand == scheduler.DiggerCommandPlan || *diggerCommand == scheduler.DiggerCommandApply) {
@@ -608,15 +605,6 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 			return fmt.Errorf("error posting initial comments")
 		}
 
-		batch, err := models.DB.GetDiggerBatch(batchId)
-		if err != nil {
-			slog.Error("Error getting Digger batch",
-				"batchId", batchId,
-				"error", err,
-			)
-			commentReporterManager.UpdateComment(fmt.Sprintf(":x: PostInitialSourceComments error: %v", err))
-			return fmt.Errorf("error getting digger batch")
-		}
 
 		batch.SourceDetails, err = json.Marshal(sourceDetails)
 		if err != nil {

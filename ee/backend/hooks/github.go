@@ -71,7 +71,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 		return nil
 	}
 
-	diggerYmlStr, ghService, config, projectsGraph, err := ce_controllers.GetDiggerConfigForBranch(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, nil, nil)
+	diggerYmlStr, ghService, config, projectsGraph, err := ce_controllers.GetDiggerConfigForBranchOrSha(gh, installationId, repoFullName, repoOwner, repoName, cloneURL, defaultBranch, "", nil, nil)
 	if err != nil {
 		log.Printf("Error loading digger.yml: %v", err)
 		return fmt.Errorf("error loading digger.yml")
@@ -152,7 +152,7 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, defaultBranch, issueNumber, repoOwner, repoName, repoFullName, "", reporterCommentId, diggerYmlStr, 0, "", false, coverAllImpactedProjects, nil)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "lazy", "github", orgId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, installationId, defaultBranch, issueNumber, repoOwner, repoName, repoFullName, "", &reporterCommentId, diggerYmlStr, 0, "", false, coverAllImpactedProjects, nil, nil, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
