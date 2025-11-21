@@ -1,0 +1,39 @@
+---
+title: Local development overview
+---
+
+This section explains how to run the three core services locally:
+
+- **Backend** (`backend/`, port 3000 by default) – orchestrator + REST APIs for repos/orgs/jobs.
+- **Statesman** (`taco/cmd/statesman`, port 8080) – state storage API and Terraform Cloud-compatible endpoints.
+- **UI** (`ui/`, port 3030) – TanStack Start frontend that talks to both services and WorkOS.
+
+## Prerequisites
+
+- Go toolchain for backend + statesman, Node 18+ for UI (`pnpm` or `npm`).
+- A WorkOS project with User Management enabled and at least one organization + member (needed for UI auth and org IDs).
+- Optional: GitHub App for repo onboarding (the backend can help you create one via `/github/setup`).
+
+## Shared secrets and ports
+
+- Pick two secrets and reuse them across components:
+  - `ORCHESTRATOR_BACKEND_SECRET` ≡ `DIGGER_INTERNAL_SECRET` (backend) ≡ UI env.
+  - `STATESMAN_BACKEND_WEBHOOK_SECRET` ≡ `OPENTACO_ENABLE_INTERNAL_ENDPOINTS` (statesman) ≡ UI env.
+- Default ports: backend `3000`, statesman `8080`, UI `3030`.
+
+## High-level workflow
+
+1) **Start backend** with internal + API endpoints enabled (so UI can call `/api/*` and `/github/*`).  
+2) **Start statesman** with internal endpoints enabled; use memory storage for quick start.  
+3) **Configure UI** `.env.local` with URLs + secrets + WorkOS creds; run `pnpm dev --host --port 3030`.  
+4) **Sync org/user** into backend and statesman (WorkOS org id and user id/email) via the provided curl snippets in each page.  
+5) (Optional) **GitHub App**: set `ORCHESTRATOR_GITHUB_APP_URL` to your install URL or `http://localhost:3000/github/setup` to create one via the backend.
+
+## Troubleshooting cheatsheet
+
+- **Backend /api/* returns 404**: `DIGGER_ENABLE_API_ENDPOINTS` not `true` or org not upserted.  
+- **Statesman 403**: webhook secret mismatch. **Statesman 404/500 resolving org**: org not synced (missing `external_org_id`).  
+- **UI WorkOS auth succeeds but org is empty**: add membership in WorkOS and resync org/user to services.  
+- **GitHub connect opens 404**: set `ORCHESTRATOR_GITHUB_APP_URL` to a valid install/setup URL.
+
+Continue with the per-service pages for commands and env examples.
