@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/auth"
@@ -104,20 +105,34 @@ func (h *TfeHandler) GetPlanLogs(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "plan not found"})
 	}
 
-	// Check if logs exist in blob storage
+	// Read logs from chunked S3 objects
+	// Chunks are stored as plans/{planID}/chunks/00000001.log, 00000002.log, etc.
 	var logText string
-	if plan.LogBlobID != nil {
-		// Try to get logs from blob storage
-		logData, err := h.blobStore.DownloadBlob(ctx, *plan.LogBlobID)
+	chunkIndex := 1
+	var fullLogs strings.Builder
+	
+	for {
+		chunkKey := fmt.Sprintf("plans/%s/chunks/%08d.log", planID, chunkIndex)
+		logData, err := h.blobStore.DownloadBlob(ctx, chunkKey)
+		
 		if err != nil {
-			fmt.Printf("Failed to get logs from blob storage: %v\n", err)
-			// Fall back to default logs
-			logText = generateDefaultPlanLogs(plan)
-		} else {
-			logText = string(logData)
+			// Chunk doesn't exist - check if plan is still running
+			if plan.Status == "finished" || plan.Status == "errored" {
+				// Plan is done, no more chunks coming
+				break
+			}
+			// Plan still running, this chunk doesn't exist yet
+			break
 		}
-	} else {
-		// Generate default logs based on plan status
+		
+		fullLogs.Write(logData)
+		chunkIndex++
+	}
+	
+	logText = fullLogs.String()
+	
+	// If no chunks exist yet, generate default logs based on status
+	if logText == "" {
 		logText = generateDefaultPlanLogs(plan)
 	}
 

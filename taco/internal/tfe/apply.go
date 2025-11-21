@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/auth"
@@ -100,15 +101,34 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "apply not found"})
 	}
 
-	// Try to get apply logs from blob storage
+	// Read apply logs from chunked S3 objects
+	// Chunks are stored as applies/{applyID}/chunks/00000001.log, 00000002.log, etc.
 	var logText string
-	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
+	chunkIndex := 1
+	var fullLogs strings.Builder
 	
-	logData, err := h.blobStore.DownloadBlob(ctx, applyLogBlobID)
-	if err == nil {
-		logText = string(logData)
-	} else {
-		// If logs don't exist yet, return placeholder
+	for {
+		chunkKey := fmt.Sprintf("applies/%s/chunks/%08d.log", run.ID, chunkIndex)
+		logData, err := h.blobStore.DownloadBlob(ctx, chunkKey)
+		
+		if err != nil {
+			// Chunk doesn't exist - check if apply is still running
+			if run.Status == "applied" || run.Status == "errored" {
+				// Apply is done, no more chunks coming
+				break
+			}
+			// Apply still running, this chunk doesn't exist yet
+			break
+		}
+		
+		fullLogs.Write(logData)
+		chunkIndex++
+	}
+	
+	logText = fullLogs.String()
+	
+	// If no chunks exist yet, generate default message based on status
+	if logText == "" {
 		if run.Status == "applying" || run.Status == "apply_queued" {
 			logText = "Waiting for apply to start...\n"
 		} else {

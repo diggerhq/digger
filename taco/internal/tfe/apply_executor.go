@@ -147,23 +147,37 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		}
 	}()
 
-	// Buffered logging to reduce blob storage roundtrips
-	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
+	// Chunked logging to prevent memory bloat
+	// Upload log chunks as separate S3 objects and clear buffer after each upload
+	chunkIndex := 1
 	var logBuffer bytes.Buffer
 	var logMutex sync.Mutex
 	lastLogFlush := time.Now()
-	lastFlushSize := 0
 	
+	// Flush helper - uploads current buffer as a chunk and clears it
 	flushLogs := func() error {
 		logMutex.Lock()
-		defer logMutex.Unlock()
 		if logBuffer.Len() == 0 {
+			logMutex.Unlock()
 			return nil
 		}
-		err := e.blobStore.UploadBlob(ctx, applyLogBlobID, logBuffer.Bytes())
+		// Copy buffer to avoid holding lock during upload
+		data := make([]byte, logBuffer.Len())
+		copy(data, logBuffer.Bytes())
+		currentChunk := chunkIndex
+		logMutex.Unlock()
+
+		// Upload this chunk (key includes zero-padded chunk index)
+		chunkKey := fmt.Sprintf("applies/%s/chunks/%08d.log", run.ID, currentChunk)
+		err := e.blobStore.UploadBlob(ctx, chunkKey, data)
+		
 		if err == nil {
+			logMutex.Lock()
 			lastLogFlush = time.Now()
-			lastFlushSize = logBuffer.Len()
+			// Clear buffer to free memory
+			logBuffer.Reset()
+			chunkIndex++
+			logMutex.Unlock()
 		}
 		return err
 	}
@@ -172,8 +186,8 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		logMutex.Lock()
 		logBuffer.WriteString(message)
 		now := time.Now()
-		// Flush if we have >1KB of NEW data or if 1s has passed
-		shouldFlush := (logBuffer.Len()-lastFlushSize) > 1024 || now.Sub(lastLogFlush) > 1*time.Second
+		// Flush if buffer exceeds chunk size (256KB) or 1s has passed
+		shouldFlush := logBuffer.Len() > 256*1024 || now.Sub(lastLogFlush) > 1*time.Second
 		logMutex.Unlock()
 		
 		if shouldFlush {
@@ -334,7 +348,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	if applyErr != nil {
 		runStatus = "errored"
 		logs = logs + "\n\nError: " + applyErr.Error()
-		_ = e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs))
+		// Error already logged via appendLog in the executor
 		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, applyErr.Error()); updateErr != nil {
 			logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 		}
@@ -351,7 +365,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 				runStatus = "errored"
 				errMsg := fmt.Sprintf("Failed to upload state: %v", uploadErr)
 				logs = logs + "\n\nCritical Error: " + errMsg + "\n"
-				_ = e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs))
+				// Error already logged via appendLog in the executor
 				if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, errMsg); updateErr != nil {
 					logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 				}

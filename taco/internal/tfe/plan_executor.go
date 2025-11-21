@@ -185,37 +185,50 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		}
 	}()
 
-	// Buffered logging to reduce blob storage roundtrips
-	// Instead of download-append-upload on each message, we accumulate in memory
-	// and flush periodically (every 1KB or 5 seconds)
-	logBlobID := fmt.Sprintf("plans/%s/logs.txt", *run.PlanID)
+	// Chunked logging to prevent memory bloat
+	// Upload log chunks as separate S3 objects and clear buffer after each upload
+	// This keeps memory usage bounded regardless of total log size
+	chunkIndex := 1
 	var logBuffer bytes.Buffer
 	var logMutex sync.Mutex
 	lastLogFlush := time.Now()
-	lastFlushSize := 0
 	
-	// Flush helper - uploads current buffer to blob storage
+	// Flush helper - uploads current buffer as a chunk and clears it
 	flushLogs := func() error {
 		logMutex.Lock()
-		defer logMutex.Unlock()
 		if logBuffer.Len() == 0 {
+			logMutex.Unlock()
 			return nil
 		}
-		err := e.blobStore.UploadBlob(ctx, logBlobID, logBuffer.Bytes())
+		// Copy buffer to avoid holding lock during upload
+		data := make([]byte, logBuffer.Len())
+		copy(data, logBuffer.Bytes())
+		currentChunk := chunkIndex
+		logMutex.Unlock()
+
+		// Upload this chunk (key includes zero-padded chunk index)
+		chunkKey := fmt.Sprintf("plans/%s/chunks/%08d.log", *run.PlanID, currentChunk)
+		err := e.blobStore.UploadBlob(ctx, chunkKey, data)
+		
 		if err == nil {
+			logMutex.Lock()
 			lastLogFlush = time.Now()
-			lastFlushSize = logBuffer.Len()
+			// Clear buffer to free memory (this is the key fix for memory bloat!)
+			logBuffer.Reset()
+			chunkIndex++
+			logMutex.Unlock()
 		}
 		return err
 	}
+	
 	
 	// Buffered append - only uploads when buffer is large or time has elapsed
 	appendLog := func(message string) {
 		logMutex.Lock()
 		logBuffer.WriteString(message)
 		now := time.Now()
-		// Flush if we have >1KB of NEW data or if 1s has passed
-		shouldFlush := (logBuffer.Len()-lastFlushSize) > 1024 || now.Sub(lastLogFlush) > 1*time.Second
+		// Flush if buffer exceeds chunk size (256KB) or 1s has passed
+		shouldFlush := logBuffer.Len() > 256*1024 || now.Sub(lastLogFlush) > 1*time.Second
 		logMutex.Unlock()
 		
 		if shouldFlush {
@@ -235,17 +248,8 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	}
 	logger.Info("updated run status to planning")
 
-	// Update plan with LogBlobID immediately so API can stream logs
-	// This restores the domain pattern where the DB is the source of truth
-	if run.PlanID != nil {
-		planUpdates := &domain.TFEPlanUpdate{
-			LogBlobID: &logBlobID,
-		}
-		if err := e.planRepo.UpdatePlan(ctx, *run.PlanID, planUpdates); err != nil {
-			logger.Warn("failed to update plan with log blob ID", slog.String("error", err.Error()))
-			// Non-fatal, continue
-		}
-	}
+	// Note: We no longer set LogBlobID since we use chunked logging
+	// The API reads chunks directly from plans/{planID}/chunks/*.log
 
 	appendLog("Preparing terraform run...\n")
 
@@ -473,7 +477,7 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		ResourceChanges:      &changes,
 		ResourceDestructions: &destroys,
 		HasChanges:           &hasChanges,
-		LogBlobID:            &logBlobID,
+		// LogBlobID removed - we use chunked logging now
 		LogReadURL:           &logReadURL,
 	}
 	if len(planJSON) > 0 {
