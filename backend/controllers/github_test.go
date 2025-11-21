@@ -866,3 +866,34 @@ func TestJobsTreeWithThreeLevels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, result["333"].DiggerJobID, parentLinks[0].ParentDiggerJobId)
 }
+
+func TestHandleInstallationRepositoriesEvent(t *testing.T) {
+	teardownSuite, database := setupSuite(t)
+	defer teardownSuite(t)
+
+	// Test repositories added event
+	var addedEvent github.InstallationRepositoriesEvent
+	err := json.Unmarshal([]byte(installationRepositoriesAddedPayload), &addedEvent)
+	assert.NoError(t, err)
+
+	err = handleInstallationRepositoriesEvent(&addedEvent, 360162)
+	assert.NoError(t, err)
+
+	// Verify repo was added
+	installation, err := database.GetGithubAppInstallationByIdAndRepo(41584295, "diggerhq/test-github-action")
+	assert.NoError(t, err)
+	assert.NotNil(t, installation)
+	assert.Equal(t, "diggerhq/test-github-action", installation.Repo)
+
+	// Test repositories removed event
+	var removedEvent github.InstallationRepositoriesEvent
+	err = json.Unmarshal([]byte(installationRepositoriesDeletedPayload), &removedEvent)
+	assert.NoError(t, err)
+
+	err = handleInstallationRepositoriesEvent(&removedEvent, 360162)
+	assert.NoError(t, err)
+
+	// Verify repo was removed (soft deleted)
+	installation, err = database.GetGithubAppInstallationByIdAndRepo(41584295, "diggerhq/test-github-action")
+	assert.Error(t, err) // Should error because repo is deleted
+}
