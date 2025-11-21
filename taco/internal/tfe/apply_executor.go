@@ -155,7 +155,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	var logBuffer bytes.Buffer
 	var logMutex sync.Mutex
 	lastLogFlush := time.Now()
-	
+
 	// Flush helper - uploads current buffer as a padded 2KB chunk and clears it
 	flushLogs := func() error {
 		logMutex.Lock()
@@ -163,7 +163,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 			logMutex.Unlock()
 			return nil
 		}
-		
+
 		// Extract at most chunkSize bytes (2KB)
 		dataLen := logBuffer.Len()
 		if dataLen > chunkSize {
@@ -173,7 +173,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		copy(data, logBuffer.Bytes()[:dataLen])
 		currentChunk := chunkIndex
 		chunkIndex++ // Increment NOW before unlock to reserve this chunk number atomically
-		
+
 		// Copy remainder BEFORE resetting (crucial - remainder slice points to internal buffer)
 		var remainderCopy []byte
 		if logBuffer.Len() > dataLen {
@@ -181,7 +181,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 			remainderCopy = make([]byte, len(remainder))
 			copy(remainderCopy, remainder)
 		}
-		
+
 		// Now safe to reset and write remainder back
 		logBuffer.Reset()
 		if len(remainderCopy) > 0 {
@@ -196,7 +196,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		// Upload this chunk (key includes zero-padded chunk index)
 		chunkKey := fmt.Sprintf("applies/%s/chunks/%08d.log", run.ID, currentChunk)
 		err := e.blobStore.UploadBlob(ctx, chunkKey, paddedData)
-		
+
 		if err == nil {
 			logMutex.Lock()
 			lastLogFlush = time.Now()
@@ -204,7 +204,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		}
 		return err
 	}
-	
+
 	appendLog := func(message string) {
 		logMutex.Lock()
 		logBuffer.WriteString(message)
@@ -212,12 +212,12 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		// Flush if buffer exceeds 2KB or 1s has passed
 		shouldFlush := logBuffer.Len() > chunkSize || now.Sub(lastLogFlush) > 1*time.Second
 		logMutex.Unlock()
-		
+
 		if shouldFlush {
 			_ = flushLogs()
 		}
 	}
-	
+
 	defer func() {
 		_ = flushLogs()
 	}()

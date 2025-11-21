@@ -103,24 +103,24 @@ func (h *TfeHandler) convertWorkspaceToStateIDWithOrg(ctx context.Context, orgId
 			return "", fmt.Errorf("invalid workspace name: empty after stripping ws- prefix")
 		}
 	}
-	
+
 	// If no org identifier provided or no resolver, return workspace name as-is (backwards compat)
 	if orgIdentifier == "" || h.identifierResolver == nil {
 		return workspaceName, nil
 	}
-	
+
 	// Step 1: Resolve organization identifier (external_org_id or UUID) to UUID
 	orgUUID, err := h.identifierResolver.ResolveOrganization(ctx, orgIdentifier)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve organization '%s': %w", orgIdentifier, err)
 	}
-	
+
 	// Step 2: Resolve unit name to UUID within the organization
 	unitUUID, err := h.identifierResolver.ResolveUnit(ctx, workspaceName, orgUUID)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve unit '%s' in org '%s': %w", workspaceName, orgIdentifier, err)
 	}
-	
+
 	// Return org-scoped unit path for S3 storage
 	// Format: <org-uuid>/<unit-uuid> (both UUIDs for immutable, rename-safe paths)
 	// Example: "123e4567-e89b-12d3-a456-426614174000/987f6543-e21a-43d2-b789-123456789abc"
@@ -168,14 +168,14 @@ func getOrgFromContext(c echo.Context) (string, error) {
 			return orgStr, nil
 		}
 	}
-	
+
 	// Try organization_id (set by WebhookAuth middleware)
 	if orgID := c.Get("organization_id"); orgID != nil {
 		if orgStr, ok := orgID.(string); ok && orgStr != "" {
 			return orgStr, nil
 		}
 	}
-	
+
 	// No organization context found - this is an error condition
 	return "", fmt.Errorf("no organization context found in request")
 }
@@ -219,7 +219,7 @@ func extractWorkspaceIDFromParam(c echo.Context) string {
 
 // checkWorkspacePermission handles the three RBAC scenarios correctly
 func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, workspaceID string) error {
-	
+
 	// Scenario 1: No RBAC manager (memory storage) → permissive mode
 	if h.rbacManager == nil {
 		return nil
@@ -288,8 +288,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	// Webhook auth uses internal token + X-User-ID/X-Email headers
 	userIDHeader := c.Request().Header.Get("X-User-ID")
 	userEmailHeader := c.Request().Header.Get("X-Email")
-	
-	
+
 	var principal rbac.Principal
 	if userIDHeader != "" && userEmailHeader != "" {
 		// This is webhook auth from internal proxy (UI) - user already verified
@@ -307,7 +306,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 			if err != nil {
 				return fmt.Errorf("failed to get organization context: %v", err)
 			}
-			
+
 			if tokenRecord, err := h.apiTokens.Verify(c.Request().Context(), orgID, token); err == nil {
 				principal = rbac.Principal{
 					Subject: tokenRecord.Subject,
@@ -336,7 +335,7 @@ func (h *TfeHandler) checkWorkspacePermission(c echo.Context, action string, wor
 	}
 
 	// Check permission using RBAC manager
-	
+
 	allowed, err := h.rbacManager.Can(c.Request().Context(), principal, rbacAction, stateID)
 	if err != nil {
 		return fmt.Errorf("failed to check permissions: %v", err)
@@ -357,7 +356,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 
 	orgParam := c.Param("org_name")
 	workspaceName := c.Param("workspace_name")
-	
+
 	if workspaceName == "" {
 		logger.Warn("Invalid workspace name",
 			"operation", "tfe_get_workspace",
@@ -365,10 +364,10 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		)
 		return c.JSON(400, map[string]string{"error": "workspace_name invalid"})
 	}
-	
+
 	// Parse org param - supports both "Display:identifier" and just "identifier"
 	displayName, orgIdentifier := parseOrgParam(orgParam)
-	
+
 	logger.Info("Getting TFE workspace",
 		"operation", "tfe_get_workspace",
 		"org_param", orgParam,
@@ -376,7 +375,7 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		"org_identifier", orgIdentifier,
 		"workspace_name", workspaceName,
 	)
-	
+
 	// Convert workspace name to unit ID (org-scoped if org provided)
 	// workspaceName is now the human-readable unit name, not a UUID
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
@@ -388,20 +387,20 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(500, map[string]string{
-			"error": "failed to resolve workspace",
+			"error":  "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	logger.Debug("Resolved workspace state ID",
 		"operation", "tfe_get_workspace",
 		"state_id", stateID,
 	)
-	
+
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
 	fmt.Printf("GetWorkspace: Extracted unitUUID=%s from stateID=%s\n", unitUUID, stateID)
-	
+
 	// Fetch unit to get execution mode and lock status
 	unit, err := h.unitRepo.Get(c.Request().Context(), unitUUID)
 	if err != nil {
@@ -418,64 +417,64 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 			}},
 		})
 	}
-	
+
 	// Determine execution mode (default to 'local' if not specified)
 	executionMode := "local"
 	if unit.TFEExecutionMode != nil && *unit.TFEExecutionMode != "" {
 		executionMode = *unit.TFEExecutionMode
 	}
-	
+
 	// Determine auto-apply setting (default to false if not specified)
 	autoApply := false
 	if unit.TFEAutoApply != nil {
 		autoApply = *unit.TFEAutoApply
 	}
-	
+
 	// Check if unit is locked
 	locked := unit.Locked
 	var currentRun *tfe.TFERun
 	if locked && unit.LockID != "" {
-			currentRun = &tfe.TFERun{
+		currentRun = &tfe.TFERun{
 			ID: unit.LockID,
 		}
 	}
 
 	workspace := &tfe.TFEWorkspace{
-		ID:                         tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
-		Actions:                    &tfe.TFEWorkspaceActions{IsDestroyable: true},
-		AgentPoolID:                tfe.NewTfeResourceIdentifier(tfe.AgentPoolType, "HzEaJWMP5YTatZaS").String(),
-		AllowDestroyPlan:           false,
-		AutoApply:                  autoApply,
-		CanQueueDestroyPlan:        false,
-		CreatedAt:                  time.Time{},
-		UpdatedAt:                  time.Time{},
-		Description:                workspaceName,
-		Environment:                workspaceName,
-		ExecutionMode:              executionMode,
-		FileTriggersEnabled:        false,
-		GlobalRemoteState:          false,
-		Locked:                     locked,
-		MigrationEnvironment:       "",
-		Name:                       workspaceName,
-		Operations:                 true,
-		Permissions:                &tfe.TFEWorkspacePermissions{
-			CanDestroy:  true,
-			CanForceUnlock: true,
-			CanLock:      true,
-			CanQueueApply: true,
-			CanQueueDestroy: true,
-			CanQueueRun: true,
-			CanUnlock:   true,
-			CanUpdate:   true,
-			CanReadSettings: true,
+		ID:                   tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
+		Actions:              &tfe.TFEWorkspaceActions{IsDestroyable: true},
+		AgentPoolID:          tfe.NewTfeResourceIdentifier(tfe.AgentPoolType, "HzEaJWMP5YTatZaS").String(),
+		AllowDestroyPlan:     false,
+		AutoApply:            autoApply,
+		CanQueueDestroyPlan:  false,
+		CreatedAt:            time.Time{},
+		UpdatedAt:            time.Time{},
+		Description:          workspaceName,
+		Environment:          workspaceName,
+		ExecutionMode:        executionMode,
+		FileTriggersEnabled:  false,
+		GlobalRemoteState:    false,
+		Locked:               locked,
+		MigrationEnvironment: "",
+		Name:                 workspaceName,
+		Operations:           true,
+		Permissions: &tfe.TFEWorkspacePermissions{
+			CanDestroy:        true,
+			CanForceUnlock:    true,
+			CanLock:           true,
+			CanQueueApply:     true,
+			CanQueueDestroy:   true,
+			CanQueueRun:       true,
+			CanUnlock:         true,
+			CanUpdate:         true,
+			CanReadSettings:   true,
 			CanUpdateVariable: false,
 		},
 		QueueAllRuns:               false,
-		SpeculativeEnabled:         false,  // False = allow confirmable applies, True = all runs are plan-only
+		SpeculativeEnabled:         false, // False = allow confirmable applies, True = all runs are plan-only
 		SourceName:                 "",
 		SourceURL:                  "",
 		StructuredRunOutputEnabled: false,
-		TerraformVersion:            "1.5.6",
+		TerraformVersion:           "1.5.6",
 		TriggerPrefixes:            []string{},
 		TriggerPatterns:            []string{},
 		VCSRepo:                    nil,
@@ -487,9 +486,9 @@ func (h *TfeHandler) GetWorkspace(c echo.Context) error {
 		RunFailures:                0,
 		RunsCount:                  0,
 		TagNames:                   []string{},
-		CurrentRun:                 currentRun,  // Include lock details when workspace is locked
+		CurrentRun:                 currentRun, // Include lock details when workspace is locked
 		Organization: &tfe.TFEOrganization{
-			Name: orgParam,  // Return the full org param (includes display name if provided)
+			Name: orgParam, // Return the full org param (includes display name if provided)
 		},
 		Outputs: nil,
 	}
@@ -518,7 +517,7 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
-	
+
 	// Get org from authentication context (JWT claim or webhook header)
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
@@ -528,11 +527,11 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Organization context required",
+			"error":  "Organization context required",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	logger.Info("Locking TFE workspace",
 		"operation", "tfe_lock_workspace",
 		"workspace_id", workspaceID,
@@ -550,7 +549,7 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(500, map[string]string{
-			"error": "failed to resolve workspace",
+			"error":  "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
@@ -646,14 +645,14 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 
 	// Return success with full workspace object (properly formatted JSON:API)
 	fmt.Printf("LockWorkspace: Returning success\n")
-	
+
 	// Build a workspace response with lock info
 	logger.Info("Workspace locked successfully",
 		"operation", "tfe_lock_workspace",
 		"unit_uuid", unitUUID,
 		"lock_id", lockInfo.ID,
 	)
-	
+
 	workspace := &tfe.TFEWorkspace{
 		ID:     tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
 		Name:   workspaceName,
@@ -662,7 +661,7 @@ func (h *TfeHandler) LockWorkspace(c echo.Context) error {
 			ID: lockInfo.ID,
 		},
 	}
-	
+
 	if err := jsonapi.MarshalPayload(c.Response().Writer, workspace); err != nil {
 		logger.Error("Failed to marshal workspace payload",
 			"operation", "tfe_lock_workspace",
@@ -690,7 +689,7 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
-	
+
 	// Get org from authentication context (JWT claim or webhook header)
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
@@ -700,18 +699,18 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Organization context required",
+			"error":  "Organization context required",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	logger.Info("Unlocking TFE workspace",
 		"operation", "tfe_unlock_workspace",
 		"workspace_id", workspaceID,
 		"workspace_name", workspaceName,
 		"org_identifier", orgIdentifier,
 	)
-	
+
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
 	if err != nil {
@@ -722,7 +721,7 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(500, map[string]string{
-			"error": "failed to resolve workspace",
+			"error":  "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
@@ -799,15 +798,15 @@ func (h *TfeHandler) UnlockWorkspace(c echo.Context) error {
 		"unit_uuid", unitUUID,
 		"lock_id", currentLock.ID,
 	)
-	
+
 	// Return success with full workspace object (properly formatted JSON:API)
 	workspace := &tfe.TFEWorkspace{
 		ID:         tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
 		Name:       workspaceName,
 		Locked:     false,
-		CurrentRun: nil,  // No lock, so no current run
+		CurrentRun: nil, // No lock, so no current run
 	}
-	
+
 	if err := jsonapi.MarshalPayload(c.Response().Writer, workspace); err != nil {
 		logger.Error("Failed to marshal workspace payload",
 			"operation", "tfe_unlock_workspace",
@@ -832,23 +831,23 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
-	
+
 	// Get org from authentication context (JWT claim or webhook header)
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
 		fmt.Printf("ForceUnlockWorkspace: %v\n", err)
 		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Organization context required",
+			"error":  "Organization context required",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
 	if err != nil {
 		fmt.Printf("ForceUnlockWorkspace: failed to resolve workspace: %v\n", err)
 		return c.JSON(500, map[string]string{
-			"error": "failed to resolve workspace",
+			"error":  "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
@@ -898,7 +897,7 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 	if requestedLockID != "" && requestedLockID != currentLock.ID {
 		fmt.Printf("ForceUnlockWorkspace: Lock ID mismatch - requested=%s, current=%s\n", requestedLockID, currentLock.ID)
 		return c.JSON(409, map[string]interface{}{
-			"error": "lock_id_mismatch",
+			"error":   "lock_id_mismatch",
 			"message": fmt.Sprintf("Lock ID %q does not match existing lock ID %q", requestedLockID, currentLock.ID),
 			"current_lock": map[string]interface{}{
 				"id":      currentLock.ID,
@@ -925,9 +924,9 @@ func (h *TfeHandler) ForceUnlockWorkspace(c echo.Context) error {
 		ID:         tfe.NewTfeResourceIdentifier(tfe.WorkspaceType, workspaceName).String(),
 		Name:       workspaceName,
 		Locked:     false,
-		CurrentRun: nil,  // No lock, so no current run
+		CurrentRun: nil, // No lock, so no current run
 	}
-	
+
 	if err := jsonapi.MarshalPayload(c.Response().Writer, workspace); err != nil {
 		fmt.Printf("ForceUnlockWorkspace: error marshaling workspace payload: %v\n", err)
 		return err
@@ -953,7 +952,7 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
-	
+
 	// Get org from authentication context (JWT claim or webhook header)
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
@@ -963,23 +962,23 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Organization context required",
+			"error":  "Organization context required",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	logger.Info("Getting current state version",
 		"operation", "tfe_get_current_state",
 		"workspace_id", workspaceID,
 		"workspace_name", workspaceName,
 		"org_identifier", orgIdentifier,
 	)
-	
+
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
 	if err != nil {
 		return c.JSON(500, map[string]string{
-			"error": "failed to resolve workspace",
+			"error":  "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
@@ -993,18 +992,18 @@ func (h *TfeHandler) GetCurrentStateVersion(c echo.Context) error {
 	}
 
 	// Check if state exists
-	
+
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
-	
+
 	stateMeta, err := h.stateStore.Get(c.Request().Context(), unitUUID)
-	
+
 	if err != nil {
 	}
 	if stateMeta != nil {
 	} else {
 	}
-	
+
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return c.JSON(404, map[string]string{
@@ -1064,23 +1063,23 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 
 	// Strip ws- prefix to get workspace name
 	workspaceName := convertWorkspaceToStateID(workspaceID)
-	
+
 	// Get org from authentication context (JWT claim or webhook header)
 	orgIdentifier, err := getOrgFromContext(c)
 	if err != nil {
 		fmt.Printf("CreateStateVersion: %v\n", err)
 		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Organization context required",
+			"error":  "Organization context required",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	// Resolve to UUID/UUID path
 	stateID, err := h.convertWorkspaceToStateIDWithOrg(c.Request().Context(), orgIdentifier, workspaceName)
 	if err != nil {
 		fmt.Printf("CreateStateVersion: failed to resolve workspace: %v\n", err)
 		return c.JSON(500, map[string]string{
-			"error": "failed to resolve workspace",
+			"error":  "failed to resolve workspace",
 			"detail": err.Error(),
 		})
 	}
@@ -1134,7 +1133,6 @@ func (h *TfeHandler) CreateStateVersion(c echo.Context) error {
 		// For direct upload without JSON wrapper, handle as raw state data
 		return h.CreateStateVersionDirect(c, workspaceID, stateID, stateBytes)
 	}
-
 
 	// Look for the actual state content - it might be base64 encoded or in a specific field
 	if jsonStateOutputs, exists := attributes["json-state-outputs"]; exists {
@@ -1330,7 +1328,7 @@ func (h *TfeHandler) DownloadStateVersion(c echo.Context) error {
 
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
-	
+
 	// Download the state data
 	stateData, err := h.directStateStore.Download(c.Request().Context(), unitUUID)
 	if err != nil {
@@ -1487,7 +1485,7 @@ func (h *TfeHandler) ShowStateVersion(c echo.Context) error {
 
 	// Extract unit UUID from state ID - repository expects just the UUID
 	unitUUID := extractUnitUUID(stateID)
-	
+
 	// Load metadata (and optionally content)
 	meta, err := h.stateStore.Get(c.Request().Context(), unitUUID)
 	if err != nil {

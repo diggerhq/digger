@@ -17,7 +17,7 @@ type TfeHandler struct {
 	rbacManager        *rbac.RBACManager
 	apiTokens          *auth.APITokenManager
 	identifierResolver domain.IdentifierResolver // For resolving org external IDs
-	
+
 	// TFE repositories for runs, plans, and configuration versions
 	runRepo         domain.TFERunRepository
 	planRepo        domain.TFEPlanRepository
