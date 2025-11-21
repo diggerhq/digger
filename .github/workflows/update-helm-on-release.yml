@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   workflow_run:
     workflows: 
-      - "EE Backend Docker Release"
+      - "Backend EE Docker Release"
       - "Drift Docker Release"
       - "UI Docker Release"
       - "taco-release"
