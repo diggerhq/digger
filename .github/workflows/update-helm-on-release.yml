@@ -1,6 +1,7 @@
 name: Update Helm Chart on Release
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: 
       - "EE Backend Docker Release"
