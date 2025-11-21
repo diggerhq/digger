@@ -145,7 +145,7 @@ func (b *SerializedBatch) IsApply() (bool, error) {
 	return IsPlanJobSpecs(jobSpecs), nil
 }
 
-func (b *SerializedBatch) ToStatusCheck() string {
+func (b *SerializedBatch) ToCommitStatusCheck() string {
 	switch b.Status {
 	case BatchJobCreated:
 		return "pending"
@@ -159,6 +159,41 @@ func (b *SerializedBatch) ToStatusCheck() string {
 		return "pending"
 	}
 }
+
+
+func (b *SerializedBatch) ToCheckRunStatus() string {
+	switch b.Status {
+	case BatchJobCreated:
+		return "in_progress"
+	case BatchJobInvalidated:
+		return "completed"
+	case BatchJobFailed:
+		return "completed"
+	case BatchJobSucceeded:
+		return "completed"
+	default:
+		return "in_progress"
+	}
+}
+
+func (b *SerializedBatch) ToCheckRunConclusion() *string {
+	switch b.Status {
+	case BatchJobCreated:
+		return nil
+	case BatchJobInvalidated:
+		res := "cancelled"
+		return &res
+	case BatchJobFailed:
+		res := "failure"
+		return &res
+	case BatchJobSucceeded:
+		res := "success"
+		return &res
+	default:
+		return nil
+	}
+}
+
 
 func (s *SerializedJob) ResourcesSummaryString(isPlan bool) string {
 	if !isPlan {

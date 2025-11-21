@@ -5,6 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+
 	"github.com/diggerhq/digger/backend/ci_backends"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
@@ -19,12 +26,6 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
-	"log/slog"
-	"net/http"
-	"os"
-	"path/filepath"
-	"slices"
-	"strings"
 )
 
 // why this validation is needed: https://roadie.io/blog/avoid-leaking-github-org-data/
@@ -664,9 +665,7 @@ func GetDiggerConfigForBranchWithGracefulHandling(gh utils.GithubClientProvider,
 		}
 	}
 
-	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranch(
-		gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, branch, changedFiles, taConfig,
-	)
+	diggerYmlStr, ghService, config, dependencyGraph, err := GetDiggerConfigForBranchOrSha(gh, installationId, repoFullName, repoOwner, repoName, cloneUrl, branch, "", changedFiles, taConfig)
 
 	if err != nil {
 		errMsg := err.Error()
@@ -837,7 +836,7 @@ func getDiggerConfigForPR(gh utils.GithubClientProvider, orgId uint, prLabels []
 	return diggerYmlStr, ghService, config, dependencyGraph, &prBranch, &prCommitSha, changedFiles, nil
 }
 
-func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
+func GetDiggerConfigForBranchOrSha(gh utils.GithubClientProvider, installationId int64, repoFullName string, repoOwner string, repoName string, cloneUrl string, branch string, commitSha string, changedFiles []string, taConfig *tac.AtlantisConfig) (string, *github2.GithubService, *digger_config.DiggerConfig, graph.Graph[string, digger_config.Project], error) {
 	slog.Info("Getting Digger config for branch",
 		slog.Group("repository",
 			slog.String("fullName", repoFullName),
@@ -863,7 +862,7 @@ func GetDiggerConfigForBranch(gh utils.GithubClientProvider, installationId int6
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, digger_config.Project]
 
-	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, commitSha, *token, "", func(dir string) error {
 		slog.Debug("Reading Digger config from cloned repository", "directory", dir)
 
 		diggerYmlStr, err = digger_config.ReadDiggerYmlFileContents(dir)

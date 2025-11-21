@@ -278,11 +278,11 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	if len(jobs) == 0 {
 		log.Printf("no projects impacated, succeeding")
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(bbService, issueNumber, jobs)
+		err = utils.SetPRCommitStatusForJobs(bbService, issueNumber, jobs)
 		return nil
 	}
 
-	err = utils.SetPRStatusForJobs(bbService, issueNumber, jobs)
+	err = utils.SetPRCommitStatusForJobs(bbService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
@@ -305,7 +305,7 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 		return fmt.Errorf("parseint error: %v", err)
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, 0, "", false, true, vcsConnectionId)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "lazy", models.DiggerVCSBitbucket, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, &commentId64, diggerYmlStr, 0, "", false, true, vcsConnectionId, nil, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))

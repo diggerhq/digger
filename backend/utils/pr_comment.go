@@ -169,17 +169,7 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 		"jobCount", len(jobs),
 	)
 
-	message := ""
-	if len(jobs) == 0 {
-		message = message + ":construction_worker: No projects impacted"
-	} else {
-		message = message + fmt.Sprintf("| Project | Status |\n")
-		message = message + fmt.Sprintf("|---------|--------|\n")
-		for _, job := range jobs {
-			message = message + fmt.Sprintf(""+
-				"|:clock11: **%v**|pending...|\n", job.GetProjectAlias())
-		}
-	}
+	message := GetInitialJobSummary(jobs)
 
 	message = trimMessageIfExceedsMaxLength(message)
 	err := prService.EditComment(prNumber, commentId, message)
@@ -194,6 +184,21 @@ func ReportInitialJobsStatus(cr *CommentReporter, jobs []scheduler.Job) error {
 
 	slog.Debug("Successfully reported initial jobs status", "prNumber", prNumber, "commentId", commentId)
 	return nil
+}
+
+func GetInitialJobSummary(jobs []scheduler.Job) string {
+	message := ""
+	if len(jobs) == 0 {
+		message = message + ":construction_worker: No projects impacted"
+	} else {
+		message = message + fmt.Sprintf("| Project | Status |\n")
+		message = message + fmt.Sprintf("|---------|--------|\n")
+		for _, job := range jobs {
+			message = message + fmt.Sprintf(""+
+				"|:clock11: **%v**|pending...|\n", job.GetProjectAlias())
+		}
+	}
+	return message
 }
 
 func ReportLayersTableForJobs(cr *CommentReporter, jobs []scheduler.Job) error {

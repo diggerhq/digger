@@ -14,8 +14,8 @@ import (
 type ImpactedProject struct {
 	gorm.Model
 	ID           uuid.UUID `gorm:"primary_key"`
-	RepoFullName string `gorm:"index:idx_org_repo"`
-	CommitSha    string `gorm:"index:idx_org_repo"`
+	RepoFullName string    `gorm:"index:idx_org_repo"`
+	CommitSha    string    `gorm:"index:idx_org_repo"`
 	PrNumber     *int
 	Branch       *string
 	ProjectName  string
@@ -38,11 +38,14 @@ const DiggerVCSBitbucket DiggerVCSType = "bitbucket"
 type DiggerBatch struct {
 	gorm.Model
 	ID                       uuid.UUID `gorm:"primary_key"`
+	DiggerBatchID            string    `gorm:"size:20,index:idx_digger_batch_id"` // shorter version of the ID to be able to use in check run
 	Layer                    uint
 	VCS                      DiggerVCSType
 	PrNumber                 int
-	CommitSha    			 string
+	CommitSha                string
 	CommentId                *int64
+	CheckRunId               *string
+	CheckRunUrl              *string
 	AiSummaryCommentId       string
 	Status                   orchestrator_scheduler.DiggerBatchStatus
 	BranchName               string
@@ -71,6 +74,8 @@ type DiggerJob struct {
 	BatchID                      *string `gorm:"index:idx_digger_job_id"`
 	PRCommentUrl                 string
 	PRCommentId                  *int64
+	CheckRunId                   *string
+	CheckRunUrl                  *string
 	DiggerJobSummary             DiggerJobSummary
 	DiggerJobSummaryID           uint
 	SerializedJobSpec            []byte
@@ -87,6 +92,7 @@ type DiggerJob struct {
 	WorkflowFile    string
 	WorkflowRunUrl  *string
 	StatusUpdatedAt time.Time
+	ReporterType string `gorm:"default:'lazy'"` // temporary, to be replaced by SerializedReporterSpec
 }
 
 type DiggerJobSummary struct {
@@ -198,7 +204,7 @@ func (b *DiggerBatch) MapToJsonStruct() (orchestrator_scheduler.SerializedBatch,
 	return res, nil
 }
 
-func GetStatusCheckForJob(job *DiggerJob) (string, error) {
+func GetCommitStatusForJob(job *DiggerJob) (string, error) {
 	switch job.Status {
 	case orchestrator_scheduler.DiggerJobStarted:
 		return "pending", nil
@@ -210,6 +216,38 @@ func GetStatusCheckForJob(job *DiggerJob) (string, error) {
 		return "success", nil
 	case orchestrator_scheduler.DiggerJobFailed:
 		return "failed", nil
+	}
+	return "", fmt.Errorf("unknown job status: %v", job.Status)
+}
+
+func GetCheckRunStatusForJob(job *DiggerJob) (string, error) {
+	switch job.Status {
+	case orchestrator_scheduler.DiggerJobStarted:
+		return "in_progress", nil
+	case orchestrator_scheduler.DiggerJobTriggered:
+		return "in_progress", nil
+	case orchestrator_scheduler.DiggerJobCreated:
+		return "in_progress", nil
+	case orchestrator_scheduler.DiggerJobSucceeded:
+		return "completed", nil
+	case orchestrator_scheduler.DiggerJobFailed:
+		return "completed", nil
+	}
+	return "", fmt.Errorf("unknown job status: %v", job.Status)
+}
+
+func GetCheckRunConclusionForJob(job *DiggerJob) (string, error) {
+	switch job.Status {
+	case orchestrator_scheduler.DiggerJobStarted:
+		return "", nil
+	case orchestrator_scheduler.DiggerJobTriggered:
+		return "", nil
+	case orchestrator_scheduler.DiggerJobCreated:
+		return "", nil
+	case orchestrator_scheduler.DiggerJobSucceeded:
+		return "success", nil
+	case orchestrator_scheduler.DiggerJobFailed:
+		return "failure", nil
 	}
 	return "", fmt.Errorf("unknown job status: %v", job.Status)
 }
