@@ -187,35 +187,57 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 
 	// Chunked logging to prevent memory bloat
 	// Upload log chunks as separate S3 objects and clear buffer after each upload
-	// This keeps memory usage bounded regardless of total log size
+	// Fixed-size 2KB chunks enable offset-based chunk selection (reduces S3 re-downloads)
+	const chunkSize = 2 * 1024 // 2KB fixed size
 	chunkIndex := 1
 	var logBuffer bytes.Buffer
 	var logMutex sync.Mutex
 	lastLogFlush := time.Now()
 	
-	// Flush helper - uploads current buffer as a chunk and clears it
+	// Flush helper - uploads current buffer as a padded 2KB chunk and clears it
 	flushLogs := func() error {
 		logMutex.Lock()
 		if logBuffer.Len() == 0 {
 			logMutex.Unlock()
 			return nil
 		}
-		// Copy buffer to avoid holding lock during upload
-		data := make([]byte, logBuffer.Len())
-		copy(data, logBuffer.Bytes())
+		
+		// Extract at most chunkSize bytes (2KB)
+		dataLen := logBuffer.Len()
+		if dataLen > chunkSize {
+			dataLen = chunkSize
+		}
+		data := make([]byte, dataLen)
+		copy(data, logBuffer.Bytes()[:dataLen])
 		currentChunk := chunkIndex
+		chunkIndex++ // Increment NOW before unlock to reserve this chunk number atomically
+		
+		// Copy remainder BEFORE resetting (crucial - remainder slice points to internal buffer)
+		var remainderCopy []byte
+		if logBuffer.Len() > dataLen {
+			remainder := logBuffer.Bytes()[dataLen:]
+			remainderCopy = make([]byte, len(remainder))
+			copy(remainderCopy, remainder)
+		}
+		
+		// Now safe to reset and write remainder back
+		logBuffer.Reset()
+		if len(remainderCopy) > 0 {
+			logBuffer.Write(remainderCopy)
+		}
 		logMutex.Unlock()
+
+		// Pad to fixed 2KB size (rest will be null bytes)
+		paddedData := make([]byte, chunkSize)
+		copy(paddedData, data)
 
 		// Upload this chunk (key includes zero-padded chunk index)
 		chunkKey := fmt.Sprintf("plans/%s/chunks/%08d.log", *run.PlanID, currentChunk)
-		err := e.blobStore.UploadBlob(ctx, chunkKey, data)
+		err := e.blobStore.UploadBlob(ctx, chunkKey, paddedData)
 		
 		if err == nil {
 			logMutex.Lock()
 			lastLogFlush = time.Now()
-			// Clear buffer to free memory (this is the key fix for memory bloat!)
-			logBuffer.Reset()
-			chunkIndex++
 			logMutex.Unlock()
 		}
 		return err
@@ -227,8 +249,8 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 		logMutex.Lock()
 		logBuffer.WriteString(message)
 		now := time.Now()
-		// Flush if buffer exceeds chunk size (256KB) or 1s has passed
-		shouldFlush := logBuffer.Len() > 256*1024 || now.Sub(lastLogFlush) > 1*time.Second
+		// Flush if buffer exceeds 2KB or 1s has passed
+		shouldFlush := logBuffer.Len() > chunkSize || now.Sub(lastLogFlush) > 1*time.Second
 		logMutex.Unlock()
 		
 		if shouldFlush {
@@ -448,7 +470,9 @@ func (e *PlanExecutor) ExecutePlan(ctx context.Context, runID string) error {
 	}
 
 	// Append the actual terraform output to the progress logs
-	appendLog("\n" + logs)
+	if !useSandbox {
+		appendLog("\n" + logs)
+	}
 
 	// Store final status
 	if planErr != nil {

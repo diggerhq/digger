@@ -101,16 +101,29 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "apply not found"})
 	}
 
-	// Read apply logs from chunked S3 objects
+	// Read apply logs from chunked S3 objects (fixed 2KB chunks)
 	// Chunks are stored as applies/{applyID}/chunks/00000001.log, 00000002.log, etc.
+	const chunkSize = 2 * 1024 // Must match writer's chunk size
+
+	// Determine which chunk contains the requested offset to avoid re-downloading
+	// data the client already has.
+	startChunk := 1
+	if offsetInt > 1 { // offset includes STX byte at offset 0
+		logOffset := offsetInt - 1
+		startChunk = int(logOffset/chunkSize) + 1
+	}
+
+	// Number of bytes before the first chunk we fetch (used to map offsets)
+	bytesBefore := int64(chunkSize * (startChunk - 1))
+
 	var logText string
-	chunkIndex := 1
+	chunkIndex := startChunk
 	var fullLogs strings.Builder
-	
+
 	for {
 		chunkKey := fmt.Sprintf("applies/%s/chunks/%08d.log", run.ID, chunkIndex)
 		logData, err := h.blobStore.DownloadBlob(ctx, chunkKey)
-		
+
 		if err != nil {
 			// Chunk doesn't exist - check if apply is still running
 			if run.Status == "applied" || run.Status == "errored" {
@@ -120,15 +133,19 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 			// Apply still running, this chunk doesn't exist yet
 			break
 		}
-		
+
+		// Keep chunks at full 2048 bytes (don't trim nulls) for correct offset math
 		fullLogs.Write(logData)
 		chunkIndex++
 	}
-	
+
 	logText = fullLogs.String()
-	
+
+	// NOW trim all null bytes from the result (after offset calculation is done)
+	logText = strings.TrimRight(logText, "\x00")
+
 	// If no chunks exist yet, generate default message based on status
-	if logText == "" {
+	if logText == "" && offsetInt == 0 {
 		if run.Status == "applying" || run.Status == "apply_queued" {
 			logText = "Waiting for apply to start...\n"
 		} else {
@@ -146,16 +163,22 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 		fmt.Printf("📤 APPLY LOGS at offset=0: STX + %d bytes of log text\n", len(logText))
 	} else {
 		// Client already received STX (1 byte at offset 0)
-		// Map stream offset to logText offset: streamOffset=1 → logText[0]
-		logOffset := offsetInt - 1
+		// Map stream offset to logText offset:
+		// - stream offset 0 = STX
+		// - stream offset 1 = first byte of full logs
+		// We only fetched chunks starting at startChunk, so subtract bytesBefore.
+		logOffset := offsetInt - 1 - bytesBefore
+		if logOffset < 0 {
+			logOffset = 0
+		}
 
 		if logOffset < int64(len(logText)) {
 			// Send remaining log text
 			responseData = []byte(logText[logOffset:])
 			fmt.Printf("📤 APPLY LOGS at offset=%d: sending %d bytes (logText[%d:])\n",
 				offsetInt, len(responseData), logOffset)
-		} else if logOffset == int64(len(logText)) && run.Status == "applied" {
-			// All logs sent, send ETX
+		} else if run.Status == "applied" || run.Status == "errored" {
+			// All logs sent (or client offset beyond end), send ETX
 			responseData = []byte{0x03}
 			fmt.Printf("📤 Sending ETX (End of Text) for apply %s - logs complete\n", applyID)
 		} else {

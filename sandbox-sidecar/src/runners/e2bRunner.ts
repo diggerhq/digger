@@ -68,8 +68,6 @@ export class E2BSandboxRunner implements SandboxRunner {
         sandbox,
         workDir,
         ["show", "-json", "tfplan.binary"],
-        logs,
-        streamLog,
       );
 
       const planJSON = showResult.stdout;

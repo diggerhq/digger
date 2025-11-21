@@ -175,10 +175,6 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 			// Add included section to the document
 			runDoc["included"] = []interface{}{planData}
 
-			// DEBUG: Log the exact JSON response
-			debugJSON, _ := json.MarshalIndent(runDoc, "", "  ")
-			logger.Info("📤 FULL JSON RESPONSE WITH PLAN", slog.String("json", string(debugJSON)))
-
 			c.Response().Header().Set(echo.HeaderContentType, "application/vnd.api+json")
 			c.Response().WriteHeader(http.StatusOK)
 			if err := json.NewEncoder(c.Response().Writer).Encode(runDoc); err != nil {
