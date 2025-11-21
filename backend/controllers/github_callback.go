@@ -28,19 +28,13 @@ func (d DiggerController) GithubAppCallbackPage(c *gin.Context) {
 		c.String(http.StatusBadRequest, "installation_id parameter for github app is empty")
 		return
 	}
-
 	//setupAction := c.Request.URL.Query()["setup_action"][0]
 	codeParams, codeExists := c.Request.URL.Query()["code"]
-
-	// Code parameter is only provided for fresh installations, not for updates
-	// If code is missing, this is likely an update - just show success page
-	// The actual repository changes will be handled by the InstallationRepositoriesEvent webhook
 	if !codeExists || len(codeParams) == 0 {
-		slog.Info("No code parameter - likely an installation update, showing success page")
-		c.HTML(http.StatusOK, "github_success.tmpl", gin.H{})
+		slog.Error("There was no code in the url query parameters")
+		c.String(http.StatusBadRequest, "could not find the code query parameter for github app")
 		return
 	}
-
 	code := codeParams[0]
 	if len(code) < 1 {
 		slog.Error("Code parameter is empty")

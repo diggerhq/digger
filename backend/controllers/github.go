@@ -74,20 +74,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 				return
 			}
 		}
-	case *github.InstallationRepositoriesEvent:
-		slog.Info("Processing InstallationRepositoriesEvent",
-			"action", *event.Action,
-			"installationId", *event.Installation.ID,
-			"repositoriesAdded", len(event.RepositoriesAdded),
-			"repositoriesRemoved", len(event.RepositoriesRemoved),
-		)
-
-		err := handleInstallationRepositoriesEvent(event, appId64)
-		if err != nil {
-			slog.Error("Failed to handle installation repositories event", "error", err)
-			c.String(http.StatusAccepted, "Failed to handle webhook event.")
-			return
-		}
 	case *github.PushEvent:
 		slog.Info("Processing PushEvent",
 			"repo", *event.Repo.FullName,
