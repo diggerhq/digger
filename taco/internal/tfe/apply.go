@@ -161,6 +161,12 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 		// First request: send STX + current logs
 		responseData = append([]byte{0x02}, []byte(logText)...)
 		fmt.Printf("📤 APPLY LOGS at offset=0: STX + %d bytes of log text\n", len(logText))
+
+		// If apply already finished or errored, append ETX now so the client stops polling
+		if run.Status == "applied" || run.Status == "errored" {
+			responseData = append(responseData, 0x03)
+			fmt.Printf("📤 Sending ETX (End of Text) for apply %s - logs complete (already finished)\n", applyID)
+		}
 	} else {
 		// Client already received STX (1 byte at offset 0)
 		// Map stream offset to logText offset:
