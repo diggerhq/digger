@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -146,6 +147,44 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		}
 	}()
 
+	// Buffered logging to reduce blob storage roundtrips
+	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
+	var logBuffer bytes.Buffer
+	var logMutex sync.Mutex
+	lastLogFlush := time.Now()
+	lastFlushSize := 0
+	
+	flushLogs := func() error {
+		logMutex.Lock()
+		defer logMutex.Unlock()
+		if logBuffer.Len() == 0 {
+			return nil
+		}
+		err := e.blobStore.UploadBlob(ctx, applyLogBlobID, logBuffer.Bytes())
+		if err == nil {
+			lastLogFlush = time.Now()
+			lastFlushSize = logBuffer.Len()
+		}
+		return err
+	}
+	
+	appendLog := func(message string) {
+		logMutex.Lock()
+		logBuffer.WriteString(message)
+		now := time.Now()
+		// Flush if we have >1KB of NEW data or if 1s has passed
+		shouldFlush := (logBuffer.Len()-lastFlushSize) > 1024 || now.Sub(lastLogFlush) > 1*time.Second
+		logMutex.Unlock()
+		
+		if shouldFlush {
+			_ = flushLogs()
+		}
+	}
+	
+	defer func() {
+		_ = flushLogs()
+	}()
+
 	// Update run status to "applying"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "applying"); err != nil {
 		logger.Error("failed to update run status", slog.String("error", err.Error()))
@@ -153,6 +192,9 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	}
 
 	logger.Info("updated run status to applying")
+
+	appendLog("Starting terraform apply...\n")
+	appendLog("Downloading configuration...\n")
 
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
@@ -166,6 +208,8 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	if err != nil {
 		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to download archive: %v", err))
 	}
+
+	appendLog("Extracting workspace...\n")
 
 	// Extract to temp directory
 	workDir, err := extractArchive(archiveData)
@@ -222,6 +266,10 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	)
 
 	if useSandbox {
+		appendLog("Starting remote execution environment...\n")
+		appendLog("Initializing terraform...\n")
+		appendLog("Running terraform apply...\n")
+
 		if applyActivityID != "" && e.activityRepo != nil {
 			applyActivityStart = time.Now()
 			if err := e.activityRepo.MarkRunning(ctx, applyActivityID, applyActivityStart, e.sandbox.Name()); err != nil {
@@ -229,7 +277,25 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 			}
 		}
 
-		result, execErr := e.executeApplyInSandbox(ctx, run, unitMeta, workspaceArchive, stateData)
+		// Start heartbeat goroutine for long-running remote applies
+		heartbeatDone := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					appendLog(fmt.Sprintf("Remote apply in progress... (%s)\n", time.Now().Format("15:04:05")))
+				case <-heartbeatDone:
+					return
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+		defer close(heartbeatDone)
+
+		result, execErr := e.executeApplyInSandbox(ctx, run, unitMeta, workspaceArchive, stateData, appendLog)
 		applySandboxResult = result
 		applyErr = execErr
 		if result != nil {
@@ -253,10 +319,14 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		}
 	}
 
-	// Store apply logs in blob storage (use UploadBlob - no lock checks needed for logs)
-	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
-	if storeErr := e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs)); storeErr != nil {
-		logger.Error("failed to store apply logs", slog.String("error", storeErr.Error()))
+	// Append the actual terraform output to the progress logs
+	appendLog("\n" + logs)
+
+	// Store final status
+	if applyErr != nil {
+		appendLog("\n\nApply failed\n")
+	} else {
+		appendLog("\n\nApply complete\n")
 	}
 
 	// Update run status
@@ -393,7 +463,7 @@ func (e *ApplyExecutor) handleApplyError(ctx context.Context, runID string, logg
 	return fmt.Errorf("apply execution failed: %s", errorMsg)
 }
 
-func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.TFERun, unit *storage.UnitMetadata, archive []byte, stateData []byte) (*sandbox.ApplyResult, error) {
+func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.TFERun, unit *storage.UnitMetadata, archive []byte, stateData []byte, logSink func(string)) (*sandbox.ApplyResult, error) {
 	if e.sandbox == nil {
 		return nil, fmt.Errorf("sandbox provider not configured")
 	}
@@ -424,6 +494,7 @@ func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.T
 		ConfigArchive:          archive,
 		State:                  stateData,
 		Metadata:               metadata,
+		LogSink:                logSink,
 	}
 	return e.sandbox.ExecuteApply(ctx, req)
 }

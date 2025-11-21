@@ -23,7 +23,7 @@ export class JobRunner {
     logger.info({ job: job.id, runner: this.runner.name }, "sandbox job started");
 
     try {
-      const result = await this.runner.run(job);
+      const result = await this.runner.run(job, (chunk) => this.store.appendLogs(job.id, chunk));
       this.store.updateStatus(job.id, "succeeded", result.logs);
       this.store.setResult(job.id, result.result);
       logger.info({ job: job.id }, "sandbox job succeeded");
@@ -36,4 +36,3 @@ export class JobRunner {
     }
   }
 }
-

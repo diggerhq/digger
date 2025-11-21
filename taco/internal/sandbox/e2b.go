@@ -48,7 +48,7 @@ func (s *e2bSandbox) ExecutePlan(ctx context.Context, req *PlanRequest) (*PlanRe
 	if req == nil {
 		return nil, fmt.Errorf("plan request cannot be nil")
 	}
-	
+
 	// Validate engine field is set
 	if req.Engine == "" {
 		return nil, fmt.Errorf("engine field is required but was empty")
@@ -76,7 +76,7 @@ func (s *e2bSandbox) ExecutePlan(ctx context.Context, req *PlanRequest) (*PlanRe
 		return nil, err
 	}
 
-	status, err := s.waitForCompletion(ctx, jobID)
+	status, err := s.waitForCompletion(ctx, jobID, req.LogSink)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *e2bSandbox) ExecuteApply(ctx context.Context, req *ApplyRequest) (*Appl
 	if req == nil {
 		return nil, fmt.Errorf("apply request cannot be nil")
 	}
-	
+
 	// Validate engine field is set
 	if req.Engine == "" {
 		return nil, fmt.Errorf("engine field is required but was empty")
@@ -137,7 +137,7 @@ func (s *e2bSandbox) ExecuteApply(ctx context.Context, req *ApplyRequest) (*Appl
 		return nil, err
 	}
 
-	status, err := s.waitForCompletion(ctx, jobID)
+	status, err := s.waitForCompletion(ctx, jobID, req.LogSink)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (s *e2bSandbox) startRun(ctx context.Context, payload e2bRunRequest) (strin
 	// Retry logic for transient failures (network issues, sidecar temporarily unavailable)
 	maxRetries := 3
 	var lastErr error
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		if attempt > 1 {
 			// Exponential backoff: 1s, 2s, 4s
@@ -214,11 +214,11 @@ func (s *e2bSandbox) startRun(ctx context.Context, payload e2bRunRequest) (strin
 		}
 		return startResp.ID, nil
 	}
-	
+
 	return "", fmt.Errorf("failed to start sandbox run after %d attempts: %w", maxRetries, lastErr)
 }
 
-func (s *e2bSandbox) waitForCompletion(ctx context.Context, runID string) (*e2bRunStatusResponse, error) {
+func (s *e2bSandbox) waitForCompletion(ctx context.Context, runID string, onLog func(string)) (*e2bRunStatusResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.cfg.PollTimeout)
 	defer cancel()
 
@@ -226,10 +226,18 @@ func (s *e2bSandbox) waitForCompletion(ctx context.Context, runID string) (*e2bR
 	defer ticker.Stop()
 
 	var lastErr error
+	lastLen := 0
 
 	for {
 		status, err := s.fetchStatus(ctx, runID)
 		if err == nil {
+			// Stream incremental log chunks as we see new bytes
+			if onLog != nil && len(status.Logs) > lastLen {
+				chunk := status.Logs[lastLen:]
+				onLog(chunk)
+				lastLen = len(status.Logs)
+			}
+
 			switch strings.ToLower(status.Status) {
 			case "succeeded", "completed", "done":
 				return status, nil

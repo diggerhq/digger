@@ -8,7 +8,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/diggerhq/digger/opentaco/internal/auth"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/domain/tfe"
 	"github.com/google/jsonapi"
@@ -42,7 +44,7 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	// Determine if run is confirmable (waiting for user approval)
 	// Status is "planned" when waiting for confirmation
 	isConfirmable := run.Status == "planned" && run.CanApply && !run.AutoApply
-	
+
 	// Determine if run has changes (Terraform CLI uses this!)
 	var hasChanges bool
 	var planData *domain.TFEPlan
@@ -71,7 +73,7 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 	// Use unit ID as workspace ID (they're the same in our architecture)
 	// Terraform CLI expects workspace ID in the format "ws-{uuid}"
 	workspaceID := "ws-" + run.UnitID
-	
+
 	// Build response
 	response := tfe.TFERun{
 		ID:            run.ID,
@@ -146,6 +148,9 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 
 			// Build plan data for included section
 			publicBase := os.Getenv("OPENTACO_PUBLIC_BASE_URL")
+			// Generate a fresh signed token for log streaming (path-based to survive CLI stripping queries)
+			logToken, _ := auth.GenerateLogStreamToken(planData.ID, 24*time.Hour)
+			logReadURL := fmt.Sprintf("%s/tfe/api/v2/plans/%s/logs/%s", publicBase, planData.ID, logToken)
 			planData := map[string]interface{}{
 				"id":   planData.ID,
 				"type": "plans",
@@ -155,7 +160,7 @@ func (h *TfeHandler) GetRun(c echo.Context) error {
 					"resource-additions":    planData.ResourceAdditions,
 					"resource-changes":      planData.ResourceChanges,
 					"resource-destructions": planData.ResourceDestructions,
-					"log-read-url":          fmt.Sprintf("%s/tfe/api/v2/plans/%s/logs", publicBase, planData.ID),
+					"log-read-url":          logReadURL,
 				},
 				"relationships": map[string]interface{}{
 					"run": map[string]interface{}{
@@ -273,7 +278,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	isDestroy := requestData.Data.Attributes.IsDestroy
 	autoApply := requestData.Data.Attributes.AutoApply
 	planOnlyFromCLI := requestData.Data.Attributes.PlanOnly // Pointer - can be nil
-	
+
 	// Log the full request for debugging
 	planOnlyValue := "not-set"
 	if planOnlyFromCLI != nil {
@@ -283,7 +288,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 			planOnlyValue = "false"
 		}
 	}
-	logger.Info("create run request", 
+	logger.Info("create run request",
 		slog.String("message", message),
 		slog.Bool("is_destroy", isDestroy),
 		slog.Bool("auto_apply_from_cli", autoApply),
@@ -293,7 +298,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	// Get org and user context from middleware
 	orgIdentifier, _ := c.Get("organization_id").(string)
 	userID, _ := c.Get("user_id").(string)
-	
+
 	if orgIdentifier == "" {
 		orgIdentifier = "default-org" // Fallback for testing
 	}
@@ -305,7 +310,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	// This is critical for S3 path construction: <orgUUID>/<unitUUID>/terraform.tfstate
 	orgUUID, err := h.identifierResolver.ResolveOrganization(ctx, orgIdentifier)
 	if err != nil {
-		logger.Error("failed to resolve organization", 
+		logger.Error("failed to resolve organization",
 			slog.String("org_identifier", orgIdentifier),
 			slog.String("error", err.Error()))
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -316,7 +321,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 			}},
 		})
 	}
-	logger.Info("resolved organization", 
+	logger.Info("resolved organization",
 		slog.String("org_identifier", orgIdentifier),
 		slog.String("org_uuid", orgUUID))
 
@@ -343,7 +348,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	if unit.TFEExecutionMode != nil && *unit.TFEExecutionMode != "" {
 		executionMode = *unit.TFEExecutionMode
 	}
-	
+
 	logger.Info("🔍 DECISION POINT: Checking execution mode",
 		slog.String("unit_id", unitID),
 		slog.String("unit_name", unit.Name),
@@ -355,7 +360,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 			}
 			return "none"
 		}()))
-	
+
 	if executionMode == "remote" && h.sandbox == nil {
 		logger.Warn("❌ BLOCKED: remote run creation - sandbox provider not configured",
 			slog.String("unit_id", unitID),
@@ -368,7 +373,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 			}},
 		})
 	}
-	
+
 	if executionMode == "remote" {
 		logger.Info("✅ APPROVED: Remote execution will be used",
 			slog.String("unit_id", unitID),
@@ -399,7 +404,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 	// 3. Either one being true results in auto-apply
 	workspaceAutoApply := unit.TFEAutoApply != nil && *unit.TFEAutoApply
 	finalAutoApply := workspaceAutoApply || autoApply
-	
+
 	logger.Info("determining auto-apply setting",
 		slog.Bool("workspace_auto_apply", workspaceAutoApply),
 		slog.Bool("cli_auto_approve", autoApply),
@@ -429,8 +434,8 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		ConfigurationVersionID: cvID,
 		CreatedBy:              userID,
 	}
-	
-	logger.Info("creating run", 
+
+	logger.Info("creating run",
 		slog.Bool("auto_apply", finalAutoApply),
 		slog.Bool("plan_only", run.PlanOnly))
 
@@ -445,7 +450,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
-	logger.Info("created run", 
+	logger.Info("created run",
 		slog.String("run_id", run.ID),
 		slog.String("unit_id", unitID))
 
@@ -468,7 +473,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		})
 	}
 
-	logger.Info("created plan", 
+	logger.Info("created plan",
 		slog.String("plan_id", plan.ID),
 		slog.String("run_id", run.ID))
 
@@ -490,7 +495,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 		planLogger.Info("starting async plan execution")
 		// Create plan executor
 		executor := NewPlanExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo, h.sandbox, h.runActivityRepo)
-		
+
 		// Execute the plan (this will run terraform plan)
 		if err := executor.ExecutePlan(planCtx, run.ID); err != nil {
 			planLogger.Error("plan execution failed", slog.String("error", err.Error()))
@@ -527,7 +532,7 @@ func (h *TfeHandler) CreateRun(c echo.Context) error {
 			ID: cvID,
 		},
 	}
-	
+
 	// For auto-apply runs, include Apply reference immediately so Terraform CLI knows to expect it
 	if run.AutoApply {
 		response.Apply = &tfe.ApplyRef{ID: run.ID}
@@ -627,7 +632,7 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 		applyLogger.Info("starting async apply execution")
 		// Create apply executor
 		executor := NewApplyExecutor(h.runRepo, h.planRepo, h.configVerRepo, h.blobStore, h.unitRepo, h.sandbox, h.runActivityRepo)
-		
+
 		// Execute the apply (this will run terraform apply)
 		if err := executor.ExecuteApply(applyCtx, runID); err != nil {
 			applyLogger.Error("apply execution failed", slog.String("error", err.Error()))
@@ -665,7 +670,7 @@ func (h *TfeHandler) ApplyRun(c echo.Context) error {
 	if run.PlanID != nil {
 		response.Plan = &tfe.PlanRef{ID: *run.PlanID}
 	}
-	
+
 	// Include Apply reference so Terraform CLI knows to fetch apply logs
 	response.Apply = &tfe.ApplyRef{ID: run.ID}
 	logger.Debug("added apply reference", slog.String("apply_id", run.ID))
@@ -700,7 +705,7 @@ func (h *TfeHandler) GetRunEvents(c echo.Context) error {
 	// Generate events based on run status (JSON:API format with type field)
 	events := []map[string]interface{}{}
 	eventCounter := 0
-	
+
 	// Helper to create a properly formatted event
 	addEvent := func(action, description string) {
 		eventCounter++
@@ -714,7 +719,7 @@ func (h *TfeHandler) GetRunEvents(c echo.Context) error {
 			},
 		})
 	}
-	
+
 	// Always include "run created" event
 	addEvent("created", "Run was created")
 
