@@ -1,0 +1,18 @@
+---
+title: Reducing PR Noise
+---
+
+The current behaviour of digger is that it leaves a comment for every plan or apply performed. It also leaves a summary comment on top of those.
+While this is noise to see a quick history of activity within the PR, it gets noisy for anything over 10 impacted projects.
+
+In such cases you can disable the reporting entirely using digger.yml:
+
+```
+reporting:
+  comments_enabled: false
+```
+
+With that in place you will no longer see an individual plan per comment, you can go into the checks page to see the individual plans
+
+
+![](/images/howto/checks.png)

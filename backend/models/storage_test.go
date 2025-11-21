@@ -225,10 +225,10 @@ func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	resourcesUpdated := uint(2)
 	resourcesDeleted := uint(3)
 
-	batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId, 0, "", false, true, nil, "")
+	batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 123, repoOwner, repoName, repoFullName, prNumber, diggerconfig, branchName, batchType, &commentId, 0, "", false, true, nil, "", nil, nil)
 	assert.NoError(t, err)
 
-	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec), "workflow_file.yml")
+	job, err := DB.CreateDiggerJob(batch.ID, []byte(jobSpec), "workflow_file.yml", nil, nil, "lazy", "")
 	assert.NoError(t, err)
 
 	job, err = DB.UpdateDiggerJobSummary(job.DiggerJobID, resourcesCreated, resourcesUpdated, resourcesDeleted)

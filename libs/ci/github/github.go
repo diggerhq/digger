@@ -308,6 +308,151 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 	return err
 }
 
+// modern check runs for github (not the commit status)
+func (svc GithubService) CreateCheckRun(name string, status string, conclusion string, title string, summary string, text string, headSHA string, actions []*github.CheckRunAction) (*github.CheckRun, error) {
+	client := svc.Client
+	owner := svc.Owner
+	repoName := svc.RepoName
+	opts := github.CreateCheckRunOptions{
+		Name:    name,
+		HeadSHA: headSHA,               // commit SHA to attach the check to
+		Status:  github.String(status), // or "queued" / "in_progress"
+		Output: &github.CheckRunOutput{
+			Title:   github.String(title),
+			Summary: github.String(summary),
+			Text:    github.String(text),
+		},
+	}
+
+	if conclusion != "" {
+		opts.Conclusion = github.String(conclusion)
+	}
+
+	if actions != nil {
+		opts.Actions = actions
+	}
+
+	ctx := context.Background()
+	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repoName, opts)
+	return checkRun, err
+}
+
+type GithubCheckRunUpdateOptions struct {
+	Status *string
+	Conclusion *string
+	Title *string
+	Summary *string
+	Text *string
+	Actions []*github.CheckRunAction
+}
+
+func (svc GithubService) UpdateCheckRun(checkRunId string, options GithubCheckRunUpdateOptions) (*github.CheckRun, error) {
+	status := options.Status
+	conclusion := options.Conclusion
+	title := options.Title
+	summary := options.Summary
+	text := options.Text
+	actions := options.Actions
+
+	slog.Debug("Updating check run",
+		"checkRunId", checkRunId,
+		"status", status,
+		"conclusion", conclusion,
+		"title", title,
+		"summary", summary,
+		"text", text,
+		"actions", actions,
+	)
+	client := svc.Client
+	owner := svc.Owner
+	repoName := svc.RepoName
+
+	checkRunIdInt64, err := strconv.ParseInt(checkRunId, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert id %v to i64: %v", checkRunId, err)
+	}
+
+	ctx := context.Background()
+
+	// Fetch existing check run to preserve annotations and other output data
+	existingCheckRun, _, err := client.Checks.GetCheckRun(ctx, owner, repoName, checkRunIdInt64)
+	if err != nil {
+		slog.Warn("Failed to fetch existing check run, proceeding with update anyway",
+			"checkRunId", checkRunId,
+			"error", err,
+		)
+		return nil, fmt.Errorf("could not fetch existing check run: %v", err)
+	}
+
+	// Merge existing output with new output, preserving annotations and images
+	output := &github.CheckRunOutput{}
+	if existingCheckRun.Output != nil {
+		// Preserve existing annotations if they exist
+		if existingCheckRun.Output.Annotations != nil && len(existingCheckRun.Output.Annotations) > 0 {
+			output.Annotations = existingCheckRun.Output.Annotations
+		}
+		// Preserve existing images if they exist
+		if existingCheckRun.Output.Images != nil && len(existingCheckRun.Output.Images) > 0 {
+			output.Images = existingCheckRun.Output.Images
+		}
+	}
+
+	newActions := []*github.CheckRunAction{}
+	if actions != nil {
+		newActions = actions
+	}
+
+	// Update with new values (only update if provided and non-empty)
+	if title != nil {
+		output.Title = github.String(*title)
+	} else if existingCheckRun.Output != nil && existingCheckRun.Output.Title != nil {
+		output.Title = existingCheckRun.Output.Title
+	}
+
+	if summary != nil {
+		output.Summary = github.String(*summary)
+	} else if existingCheckRun.Output != nil && existingCheckRun.Output.Summary != nil {
+		output.Summary = existingCheckRun.Output.Summary
+	}
+
+	if text != nil {
+		output.Text = github.String(*text)
+	} else if existingCheckRun.Output != nil && existingCheckRun.Output.Text != nil {
+		output.Text = existingCheckRun.Output.Text
+	}
+
+	var newStatus *string = nil
+	if status != nil {
+		newStatus = status
+	} else {
+		newStatus = existingCheckRun.Status
+	}
+
+	opts := github.UpdateCheckRunOptions{
+		Name:   *existingCheckRun.Name,
+		Output: output,
+		Actions: newActions,
+	}
+
+	if newStatus != nil {
+		opts.Status = github.String(*newStatus)
+	}
+
+	if conclusion != nil {
+		opts.Conclusion = github.String(*conclusion)
+	}
+
+	checkRun, _, err := client.Checks.UpdateCheckRun(ctx, owner, repoName, checkRunIdInt64, opts)
+	if err != nil {
+		slog.Error("Failed to update check run",
+			"inputCheckRunId", checkRunId,
+			"error", err)
+		return checkRun, err
+	}
+
+	return checkRun, err
+}
+
 func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {

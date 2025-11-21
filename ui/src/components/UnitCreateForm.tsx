@@ -35,8 +35,9 @@ export default function UnitCreateForm({
   const [isCreating, setIsCreating] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   
-  // Remote runs beta is now always enabled
-  const remoteRunsEnabled = true
+  // Remote runs are gated by localStorage flag for beta testing
+  // Set localStorage.setItem('REMOTE_RUNS', 'true') to enable
+  const remoteRunsEnabled = typeof window !== 'undefined' && localStorage.getItem('REMOTE_RUNS') === 'true'
 
   const handleCreate = async () => {
     if (!unitName.trim()) return

@@ -189,7 +189,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 		Job:       jobSpec,
 		Reporter: spec.ReporterSpec{
 			ReportingStrategy:     "comments_per_run",
-			ReporterType:          "lazy",
+			ReporterType:          job.ReporterType,
 			ReportTerraformOutput: batch.ReportTerraformOutputs,
 		},
 		Lock: spec.LockSpec{

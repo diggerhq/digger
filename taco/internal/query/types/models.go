@@ -253,7 +253,7 @@ type TFERun struct {
 
 	// Relationships (foreign keys)
 	ConfigurationVersionID string  `gorm:"type:varchar(36);not null;index"`
-	PlanID                 *string `gorm:"type:varchar(36);index"` // Nullable until plan is created
+	PlanID                 *string `gorm:"type:varchar(50);index"` // Nullable until plan is created 
 	ApplyID                *string `gorm:"type:varchar(36);index"` // Nullable if plan-only
 
 	// Blob storage references
@@ -283,7 +283,7 @@ func (TFERun) TableName() string { return "tfe_runs" }
 
 // TFE Plan model - represents a Terraform plan execution
 type TFEPlan struct {
-	ID        string    `gorm:"type:varchar(36);primaryKey"`
+	ID        string    `gorm:"type:varchar(50);primaryKey"` // TFE-style ID: plan-{32chars}
 	OrgID     string    `gorm:"type:varchar(36);index;not null"`
 	RunID     string    `gorm:"type:varchar(36);not null;index"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`

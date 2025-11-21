@@ -90,6 +90,7 @@
           {
             "group": "How To",
             "pages": [
+              "ce/howto/noise-reduction",
               "ce/howto/specify-terraform-version",
               "ce/howto/caching-strategies",
               "ce/howto/apply-on-merge",

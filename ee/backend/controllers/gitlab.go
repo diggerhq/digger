@@ -203,7 +203,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		// TODO use status checks instead: https://github.com/diggerhq/digger/issues/1135
 		log.Printf("No projects impacted; not starting any jobs")
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(glService, prNumber, jobsForImpactedProjects)
+		err = utils.SetPRCommitStatusForJobs(glService, prNumber, jobsForImpactedProjects)
 		return nil
 	}
 
@@ -265,7 +265,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		return fmt.Errorf("failed to comment initial status for jobs")
 	}
 
-	err = utils.SetPRStatusForJobs(glService, prNumber, jobsForImpactedProjects)
+	err = utils.SetPRCommitStatusForJobs(glService, prNumber, jobsForImpactedProjects)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
@@ -288,7 +288,7 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: could not handle commentId: %v", err))
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, commentId, diggeryamlStr, projectId, "", false, coverAllImpactedProjects, nil)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "lazy", models.DiggerVCSGitlab, organisationId, impactedJobsMap, impactedProjectsMap, projectsGraph, 0, branch, prNumber, repoOwner, repoName, repoFullName, commitSha, &commentId, diggeryamlStr, projectId, "", false, coverAllImpactedProjects, nil, nil, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
@@ -461,11 +461,11 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	if len(jobs) == 0 {
 		log.Printf("no projects impacated, succeeding")
 		// This one is for aggregate reporting
-		err = utils.SetPRStatusForJobs(glService, issueNumber, jobs)
+		err = utils.SetPRCommitStatusForJobs(glService, issueNumber, jobs)
 		return nil
 	}
 
-	err = utils.SetPRStatusForJobs(glService, issueNumber, jobs)
+	err = utils.SetPRCommitStatusForJobs(glService, issueNumber, jobs)
 	if err != nil {
 		log.Printf("error setting status for PR: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: error setting status for PR: %v", err))
@@ -488,7 +488,7 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 		return fmt.Errorf("parseint error: %v", err)
 	}
 
-	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, commentId64, diggerYmlStr, projectId, "", false, coverAllImpactedProjects, nil)
+	batchId, _, err := utils.ConvertJobsToDiggerJobs(*diggerCommand, "lazy", models.DiggerVCSGitlab, organisationId, impactedProjectsJobMap, impactedProjectsMap, projectsGraph, 0, branch, issueNumber, repoOwner, repoName, repoFullName, commitSha, &commentId64, diggerYmlStr, projectId, "", false, coverAllImpactedProjects, nil, nil, nil)
 	if err != nil {
 		log.Printf("ConvertJobsToDiggerJobs error: %v", err)
 		utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
