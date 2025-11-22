@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -44,9 +43,6 @@ func init() {
 	unitCmd.AddCommand(unitVersionsCmd)
 	unitCmd.AddCommand(unitRestoreCmd)
 	unitCmd.AddCommand(unitStatusCmd)
-	unitListCmd.Flags().IntVar(&unitListPage, "page", 1, "Page number for unit list")
-	unitListCmd.Flags().IntVar(&unitListPageSize, "page-size", 50, "Units per page")
-	unitListCmd.Flags().BoolVar(&unitListAll, "all", false, "Fetch all pages")
 }
 
 var unitCreateCmd = &cobra.Command{
@@ -78,15 +74,6 @@ var (
 	unitStatusOutput string
 )
 
-var (
-	unitListPage       = 1
-	unitListPageSize   = 50
-	unitListAll        bool
-	unitStatusPage     = 1
-	unitStatusPageSize = 50
-	unitStatusAll      = true
-)
-
 var unitStatusCmd = &cobra.Command{
 	Use:   "status [unit-id]",
 	Short: "Show dependency status for a unit or prefix",
@@ -103,29 +90,12 @@ var unitStatusCmd = &cobra.Command{
 		if len(args) == 1 {
 			units = []string{args[0]}
 		} else {
-			ctx := context.Background()
-			page := unitStatusPage
-			if page < 1 {
-				page = 1
+			resp, err := client.ListUnits(context.Background(), pfx)
+			if err != nil {
+				return fmt.Errorf("failed to list units: %w", err)
 			}
-			size := unitStatusPageSize
-			if size < 1 {
-				size = 50
-			}
-
-			currentPage := page
-			for {
-				resp, err := client.ListUnits(ctx, pfx, currentPage, size)
-				if err != nil {
-					return fmt.Errorf("failed to list units: %w", err)
-				}
-				for _, u := range resp.Units {
-					units = append(units, u.ID)
-				}
-				if !unitStatusAll || len(resp.Units) == 0 || int64(currentPage*size) >= resp.Total {
-					break
-				}
-				currentPage++
+			for _, u := range resp.Units {
+				units = append(units, u.ID)
 			}
 		}
 
@@ -172,9 +142,6 @@ var unitStatusCmd = &cobra.Command{
 func init() {
 	unitStatusCmd.Flags().StringVar(&unitStatusPrefix, "prefix", "", "Prefix to filter units")
 	unitStatusCmd.Flags().StringVarP(&unitStatusOutput, "output", "o", "table", "Output format: table|json")
-	unitStatusCmd.Flags().IntVar(&unitStatusPage, "page", 1, "Page number when listing units for status (ignored when --all is set)")
-	unitStatusCmd.Flags().IntVar(&unitStatusPageSize, "page-size", 50, "Units per page when listing units for status")
-	unitStatusCmd.Flags().BoolVar(&unitStatusAll, "all", true, "Fetch all pages when no unit-id is provided")
 }
 
 var unitListCmd = &cobra.Command{
@@ -189,44 +156,22 @@ var unitListCmd = &cobra.Command{
 		}
 		printVerbose("Listing units with prefix: %s", prefix)
 
-		page := unitListPage
-		if page < 1 {
-			page = 1
-		}
-		pageSize := unitListPageSize
-		if pageSize < 1 {
-			pageSize = 50
-		}
-
 		ctx := context.Background()
-		currentPage := page
-		var combinedUnits []*sdk.UnitMetadata
-		var total int64
-
-		for {
-			respPage, err := client.ListUnits(ctx, prefix, currentPage, pageSize)
-			if err != nil {
-				return fmt.Errorf("failed to list units: %w", err)
-			}
-			combinedUnits = append(combinedUnits, respPage.Units...)
-			total = respPage.Total
-
-			if !unitListAll || len(respPage.Units) == 0 || int64(currentPage*pageSize) >= total {
-				break
-			}
-			currentPage++
+		resp, err := client.ListUnits(ctx, prefix)
+		if err != nil {
+			return fmt.Errorf("failed to list units: %w", err)
 		}
 
-		if len(combinedUnits) == 0 {
+		if len(resp.Units) == 0 {
 			fmt.Println("No units found")
 			return nil
 		}
 
 		// Filter by RBAC if enabled
-		filtered := combinedUnits
+		filtered := resp.Units
 		var err error
 		if rbacEnabled {
-			filtered, err = filterUnitsByRBAC(ctx, client, combinedUnits)
+			filtered, err = filterUnitsByRBAC(ctx, client, resp.Units)
 			if err != nil {
 				printVerbose("Warning: failed to filter units by RBAC: %v", err)
 			}
@@ -247,7 +192,7 @@ var unitListCmd = &cobra.Command{
 			fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", u.ID, u.Size, u.Updated.Format("2006-01-02 15:04:05"), locked)
 		}
 		w.Flush()
-		fmt.Printf("\nServer total: %d units | showing %d (RBAC visible: %d) [page %d size %d]\n", total, len(combinedUnits), len(filtered), page, pageSize)
+		fmt.Printf("\nTotal: %d units (showing %d with read access)\n", resp.Count, len(filtered))
 		return nil
 	},
 }

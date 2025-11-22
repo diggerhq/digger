@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -48,29 +47,6 @@ type PermissionRule struct {
 	Resources []string `json:"resources"`
 	Effect    string   `json:"effect"`
 }
-
-type paginatedRolesResponse struct {
-	Roles    []Role `json:"roles"`
-	Count    int    `json:"count"`
-	Total    int64  `json:"total"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
-}
-
-type paginatedPermissionsResponse struct {
-	Permissions []Permission `json:"permissions"`
-	Count       int          `json:"count"`
-	Total       int64        `json:"total"`
-	Page        int          `json:"page"`
-	PageSize    int          `json:"page_size"`
-}
-
-var (
-	rbacRoleListPage       = 1
-	rbacRoleListPageSize   = 50
-	rbacPermissionListPage = 1
-	rbacPermissionListSize = 50
-)
 
 // rbacCmd represents the rbac command
 var rbacCmd = &cobra.Command{
@@ -332,8 +308,6 @@ func init() {
 	rbacRoleCmd.AddCommand(rbacRoleDeleteCmd)
 	rbacRoleCmd.AddCommand(rbacRoleAssignPolicyCmd)
 	rbacRoleCmd.AddCommand(rbacRoleRevokePermissionCmd)
-	rbacRoleListCmd.Flags().IntVar(&rbacRoleListPage, "page", 1, "Page number for roles")
-	rbacRoleListCmd.Flags().IntVar(&rbacRoleListPageSize, "page-size", 50, "Roles per page")
 }
 
 // rbac role create command
@@ -379,26 +353,9 @@ var rbacRoleListCmd = &cobra.Command{
 	Long:  `List all roles in the system.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := newAuthedClient()
-		page := rbacRoleListPage
-		if page < 1 {
-			page = 1
-		}
-		pageSize := rbacRoleListPageSize
-		if pageSize < 1 {
-			pageSize = 50
-		}
+		printVerbose("Listing all roles")
 
-		query := url.Values{}
-		query.Set("page", strconv.Itoa(page))
-		query.Set("page_size", strconv.Itoa(pageSize))
-
-		path := "/v1/rbac/roles"
-		if encoded := query.Encode(); encoded != "" {
-			path += "?" + encoded
-		}
-		printVerbose("Listing roles (page %d, size %d)", page, pageSize)
-
-		resp, err := client.Get(context.Background(), path)
+		resp, err := client.Get(context.Background(), "/v1/rbac/roles")
 		if err != nil {
 			return fmt.Errorf("failed to list roles: %w", err)
 		}
@@ -412,12 +369,12 @@ var rbacRoleListCmd = &cobra.Command{
 			return fmt.Errorf("failed to read response: %w", err)
 		}
 
-		var rolesPage paginatedRolesResponse
-		if err := json.Unmarshal(body, &rolesPage); err != nil {
+		var roles []Role
+		if err := json.Unmarshal(body, &roles); err != nil {
 			return fmt.Errorf("failed to parse response: %w", err)
 		}
 
-		if len(rolesPage.Roles) == 0 {
+		if len(roles) == 0 {
 			fmt.Println("No roles found")
 			return nil
 		}
@@ -426,7 +383,7 @@ var rbacRoleListCmd = &cobra.Command{
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "NAME\tDESCRIPTION\tPERMISSIONS\tCREATED")
 
-		for _, role := range rolesPage.Roles {
+		for _, role := range roles {
 			permissions := strings.Join(role.Permissions, ", ")
 			name := role.Name
 			if name == "" {
@@ -441,7 +398,7 @@ var rbacRoleListCmd = &cobra.Command{
 		}
 
 		w.Flush()
-		fmt.Printf("\nPage %d (size %d) — showing %d of %d roles\n", rolesPage.Page, rolesPage.PageSize, len(rolesPage.Roles), rolesPage.Total)
+		fmt.Printf("\nTotal: %d roles\n", len(roles))
 
 		return nil
 	},
@@ -550,8 +507,6 @@ func init() {
 	rbacPermissionCmd.AddCommand(rbacPermissionCreateCmd)
 	rbacPermissionCmd.AddCommand(rbacPermissionListCmd)
 	rbacPermissionCmd.AddCommand(rbacPermissionDeleteCmd)
-	rbacPermissionListCmd.Flags().IntVar(&rbacPermissionListPage, "page", 1, "Page number for permissions")
-	rbacPermissionListCmd.Flags().IntVar(&rbacPermissionListSize, "page-size", 50, "Permissions per page")
 }
 
 // rbac permission create command
@@ -618,25 +573,7 @@ var rbacPermissionListCmd = &cobra.Command{
 	Short: "List all permissions",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := newAuthedClient()
-		page := rbacPermissionListPage
-		if page < 1 {
-			page = 1
-		}
-		pageSize := rbacPermissionListSize
-		if pageSize < 1 {
-			pageSize = 50
-		}
-
-		query := url.Values{}
-		query.Set("page", strconv.Itoa(page))
-		query.Set("page_size", strconv.Itoa(pageSize))
-
-		path := "/v1/rbac/permissions"
-		if encoded := query.Encode(); encoded != "" {
-			path += "?" + encoded
-		}
-
-		resp, err := client.Get(context.Background(), path)
+		resp, err := client.Get(context.Background(), "/v1/rbac/permissions")
 		if err != nil {
 			return fmt.Errorf("failed to list permissions: %w", err)
 		}
@@ -650,12 +587,12 @@ var rbacPermissionListCmd = &cobra.Command{
 			return fmt.Errorf("failed to read response: %w", err)
 		}
 
-		var permissionsPage paginatedPermissionsResponse
-		if err := json.Unmarshal(body, &permissionsPage); err != nil {
+		var permissions []Permission
+		if err := json.Unmarshal(body, &permissions); err != nil {
 			return fmt.Errorf("failed to parse response: %w", err)
 		}
 
-		if len(permissionsPage.Permissions) == 0 {
+		if len(permissions) == 0 {
 			fmt.Println("No permissions found")
 			return nil
 		}
@@ -663,7 +600,7 @@ var rbacPermissionListCmd = &cobra.Command{
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "NAME\tDESCRIPTION\tRULES\tCREATED")
 
-		for _, permission := range permissionsPage.Permissions {
+		for _, permission := range permissions {
 			rules := ""
 			for i, rule := range permission.Rules {
 				if i > 0 {
@@ -685,7 +622,7 @@ var rbacPermissionListCmd = &cobra.Command{
 		}
 
 		w.Flush()
-		fmt.Printf("\nPage %d (size %d) — showing %d of %d permissions\n", permissionsPage.Page, permissionsPage.PageSize, len(permissionsPage.Permissions), permissionsPage.Total)
+		fmt.Printf("\nTotal: %d permissions\n", len(permissions))
 		return nil
 	},
 }

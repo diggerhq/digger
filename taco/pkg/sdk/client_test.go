@@ -47,9 +47,6 @@ func TestClient_ListUnits(t *testing.T) {
 		if r.URL.Path != "/v1/units" || r.Method != "GET" {
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
-		if r.URL.Query().Get("page") != "2" || r.URL.Query().Get("page_size") != "25" {
-			t.Errorf("unexpected pagination params: %v", r.URL.Query())
-		}
 
 		resp := ListUnitsResponse{
 			Units: []*UnitMetadata{
@@ -66,10 +63,7 @@ func TestClient_ListUnits(t *testing.T) {
 					Locked:  true,
 				},
 			},
-			Count:    2,
-			Total:    5,
-			Page:     2,
-			PageSize: 25,
+			Count: 2,
 		}
 
 		json.NewEncoder(w).Encode(resp)
@@ -78,7 +72,7 @@ func TestClient_ListUnits(t *testing.T) {
 
 	// Test client
 	client := NewClient(server.URL)
-	resp, err := client.ListUnits(context.Background(), "", 2, 25)
+	resp, err := client.ListUnits(context.Background(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -89,10 +83,6 @@ func TestClient_ListUnits(t *testing.T) {
 
 	if len(resp.Units) != 2 {
 		t.Errorf("expected 2 units in array, got %d", len(resp.Units))
-	}
-
-	if resp.Total != 5 || resp.Page != 2 || resp.PageSize != 25 {
-		t.Errorf("unexpected pagination metadata: %+v", resp)
 	}
 }
 

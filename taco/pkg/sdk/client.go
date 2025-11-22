@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -75,11 +74,8 @@ type CreateUnitResponse struct {
 
 // ListUnitsResponse represents the response from listing units
 type ListUnitsResponse struct {
-	Units    []*UnitMetadata `json:"units"`
-	Count    int             `json:"count"`
-	Total    int64           `json:"total"`
-	Page     int             `json:"page"`
-	PageSize int             `json:"page_size"`
+	Units []*UnitMetadata `json:"units"`
+	Count int             `json:"count"`
 }
 
 // ListVersionsResponse represents the response from listing versions
@@ -149,25 +145,11 @@ func (c *Client) CreateUnit(ctx context.Context, unitID string) (*CreateUnitResp
 	return &result, nil
 }
 
-// ListUnits lists units with optional prefix and pagination.
-func (c *Client) ListUnits(ctx context.Context, prefix string, page int, pageSize int) (*ListUnitsResponse, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 50
-	}
-
-	params := url.Values{}
-	if prefix != "" {
-		params.Set("prefix", prefix)
-	}
-	params.Set("page", strconv.Itoa(page))
-	params.Set("page_size", strconv.Itoa(pageSize))
-
+// ListUnits lists all units with optional prefix filter
+func (c *Client) ListUnits(ctx context.Context, prefix string) (*ListUnitsResponse, error) {
 	path := "/v1/units"
-	if encoded := params.Encode(); encoded != "" {
-		path += "?" + encoded
+	if prefix != "" {
+		path += "?prefix=" + url.QueryEscape(prefix)
 	}
 
 	resp, err := c.do(ctx, "GET", path, nil)
