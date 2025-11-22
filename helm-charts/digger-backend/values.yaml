@@ -17,6 +17,9 @@ digger:
   #     value: "another-value"
   customEnv: []
 
+  # Custom pod annotations to be added to the backend pod
+  podAnnotations: {}
+
   # Set the log level for the backend
   # DEBUG will enable the debug logs, any other value will set it to INFO
   logLevel: "INFO"

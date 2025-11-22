@@ -11,6 +11,12 @@ spec:
     metadata:
       labels:
         app: {{ include "digger-backend.name" . }}-web
+      {{- if .Values.digger.podAnnotations }}
+      annotations:
+        {{- with .Values.digger.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
     spec:
       {{- if $.Values.digger.nodeSelector }}
       nodeSelector:
