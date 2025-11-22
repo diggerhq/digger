@@ -239,6 +239,7 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		projectsApiGroup.GET("/", controllers.ListProjectsApi)
 		projectsApiGroup.GET("/:project_id/", controllers.ProjectsDetailsApi)
 		projectsApiGroup.PUT("/:project_id/", controllers.UpdateProjectApi)
+		projectsApiGroup.DELETE("/:project_id/", controllers.DeleteProjectApi)
 
 		githubApiGroup := apiGroup.Group("/github")
 		githubApiGroup.POST("/link", controllers.LinkGithubInstallationToOrgApi)
