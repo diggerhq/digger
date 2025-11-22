@@ -125,6 +125,88 @@ func TestGithubRepoRemoved(t *testing.T) {
 	assert.Equal(t, GithubAppInstallDeleted, i.Status)
 }
 
+func TestSoftDeleteRepoAndProjects(t *testing.T) {
+	teardownSuite, db, org := setupSuite(t)
+	defer teardownSuite(t)
+
+	installationId := int64(1)
+	appId := int64(1)
+	repoFullName := "test/test"
+
+	repo, err := db.CreateRepo("test-test", repoFullName, "test", "test", "", org, "", installationId, appId, "main", "")
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	project := Project{
+		Name:           "proj",
+		OrganisationID: org.ID,
+		Organisation:   org,
+		RepoFullName:   repoFullName,
+		Status:         ProjectActive,
+	}
+	err = db.GormDB.Create(&project).Error
+	assert.NoError(t, err)
+
+	err = db.SoftDeleteRepoAndProjects(org.ID, repoFullName)
+	assert.NoError(t, err)
+
+	var repoRecord Repo
+	err = db.GormDB.Unscoped().Where("id = ?", repo.ID).First(&repoRecord).Error
+	assert.NoError(t, err)
+	assert.True(t, repoRecord.DeletedAt.Valid)
+
+	var projectRecord Project
+	err = db.GormDB.Unscoped().Where("id = ?", project.ID).First(&projectRecord).Error
+	assert.NoError(t, err)
+	assert.True(t, projectRecord.DeletedAt.Valid)
+}
+
+func TestSoftDeleteReposAndProjectsByInstallation(t *testing.T) {
+	teardownSuite, db, org := setupSuite(t)
+	defer teardownSuite(t)
+
+	appId := int64(1)
+	installA := int64(1)
+	installB := int64(2)
+
+	repoA, err := db.CreateRepo("org-repo-a", "org/repo-a", "org", "repo-a", "", org, "", installA, appId, "main", "")
+	assert.NoError(t, err)
+	repoB, err := db.CreateRepo("org-repo-b", "org/repo-b", "org", "repo-b", "", org, "", installB, appId, "main", "")
+	assert.NoError(t, err)
+
+	projectA := Project{
+		Name:           "proj-a",
+		OrganisationID: org.ID,
+		Organisation:   org,
+		RepoFullName:   repoA.RepoFullName,
+		Status:         ProjectActive,
+	}
+	projectB := Project{
+		Name:           "proj-b",
+		OrganisationID: org.ID,
+		Organisation:   org,
+		RepoFullName:   repoB.RepoFullName,
+		Status:         ProjectActive,
+	}
+	assert.NoError(t, db.GormDB.Create(&projectA).Error)
+	assert.NoError(t, db.GormDB.Create(&projectB).Error)
+
+	err = db.SoftDeleteReposAndProjectsByInstallation(org.ID, installA)
+	assert.NoError(t, err)
+
+	var repoARecord, repoBRecord Repo
+	assert.NoError(t, db.GormDB.Unscoped().Where("id = ?", repoA.ID).First(&repoARecord).Error)
+	assert.NoError(t, db.GormDB.Unscoped().Where("id = ?", repoB.ID).First(&repoBRecord).Error)
+	assert.True(t, repoARecord.DeletedAt.Valid)
+	assert.False(t, repoBRecord.DeletedAt.Valid)
+
+	var projectARecord, projectBRecord Project
+	assert.NoError(t, db.GormDB.Unscoped().Where("id = ?", projectA.ID).First(&projectARecord).Error)
+	assert.NoError(t, db.GormDB.Unscoped().Where("id = ?", projectB.ID).First(&projectBRecord).Error)
+	assert.True(t, projectARecord.DeletedAt.Valid)
+	assert.False(t, projectBRecord.DeletedAt.Valid)
+}
+
 func TestGetDiggerJobsForBatchPreloadsSummary(t *testing.T) {
 	teardownSuite, _, _ := setupSuite(t)
 	defer teardownSuite(t)

@@ -1,0 +1,33 @@
+---
+title: GitHub App settings for local dev
+---
+
+Use these settings when connecting a GitHub App to your local stack (tunneled via the UI domain).
+
+## Required URLs
+
+- **Callback URL** (OAuth/web): `https://<your-public-ui-domain>/orchestrator/github/callback`
+- **Webhook URL**: `https://<your-public-ui-domain>/orchestrator/github/webhook`
+- **Setup URL (optional)**: `https://<your-public-ui-domain>/dashboard/onboarding?step=github`
+
+> The UI forwards these to the backend. Ensure `ORCHESTRATOR_BACKEND_URL`/`SECRET` are set in UI and the backend is reachable from the UI host.
+
+## Permissions & events (recommended)
+
+- Permissions: `contents:read`, `pull_requests:write`, `issues:write`, `statuses:write`, `checks:write`, `metadata:read`, `administration:read`, `workflows:write`, `repository_hooks:write`, `members:read`.
+- Events: `issue_comment`, `pull_request`, `pull_request_review`, `pull_request_review_comment`, `push`, `check_run`, `status`.
+
+## Install URL
+
+After creating the app, use its install URL (e.g., `https://github.com/apps/<app-name>/installations/new`) as `ORCHESTRATOR_GITHUB_APP_URL` in `ui/.env.local`. This drives the "Connect with GitHub" button.
+
+## Creating an app via the backend wizard
+
+- Open `http://localhost:3000/github/setup` (or the backend’s public URL) to generate a manifest and create the app in GitHub. Needed envs on backend: `HOSTNAME` set to a reachable URL, and optional `GITHUB_ORG` if you want to scope to an org.
+- Once created, copy the install URL into `ORCHESTRATOR_GITHUB_APP_URL` and restart the UI.
+
+## Troubleshooting
+
+- **404 on connect**: `ORCHESTRATOR_GITHUB_APP_URL` not set or points to a non-existent path.
+- **Callbacks fail**: UI not exposed publicly; tunnel the UI port and update callback/webhook URLs to that domain.
+- **Backend rejects /api/github/link**: ensure `DIGGER_ENABLE_API_ENDPOINTS=true` and `DIGGER_INTERNAL_SECRET` matches the UI `ORCHESTRATOR_BACKEND_SECRET`.
