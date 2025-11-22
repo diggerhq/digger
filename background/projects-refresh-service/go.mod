@@ -9,7 +9,7 @@ replace github.com/diggerhq/digger/backend => ../../backend
 exclude google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b2c93a
 
 require (
-	github.com/diggerhq/digger/backend v0.0.0-00010101000000-000000000000
+	github.com/diggerhq/digger/backend v0.0.0-20251122005448-9b9539be7bb7
 	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
 )
 
