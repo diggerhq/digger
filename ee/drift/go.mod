@@ -9,7 +9,7 @@ replace github.com/diggerhq/digger/drift => ../../drift
 go 1.25.0
 
 require (
-	github.com/diggerhq/digger/backend v0.0.0-20241111113338-9a40639ab83c
+	github.com/diggerhq/digger/backend v0.0.0-20251122005448-9b9539be7bb7
 	github.com/diggerhq/digger/drift v0.0.0-00010101000000-000000000000
 	github.com/getsentry/sentry-go v0.29.0
 	github.com/gin-gonic/gin v1.10.0
