@@ -10,7 +10,7 @@ exclude google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b
 
 require (
 	github.com/diggerhq/digger/backend v0.0.0-00010101000000-000000000000
-	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 )
 
 require (
