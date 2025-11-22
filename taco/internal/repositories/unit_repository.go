@@ -175,8 +175,8 @@ func (r *UnitRepository) List(ctx context.Context, orgID, prefix string) ([]*sto
 		query = query.Where("name LIKE ?", prefix+"%")
 	}
 	
-	// order by most recent update, stable tie-breaker on id for deterministic paging
-	query = query.Order("updated_at DESC").Order("id ASC")
+	// order by name for deterministic paging; tie-break by id
+	query = query.Order("LOWER(name) ASC").Order("id ASC")
 
 	if err := query.Find(&units).Error; err != nil {
 		return nil, fmt.Errorf("failed to list units: %w", err)

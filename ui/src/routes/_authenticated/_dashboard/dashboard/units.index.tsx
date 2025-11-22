@@ -177,9 +177,10 @@ function RouteComponent() {
   const pageSize = (pageData as any)?.page_size || 20
   const total = (pageData as any)?.total || (pageData as any)?.units?.length || 0
   const units = (pageData?.units || []).slice().sort((a: any, b: any) => {
-    const aDate = a.updated ? new Date(a.updated).getTime() : 0
-    const bDate = b.updated ? new Date(b.updated).getTime() : 0
-    return bDate - aDate
+    const an = (a.name || '').toLowerCase()
+    const bn = (b.name || '').toLowerCase()
+    if (an === bn) return (a.id || '').localeCompare(b.id || '')
+    return an.localeCompare(bn)
   })
   const navigate = Route.useNavigate()
   const router = useRouter()

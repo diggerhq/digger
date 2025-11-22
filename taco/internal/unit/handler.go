@@ -335,10 +335,12 @@ func (h *Handler) ListUnits(c echo.Context) error {
 		})
 	}
 	sort.Slice(domainUnits, func(i, j int) bool {
-		if domainUnits[i].Updated.Equal(domainUnits[j].Updated) {
-			return domainUnits[i].Name < domainUnits[j].Name
+		in := strings.ToLower(domainUnits[i].Name)
+		jn := strings.ToLower(domainUnits[j].Name)
+		if in == jn {
+			return domainUnits[i].ID < domainUnits[j].ID
 		}
-		return domainUnits[i].Updated.After(domainUnits[j].Updated)
+		return in < jn
 	})
 
 	total := len(domainUnits)
