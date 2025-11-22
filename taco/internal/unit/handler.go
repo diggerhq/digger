@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/deps"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/logging"
+	"github.com/diggerhq/digger/opentaco/internal/pagination"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
@@ -281,6 +283,7 @@ func (h *Handler) ListUnits(c echo.Context) error {
 	logger := logging.FromContext(c)
 	ctx := c.Request().Context()
 	prefix := c.QueryParam("prefix")
+	pageParams := pagination.Parse(c, 50, 200)
 
 	// Get org UUID from domain context (set by middleware for both JWT and webhook routes)
 	orgCtx, ok := domain.OrgFromContext(ctx)
@@ -331,15 +334,34 @@ func (h *Handler) ListUnits(c echo.Context) error {
 			LockInfo:     convertLockInfo(u.LockInfo),
 		})
 	}
-	domain.SortUnitsByID(domainUnits)
+	sort.Slice(domainUnits, func(i, j int) bool {
+		if domainUnits[i].Updated.Equal(domainUnits[j].Updated) {
+			return domainUnits[i].Name < domainUnits[j].Name
+		}
+		return domainUnits[i].Updated.After(domainUnits[j].Updated)
+	})
+
+	total := len(domainUnits)
+	start := pageParams.Offset()
+	if start > total {
+		start = total
+	}
+	end := start + pageParams.PageSize
+	if end > total {
+		end = total
+	}
+	pagedUnits := domainUnits[start:end]
 
 	logger.Info("Units listed successfully",
 		"operation", "list_units",
-		"count", len(domainUnits),
+		"count", len(pagedUnits),
 	)
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"units": domainUnits,
-		"count": len(domainUnits),
+		"units":     pagedUnits,
+		"count":     len(pagedUnits),
+		"total":     total,
+		"page":      pageParams.Page,
+		"page_size": pageParams.PageSize,
 	})
 }
 
