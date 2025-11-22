@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/domain"
@@ -146,6 +147,81 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		}
 	}()
 
+	// Chunked logging to prevent memory bloat
+	// Upload log chunks as separate S3 objects and clear buffer after each upload
+	// Fixed-size 2KB chunks enable offset-based chunk selection (reduces S3 re-downloads)
+	const chunkSize = 2 * 1024 // 2KB fixed size
+	chunkIndex := 1
+	var logBuffer bytes.Buffer
+	var logMutex sync.Mutex
+	lastLogFlush := time.Now()
+
+	// Flush helper - uploads current buffer as a padded 2KB chunk and clears it
+	flushLogs := func() error {
+		logMutex.Lock()
+		if logBuffer.Len() == 0 {
+			logMutex.Unlock()
+			return nil
+		}
+
+		// Extract at most chunkSize bytes (2KB)
+		dataLen := logBuffer.Len()
+		if dataLen > chunkSize {
+			dataLen = chunkSize
+		}
+		data := make([]byte, dataLen)
+		copy(data, logBuffer.Bytes()[:dataLen])
+		currentChunk := chunkIndex
+		chunkIndex++ // Increment NOW before unlock to reserve this chunk number atomically
+
+		// Copy remainder BEFORE resetting (crucial - remainder slice points to internal buffer)
+		var remainderCopy []byte
+		if logBuffer.Len() > dataLen {
+			remainder := logBuffer.Bytes()[dataLen:]
+			remainderCopy = make([]byte, len(remainder))
+			copy(remainderCopy, remainder)
+		}
+
+		// Now safe to reset and write remainder back
+		logBuffer.Reset()
+		if len(remainderCopy) > 0 {
+			logBuffer.Write(remainderCopy)
+		}
+		logMutex.Unlock()
+
+		// Pad to fixed 2KB size (rest will be null bytes)
+		paddedData := make([]byte, chunkSize)
+		copy(paddedData, data)
+
+		// Upload this chunk (key includes zero-padded chunk index)
+		chunkKey := fmt.Sprintf("applies/%s/chunks/%08d.log", run.ID, currentChunk)
+		err := e.blobStore.UploadBlob(ctx, chunkKey, paddedData)
+
+		if err == nil {
+			logMutex.Lock()
+			lastLogFlush = time.Now()
+			logMutex.Unlock()
+		}
+		return err
+	}
+
+	appendLog := func(message string) {
+		logMutex.Lock()
+		logBuffer.WriteString(message)
+		now := time.Now()
+		// Flush if buffer exceeds 2KB or 1s has passed
+		shouldFlush := logBuffer.Len() > chunkSize || now.Sub(lastLogFlush) > 1*time.Second
+		logMutex.Unlock()
+
+		if shouldFlush {
+			_ = flushLogs()
+		}
+	}
+
+	defer func() {
+		_ = flushLogs()
+	}()
+
 	// Update run status to "applying"
 	if err := e.runRepo.UpdateRunStatus(ctx, runID, "applying"); err != nil {
 		logger.Error("failed to update run status", slog.String("error", err.Error()))
@@ -153,6 +229,9 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	}
 
 	logger.Info("updated run status to applying")
+
+	appendLog("Starting terraform apply...\n")
+	appendLog("Downloading configuration...\n")
 
 	// Get configuration version
 	configVer, err := e.configVerRepo.GetConfigurationVersion(ctx, run.ConfigurationVersionID)
@@ -166,6 +245,8 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	if err != nil {
 		return e.handleApplyError(ctx, run.ID, logger, fmt.Sprintf("Failed to download archive: %v", err))
 	}
+
+	appendLog("Extracting workspace...\n")
 
 	// Extract to temp directory
 	workDir, err := extractArchive(archiveData)
@@ -222,6 +303,10 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	)
 
 	if useSandbox {
+		appendLog("Starting remote execution environment...\n")
+		appendLog("Initializing terraform...\n")
+		appendLog("Running terraform apply...\n")
+
 		if applyActivityID != "" && e.activityRepo != nil {
 			applyActivityStart = time.Now()
 			if err := e.activityRepo.MarkRunning(ctx, applyActivityID, applyActivityStart, e.sandbox.Name()); err != nil {
@@ -229,7 +314,25 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 			}
 		}
 
-		result, execErr := e.executeApplyInSandbox(ctx, run, unitMeta, workspaceArchive, stateData)
+		// Start heartbeat goroutine for long-running remote applies
+		heartbeatDone := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					appendLog(fmt.Sprintf("Remote apply in progress... (%s)\n", time.Now().Format("15:04:05")))
+				case <-heartbeatDone:
+					return
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+		defer close(heartbeatDone)
+
+		result, execErr := e.executeApplyInSandbox(ctx, run, unitMeta, workspaceArchive, stateData, appendLog)
 		applySandboxResult = result
 		applyErr = execErr
 		if result != nil {
@@ -253,10 +356,16 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 		}
 	}
 
-	// Store apply logs in blob storage (use UploadBlob - no lock checks needed for logs)
-	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
-	if storeErr := e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs)); storeErr != nil {
-		logger.Error("failed to store apply logs", slog.String("error", storeErr.Error()))
+	// Append the actual terraform output to the progress logs
+	if !useSandbox {
+		appendLog("\n" + logs)
+	}
+
+	// Store final status
+	if applyErr != nil {
+		appendLog("\n\nApply failed\n")
+	} else {
+		appendLog("\n\nApply complete\n")
 	}
 
 	// Update run status
@@ -264,7 +373,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 	if applyErr != nil {
 		runStatus = "errored"
 		logs = logs + "\n\nError: " + applyErr.Error()
-		_ = e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs))
+		// Error already logged via appendLog in the executor
 		if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, applyErr.Error()); updateErr != nil {
 			logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 		}
@@ -281,7 +390,7 @@ func (e *ApplyExecutor) ExecuteApply(ctx context.Context, runID string) error {
 				runStatus = "errored"
 				errMsg := fmt.Sprintf("Failed to upload state: %v", uploadErr)
 				logs = logs + "\n\nCritical Error: " + errMsg + "\n"
-				_ = e.blobStore.UploadBlob(ctx, applyLogBlobID, []byte(logs))
+				// Error already logged via appendLog in the executor
 				if updateErr := e.runRepo.UpdateRunError(ctx, run.ID, errMsg); updateErr != nil {
 					logger.Error("failed to update run error", slog.String("error", updateErr.Error()))
 				}
@@ -393,7 +502,7 @@ func (e *ApplyExecutor) handleApplyError(ctx context.Context, runID string, logg
 	return fmt.Errorf("apply execution failed: %s", errorMsg)
 }
 
-func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.TFERun, unit *storage.UnitMetadata, archive []byte, stateData []byte) (*sandbox.ApplyResult, error) {
+func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.TFERun, unit *storage.UnitMetadata, archive []byte, stateData []byte, logSink func(string)) (*sandbox.ApplyResult, error) {
 	if e.sandbox == nil {
 		return nil, fmt.Errorf("sandbox provider not configured")
 	}
@@ -424,6 +533,7 @@ func (e *ApplyExecutor) executeApplyInSandbox(ctx context.Context, run *domain.T
 		ConfigArchive:          archive,
 		State:                  stateData,
 		Metadata:               metadata,
+		LogSink:                logSink,
 	}
 	return e.sandbox.ExecuteApply(ctx, req)
 }

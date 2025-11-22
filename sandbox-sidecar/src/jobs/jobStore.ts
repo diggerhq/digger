@@ -39,6 +39,13 @@ export class JobStore {
     job.updatedAt = new Date();
   }
 
+  appendLogs(id: string, chunk: string) {
+    const job = this.jobs.get(id);
+    if (!job || !chunk) return;
+    job.logs = `${job.logs}${chunk}`;
+    job.updatedAt = new Date();
+  }
+
   setResult(id: string, result: SandboxRunResult | undefined) {
     const job = this.jobs.get(id);
     if (!job) return;
@@ -46,4 +53,3 @@ export class JobStore {
     job.updatedAt = new Date();
   }
 }
-

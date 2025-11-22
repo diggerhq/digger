@@ -23,14 +23,14 @@ export class E2BSandboxRunner implements SandboxRunner {
     }
   }
 
-  async run(job: SandboxRunRecord): Promise<RunnerOutput> {
+  async run(job: SandboxRunRecord, appendLog?: (chunk: string) => void): Promise<RunnerOutput> {
     if (job.payload.operation === "plan") {
-      return this.runPlan(job);
+      return this.runPlan(job, appendLog);
     }
-    return this.runApply(job);
+    return this.runApply(job, appendLog);
   }
 
-  private async runPlan(job: SandboxRunRecord): Promise<RunnerOutput> {
+  private async runPlan(job: SandboxRunRecord, appendLog?: (chunk: string) => void): Promise<RunnerOutput> {
     const requestedVersion = job.payload.terraformVersion || "1.5.7";
     const requestedEngine = job.payload.engine || "terraform";
     const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
@@ -42,6 +42,10 @@ export class E2BSandboxRunner implements SandboxRunner {
       
       const workDir = await this.setupWorkspace(sandbox, job);
       const logs: string[] = [];
+      const streamLog = (chunk: string) => {
+        if (!chunk) return;
+        appendLog?.(chunk);
+      };
 
       // Run terraform init
       await this.runTerraformCommand(
@@ -49,6 +53,7 @@ export class E2BSandboxRunner implements SandboxRunner {
         workDir,
         ["init", "-input=false", "-no-color"],
         logs,
+        streamLog,
       );
 
       // Run terraform plan
@@ -56,14 +61,13 @@ export class E2BSandboxRunner implements SandboxRunner {
       if (job.payload.isDestroy) {
         planArgs.splice(1, 0, "-destroy");
       }
-      await this.runTerraformCommand(sandbox, workDir, planArgs, logs);
+      await this.runTerraformCommand(sandbox, workDir, planArgs, logs, streamLog);
 
       // Get plan JSON
       const showResult = await this.runTerraformCommand(
         sandbox,
         workDir,
         ["show", "-json", "tfplan.binary"],
-        logs,
       );
 
       const planJSON = showResult.stdout;
@@ -76,24 +80,28 @@ export class E2BSandboxRunner implements SandboxRunner {
         planJSON: Buffer.from(planJSON, "utf8").toString("base64"),
       };
 
-      return { logs: logs.join("\n"), result };
+      return { logs: logs.join(""), result };
     } finally {
       await sandbox.kill();
     }
   }
 
-  private async runApply(job: SandboxRunRecord): Promise<RunnerOutput> {
+  private async runApply(job: SandboxRunRecord, appendLog?: (chunk: string) => void): Promise<RunnerOutput> {
     const requestedVersion = job.payload.terraformVersion || "1.5.7";
-    const requestedEngine = job.payload.engine || "terraform";
-    const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
-    try {
-      // Install IaC tool if using fallback template
-      if (needsInstall) {
-        await this.installIacTool(sandbox, requestedEngine, requestedVersion);
-      }
-      
-      const workDir = await this.setupWorkspace(sandbox, job);
-      const logs: string[] = [];
+      const requestedEngine = job.payload.engine || "terraform";
+      const { sandbox, needsInstall } = await this.createSandbox(requestedVersion, requestedEngine);
+      try {
+        // Install IaC tool if using fallback template
+        if (needsInstall) {
+          await this.installIacTool(sandbox, requestedEngine, requestedVersion);
+        }
+        
+        const workDir = await this.setupWorkspace(sandbox, job);
+        const logs: string[] = [];
+        const streamLog = (chunk: string) => {
+          if (!chunk) return;
+          appendLog?.(chunk);
+        };
 
       // Run terraform init
       await this.runTerraformCommand(
@@ -101,6 +109,7 @@ export class E2BSandboxRunner implements SandboxRunner {
         workDir,
         ["init", "-input=false", "-no-color"],
         logs,
+        streamLog,
       );
 
       // Run terraform apply/destroy
@@ -110,6 +119,7 @@ export class E2BSandboxRunner implements SandboxRunner {
         workDir,
         [applyCommand, "-auto-approve", "-input=false", "-no-color"],
         logs,
+        streamLog,
       );
 
       // Read the state file
@@ -119,7 +129,7 @@ export class E2BSandboxRunner implements SandboxRunner {
         state: Buffer.from(stateContent, "utf8").toString("base64"),
       };
 
-      return { logs: logs.join("\n"), result };
+      return { logs: logs.join(""), result };
     } finally {
       await sandbox.kill();
     }
@@ -262,28 +272,41 @@ export class E2BSandboxRunner implements SandboxRunner {
     cwd: string,
     args: string[],
     logBuffer?: string[],
+    appendLog?: (chunk: string) => void,
   ): Promise<{ stdout: string; stderr: string }> {
     const engine = (sandbox as any)._requestedEngine || "terraform";
     const binaryName = engine === "tofu" ? "tofu" : "terraform";
     const cmdStr = `${binaryName} ${args.join(" ")}`;
     logger.info({ cmd: cmdStr, cwd, engine }, "running IaC command in E2B sandbox");
 
+    let sawStream = false;
+    const pipeChunk = (chunk: string | undefined) => {
+      if (!chunk) return;
+      sawStream = true;
+      if (logBuffer) {
+        logBuffer.push(chunk);
+      }
+      appendLog?.(chunk);
+    };
+
     const result = await sandbox.commands.run(cmdStr, {
       cwd,
       envs: {
         TF_IN_AUTOMATION: "1",
       },
+      onStdout: pipeChunk,
+      onStderr: pipeChunk,
     });
 
     const stdout = result.stdout;
     const stderr = result.stderr;
     const exitCode = result.exitCode;
 
+    // Push any remaining buffered output for completeness in final log
     const mergedLogs = `${stdout}\n${stderr}`.trim();
-    if (logBuffer && mergedLogs.length > 0) {
-      logBuffer.push(mergedLogs);
+    if (!sawStream && mergedLogs.length > 0) {
+      pipeChunk(mergedLogs + "\n");
     }
-
     if (exitCode !== 0) {
       throw new Error(
         `${binaryName} ${args[0]} exited with code ${exitCode}\n${mergedLogs}`,
@@ -330,4 +353,3 @@ export class E2BSandboxRunner implements SandboxRunner {
     }
   }
 }
-

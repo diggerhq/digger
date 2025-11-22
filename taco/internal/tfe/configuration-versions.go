@@ -67,7 +67,7 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 	// Get org and user context
 	orgIdentifier, _ := c.Get("organization_id").(string)
 	userID, _ := c.Get("user_id").(string)
-	
+
 	if orgIdentifier == "" {
 		orgIdentifier = "default-org"
 	}
@@ -102,10 +102,10 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 			} `json:"attributes"`
 		} `json:"data"`
 	}
-	
-	speculative := false  // Default to false (normal apply)
+
+	speculative := false // Default to false (normal apply)
 	autoQueueRuns := false
-	
+
 	// Manually decode JSON since content-type is application/vnd.api+json
 	if err := json.NewDecoder(c.Request().Body).Decode(&requestPayload); err == nil {
 		if requestPayload.Data.Attributes.Speculative != nil {
@@ -128,8 +128,8 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 		UnitID:           unitID,
 		Status:           "pending",
 		Source:           "cli",
-		Speculative:      speculative,      // Parse from CLI request
-		AutoQueueRuns:    autoQueueRuns,    // Parse from CLI request
+		Speculative:      speculative,   // Parse from CLI request
+		AutoQueueRuns:    autoQueueRuns, // Parse from CLI request
 		Provisional:      false,
 		StatusTimestamps: "{}",
 		CreatedBy:        userID,
@@ -153,7 +153,7 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	
+
 	fmt.Printf("DEBUG Generated upload URL: %s\n", signedUploadUrl)
 
 	cv := tfe.ConfigurationVersionRecord{
@@ -179,7 +179,6 @@ func (h *TfeHandler) CreateConfigurationVersions(c echo.Context) error {
 
 	return nil
 }
-
 
 func (h *TfeHandler) UploadConfigurationArchive(c echo.Context) error {
 	ctx := c.Request().Context()

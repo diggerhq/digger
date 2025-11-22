@@ -20,7 +20,7 @@ func (h *TfeHandler) MessageOfTheDay(c echo.Context) error {
 	logger.Debug("TFE message of the day",
 		"operation", "tfe_motd",
 	)
-	
+
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")
@@ -35,7 +35,7 @@ func (h *TfeHandler) GetWellKnownJson(c echo.Context) error {
 	logger.Info("TFE well-known discovery",
 		"operation", "tfe_well_known",
 	)
-	
+
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	c.Response().Header().Set("Tfp-Api-Version", "2.5")
 	c.Response().Header().Set("X-Terraform-Enterprise-App", "Terraform Enterprise")

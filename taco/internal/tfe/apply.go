@@ -100,49 +100,25 @@ func (h *TfeHandler) GetApplyLogs(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "apply not found"})
 	}
 
-	// Try to get apply logs from blob storage
-	var logText string
-	applyLogBlobID := fmt.Sprintf("runs/%s/apply-logs.txt", run.ID)
-	
-	logData, err := h.blobStore.DownloadBlob(ctx, applyLogBlobID)
-	if err == nil {
-		logText = string(logData)
-	} else {
-		// If logs don't exist yet, return placeholder
-		if run.Status == "applying" || run.Status == "apply_queued" {
-			logText = "Waiting for apply to start...\n"
-		} else {
-			logText = "Apply logs not available\n"
-		}
-	}
-
-	// Handle offset for streaming with proper byte accounting
-	// Stream format: [STX at offset 0][logText at offset 1+][ETX at offset 1+len(logText)]
-	var responseData []byte
-
-	if offsetInt == 0 {
-		// First request: send STX + current logs
-		responseData = append([]byte{0x02}, []byte(logText)...)
-		fmt.Printf("📤 APPLY LOGS at offset=0: STX + %d bytes of log text\n", len(logText))
-	} else {
-		// Client already received STX (1 byte at offset 0)
-		// Map stream offset to logText offset: streamOffset=1 → logText[0]
-		logOffset := offsetInt - 1
-
-		if logOffset < int64(len(logText)) {
-			// Send remaining log text
-			responseData = []byte(logText[logOffset:])
-			fmt.Printf("📤 APPLY LOGS at offset=%d: sending %d bytes (logText[%d:])\n",
-				offsetInt, len(responseData), logOffset)
-		} else if logOffset == int64(len(logText)) && run.Status == "applied" {
-			// All logs sent, send ETX
-			responseData = []byte{0x03}
-			fmt.Printf("📤 Sending ETX (End of Text) for apply %s - logs complete\n", applyID)
-		} else {
-			// Waiting for more logs or already sent ETX
-			responseData = []byte{}
-			fmt.Printf("📤 APPLY LOGS at offset=%d: no new data (waiting or complete)\n", offsetInt)
-		}
+	responseData, err := streamChunkedLogs(ctx, h.blobStore, logStreamOptions{
+		Prefix:    "applies",
+		Label:     "APPLY",
+		ID:        run.ID,
+		Offset:    offsetInt,
+		ChunkSize: 2 * 1024,
+		GenerateDefaultText: func() string {
+			if run.Status == "applying" || run.Status == "apply_queued" {
+				return "Waiting for apply to start...\n"
+			}
+			return "Apply logs not available\n"
+		},
+		IsComplete: func() bool {
+			return run.Status == "applied" || run.Status == "errored"
+		},
+		AppendETXOnFirst: true, // If already complete on first request, send ETX immediately
+	})
+	if err != nil {
+		return err
 	}
 
 	c.Response().Header().Set("Content-Type", "text/plain")

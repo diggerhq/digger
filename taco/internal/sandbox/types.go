@@ -16,6 +16,9 @@ type PlanRequest struct {
 	ConfigArchive          []byte
 	State                  []byte
 	Metadata               map[string]string
+	// LogSink is an optional callback that receives incremental log chunks
+	// as they are observed while polling the sandbox run.
+	LogSink func(chunk string)
 }
 
 // PlanResult captures the outcome of a sandboxed plan execution.
@@ -43,6 +46,9 @@ type ApplyRequest struct {
 	ConfigArchive          []byte
 	State                  []byte
 	Metadata               map[string]string
+	// LogSink is an optional callback that receives incremental log chunks
+	// as they are observed while polling the sandbox run.
+	LogSink func(chunk string)
 }
 
 // ApplyResult captures the outcome of a sandboxed apply.

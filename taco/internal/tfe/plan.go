@@ -63,7 +63,7 @@ func (h *TfeHandler) GetPlan(c echo.Context) error {
 			ID: plan.RunID,
 		},
 	}
-	
+
 	// Only include resource counts when plan is finished
 	// If we send HasChanges:false before the plan completes, Terraform CLI
 	// will think there's nothing to apply and won't prompt for confirmation!
@@ -103,54 +103,22 @@ func (h *TfeHandler) GetPlanLogs(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "plan not found"})
 	}
-
-	// Check if logs exist in blob storage
-	var logText string
-	if plan.LogBlobID != nil {
-		// Try to get logs from blob storage
-		logData, err := h.blobStore.DownloadBlob(ctx, *plan.LogBlobID)
-		if err != nil {
-			fmt.Printf("Failed to get logs from blob storage: %v\n", err)
-			// Fall back to default logs
-			logText = generateDefaultPlanLogs(plan)
-		} else {
-			logText = string(logData)
-		}
-	} else {
-		// Generate default logs based on plan status
-		logText = generateDefaultPlanLogs(plan)
-	}
-
-	// Handle offset for streaming with proper byte accounting
-	// Stream format: [STX at offset 0][logText at offset 1+][ETX at offset 1+len(logText)]
-	var responseData []byte
-	
-	if offsetInt == 0 {
-		// First request: send STX + current logs
-		responseData = append([]byte{0x02}, []byte(logText)...)
-		fmt.Printf("📤 PLAN LOGS at offset=0: STX + %d bytes of log text\n", len(logText))
-		if len(logText) > 0 {
-			fmt.Printf("Log preview (first 200 chars): %.200s\n", logText)
-		}
-	} else {
-		// Client already received STX (1 byte at offset 0)
-		// Map stream offset to logText offset: streamOffset=1 → logText[0]
-		logOffset := offsetInt - 1
-		
-		if logOffset < int64(len(logText)) {
-			// Send remaining log text
-			responseData = []byte(logText[logOffset:])
-			fmt.Printf("📤 PLAN LOGS at offset=%d: sending %d bytes (logText[%d:])\n", 
-				offsetInt, len(responseData), logOffset)
-		} else if logOffset == int64(len(logText)) && plan.Status == "finished" {
-			// All logs sent, send ETX
-			responseData = []byte{0x03}
-			fmt.Printf("📤 Sending ETX (End of Text) for plan %s - logs complete\n", planID)
-		} else {
-			// Waiting for more logs or already sent ETX
-			responseData = []byte{}
-			fmt.Printf("📤 PLAN LOGS at offset=%d: no new data (waiting or complete)\n", offsetInt)
-		}
+	responseData, err := streamChunkedLogs(ctx, h.blobStore, logStreamOptions{
+		Prefix:    "plans",
+		Label:     "PLAN",
+		ID:        planID,
+		Offset:    offsetInt,
+		ChunkSize: 2 * 1024,
+		GenerateDefaultText: func() string {
+			return generateDefaultPlanLogs(plan)
+		},
+		IsComplete: func() bool {
+			return plan.Status == "finished" || plan.Status == "errored"
+		},
+		AppendETXOnFirst: false,
+	})
+	if err != nil {
+		return err
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "text/plain")
@@ -191,7 +159,7 @@ func (h *TfeHandler) GetPlanJSONOutput(c echo.Context) error {
 		// Create dummy resource changes based on our counts
 		// The CLI checks if this array has entries to decide whether to prompt
 		resourceChanges := make([]interface{}, 0)
-		
+
 		// Add placeholder entries for additions
 		for i := 0; i < plan.ResourceAdditions; i++ {
 			resourceChanges = append(resourceChanges, map[string]interface{}{
@@ -200,7 +168,7 @@ func (h *TfeHandler) GetPlanJSONOutput(c echo.Context) error {
 				},
 			})
 		}
-		
+
 		// Add placeholder entries for changes
 		for i := 0; i < plan.ResourceChanges; i++ {
 			resourceChanges = append(resourceChanges, map[string]interface{}{
@@ -209,7 +177,7 @@ func (h *TfeHandler) GetPlanJSONOutput(c echo.Context) error {
 				},
 			})
 		}
-		
+
 		// Add placeholder entries for destructions
 		for i := 0; i < plan.ResourceDestructions; i++ {
 			resourceChanges = append(resourceChanges, map[string]interface{}{
@@ -218,7 +186,7 @@ func (h *TfeHandler) GetPlanJSONOutput(c echo.Context) error {
 				},
 			})
 		}
-		
+
 		jsonPlan["resource_changes"] = resourceChanges
 	}
 
@@ -231,7 +199,7 @@ func generateDefaultPlanLogs(plan *domain.TFEPlan) string {
 	// Don't show resource counts in logs until plan is finished
 	// Terraform CLI parses the logs to determine if changes exist!
 	if plan.Status == "finished" {
-	return fmt.Sprintf(`Terraform used the selected providers to generate the following execution plan.
+		return fmt.Sprintf(`Terraform used the selected providers to generate the following execution plan.
 Resource actions are indicated with the following symbols:
   + create
   - destroy
@@ -245,4 +213,3 @@ Plan: %d to add, %d to change, %d to destroy.
 	// The CLI will keep polling until it gets real content.
 	return ""
 }
-
