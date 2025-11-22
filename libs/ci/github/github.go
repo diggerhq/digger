@@ -438,7 +438,7 @@ func (svc GithubService) UpdateCheckRun(checkRunId string, options GithubCheckRu
 		opts.Status = github.String(*newStatus)
 	}
 
-	if conclusion != nil {
+	if conclusion != nil && *conclusion != "" {
 		opts.Conclusion = github.String(*conclusion)
 	}
 
