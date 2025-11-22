@@ -53,7 +53,7 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 	err := r.db.WithContext(ctx).
 		Where("org_id = ? AND name = ?", orgID, name).
 		First(&existing).Error
-	
+
 	if err == nil {
 		// Unit already exists - this is expected behavior, not an error
 		return nil, storage.ErrAlreadyExists
@@ -76,10 +76,10 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 		// Check if this is a unique constraint violation
 		// GORM doesn't have a specific error type, so we check the error string
 		errMsg := err.Error()
-		if strings.Contains(errMsg, "duplicate") || 
-		   strings.Contains(errMsg, "unique constraint") ||
-		   strings.Contains(errMsg, "UNIQUE constraint") ||
-		   strings.Contains(errMsg, "idx_units_org_name") {
+		if strings.Contains(errMsg, "duplicate") ||
+			strings.Contains(errMsg, "unique constraint") ||
+			strings.Contains(errMsg, "UNIQUE constraint") ||
+			strings.Contains(errMsg, "idx_units_org_name") {
 			return nil, storage.ErrAlreadyExists
 		}
 		return nil, fmt.Errorf("failed to create unit in database: %w", err)
@@ -102,13 +102,13 @@ func (r *UnitRepository) Create(ctx context.Context, orgID, name string) (*stora
 	}()
 
 	return &storage.UnitMetadata{
-		ID:       unit.ID,      // UUID
-		Name:     name,         // Short name
-		OrgID:    orgID,        // Org UUID
-		OrgName:  org.Name,    // Org short name (e.g., "acme")
-		Size:     unit.Size,
-		Updated:  unit.UpdatedAt,
-		Locked:   unit.Locked,
+		ID:      unit.ID,  // UUID
+		Name:    name,     // Short name
+		OrgID:   orgID,    // Org UUID
+		OrgName: org.Name, // Org short name (e.g., "acme")
+		Size:    unit.Size,
+		Updated: unit.UpdatedAt,
+		Locked:  unit.Locked,
 	}, nil
 }
 
@@ -140,15 +140,15 @@ func (r *UnitRepository) Get(ctx context.Context, uuid string) (*storage.UnitMet
 
 	// Merge database and blob metadata
 	meta := &storage.UnitMetadata{
-		ID:       unit.ID,
-		Name:     unit.Name,
-		OrgID:    unit.OrgID,
-		OrgName:  org.Name,
-		Size:     unit.Size,
-		Updated:  unit.UpdatedAt,
-		Locked:   unit.Locked,
-		LockID:   unit.LockID,
-		
+		ID:      unit.ID,
+		Name:    unit.Name,
+		OrgID:   unit.OrgID,
+		OrgName: org.Name,
+		Size:    unit.Size,
+		Updated: unit.UpdatedAt,
+		Locked:  unit.Locked,
+		LockID:  unit.LockID,
+
 		// Include TFE workspace settings
 		TFEAutoApply:        unit.TFEAutoApply,
 		TFETerraformVersion: unit.TFETerraformVersion,
@@ -170,11 +170,14 @@ func (r *UnitRepository) Get(ctx context.Context, uuid string) (*storage.UnitMet
 func (r *UnitRepository) List(ctx context.Context, orgID, prefix string) ([]*storage.UnitMetadata, error) {
 	var units []types.Unit
 	query := r.db.WithContext(ctx).Where("org_id = ?", orgID)
-	
+
 	if prefix != "" {
 		query = query.Where("name LIKE ?", prefix+"%")
 	}
-	
+
+	// Order by name for stable pagination across pages; tie-break by ID
+	query = query.Order("LOWER(name) ASC").Order("id ASC")
+
 	if err := query.Find(&units).Error; err != nil {
 		return nil, fmt.Errorf("failed to list units: %w", err)
 	}
@@ -195,13 +198,13 @@ func (r *UnitRepository) List(ctx context.Context, orgID, prefix string) ([]*sto
 	result := make([]*storage.UnitMetadata, len(units))
 	for i, unit := range units {
 		result[i] = &storage.UnitMetadata{
-			ID:       unit.ID,
-			Name:     unit.Name,
-			OrgID:    unit.OrgID,
-			OrgName:  orgName,
-			Size:     unit.Size,
-			Updated:  unit.UpdatedAt,
-			Locked:   unit.Locked,
+			ID:      unit.ID,
+			Name:    unit.Name,
+			OrgID:   unit.OrgID,
+			OrgName: orgName,
+			Size:    unit.Size,
+			Updated: unit.UpdatedAt,
+			Locked:  unit.Locked,
 		}
 	}
 
@@ -238,7 +241,7 @@ func (r *UnitRepository) Delete(ctx context.Context, uuid string) error {
 		return fmt.Errorf("failed to delete unit from database: %w", err)
 	}
 
-	log.Printf("Deleted unit: UUID=%s, Org=%s (%s), Name=%s, BlobPath=%s", 
+	log.Printf("Deleted unit: UUID=%s, Org=%s (%s), Name=%s, BlobPath=%s",
 		uuid, org.Name, org.ID, unit.Name, blobPath)
 	return nil
 }

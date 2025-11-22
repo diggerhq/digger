@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("not found")
+	ErrNotFound        = errors.New("not found")
 	ErrVersionConflict = errors.New("version conflict - object was modified by another operation")
 )
 
@@ -21,11 +21,11 @@ var (
 type Action string
 
 const (
-    ActionUnitRead    Action = "unit.read"
-    ActionUnitWrite   Action = "unit.write"
-    ActionUnitLock    Action = "unit.lock"
-    ActionUnitDelete  Action = "unit.delete"
-    ActionRBACManage  Action = "rbac.manage"
+	ActionUnitRead   Action = "unit.read"
+	ActionUnitWrite  Action = "unit.write"
+	ActionUnitLock   Action = "unit.lock"
+	ActionUnitDelete Action = "unit.delete"
+	ActionRBACManage Action = "rbac.manage"
 )
 
 // Principal captures the caller identity and roles/groups.
@@ -119,13 +119,13 @@ type RBACStore interface {
 	// Permission management (org-scoped)
 	CreatePermission(ctx context.Context, permission *Permission) error
 	GetPermission(ctx context.Context, orgID, id string) (*Permission, error)
-	ListPermissions(ctx context.Context, orgID string) ([]*Permission, error)
+	ListPermissions(ctx context.Context, orgID string, page, pageSize int) ([]*Permission, int64, error)
 	DeletePermission(ctx context.Context, orgID, id string) error
 
 	// Role management (org-scoped)
 	CreateRole(ctx context.Context, role *Role) error
 	GetRole(ctx context.Context, orgID, id string) (*Role, error)
-	ListRoles(ctx context.Context, orgID string) ([]*Role, error)
+	ListRoles(ctx context.Context, orgID string, page, pageSize int) ([]*Role, int64, error)
 	DeleteRole(ctx context.Context, orgID, id string) error
 
 	// User assignment management (org-scoped)
@@ -156,7 +156,7 @@ func NewRBACManagerFromQueryStore(queryStore interface{}) (*RBACManager, error) 
 	type dbProvider interface {
 		GetDB() *gorm.DB
 	}
-	
+
 	sqlStore, ok := queryStore.(dbProvider)
 	if !ok {
 		return nil, fmt.Errorf("query store does not expose GetDB() method - RBAC requires database access")
@@ -175,11 +175,11 @@ func NewRBACManagerFromQueryStore(queryStore interface{}) (*RBACManager, error) 
 func (m *RBACManager) InitializeRBAC(ctx context.Context, orgID, initUser, initEmail string) error {
 	// For InitializeRBAC, we need explicit orgID since we're creating the org's RBAC structure
 	// Check if already initialized for this org
-	enabled, err := m.store.ListPermissions(ctx, orgID)
+	_, totalPerms, err := m.store.ListPermissions(ctx, orgID, 1, 1)
 	if err != nil {
 		return fmt.Errorf("failed to check if RBAC is enabled: %w", err)
 	}
-	if len(enabled) > 0 {
+	if totalPerms > 0 {
 		// Already initialized - just ensure the init user has admin role
 		if err := m.store.AssignRole(ctx, orgID, initUser, initEmail, "admin"); err != nil {
 			// Ignore duplicate assignment errors
@@ -278,12 +278,12 @@ func (m *RBACManager) IsEnabled(ctx context.Context) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("organization context required for RBAC")
 	}
-	
-	perms, err := m.store.ListPermissions(ctx, orgCtx.OrgID)
+
+	_, total, err := m.store.ListPermissions(ctx, orgCtx.OrgID, 1, 1)
 	if err != nil {
 		return false, fmt.Errorf("RBAC database unavailable: %w", err)
 	}
-	return len(perms) > 0, nil
+	return total > 0, nil
 }
 
 // Can determines whether a principal is authorized to perform an action on a given unit key.
@@ -294,7 +294,7 @@ func (m *RBACManager) Can(ctx context.Context, principal Principal, action Actio
 	if !ok {
 		return false, fmt.Errorf("organization context required for RBAC")
 	}
-	
+
 	enabled, err := m.IsEnabled(ctx)
 	if err != nil {
 		return false, err
@@ -400,22 +400,22 @@ func (m *RBACManager) RevokeRoleByEmail(ctx context.Context, email, roleID strin
 	return m.store.RevokeRoleByEmail(ctx, orgCtx.OrgID, email, roleID)
 }
 
-// ListRoles returns all roles for the current organization (from context).
-func (m *RBACManager) ListRoles(ctx context.Context) ([]*Role, error) {
+// ListRoles returns paginated roles for the current organization (from context).
+func (m *RBACManager) ListRoles(ctx context.Context, page, pageSize int) ([]*Role, int64, error) {
 	orgCtx, ok := domain.OrgFromContext(ctx)
 	if !ok {
-		return nil, fmt.Errorf("organization context required")
+		return nil, 0, fmt.Errorf("organization context required")
 	}
-	return m.store.ListRoles(ctx, orgCtx.OrgID)
+	return m.store.ListRoles(ctx, orgCtx.OrgID, page, pageSize)
 }
 
-// ListPermissions returns all permissions for the current organization (from context).
-func (m *RBACManager) ListPermissions(ctx context.Context) ([]*Permission, error) {
+// ListPermissions returns paginated permissions for the current organization (from context).
+func (m *RBACManager) ListPermissions(ctx context.Context, page, pageSize int) ([]*Permission, int64, error) {
 	orgCtx, ok := domain.OrgFromContext(ctx)
 	if !ok {
-		return nil, fmt.Errorf("organization context required")
+		return nil, 0, fmt.Errorf("organization context required")
 	}
-	return m.store.ListPermissions(ctx, orgCtx.OrgID)
+	return m.store.ListPermissions(ctx, orgCtx.OrgID, page, pageSize)
 }
 
 // ListUserAssignments returns all user assignments for the current organization (from context).
@@ -434,28 +434,28 @@ func (m *RBACManager) FilterUnitsByReadAccess(ctx context.Context, principal Pri
 	if err != nil {
 		return nil, err
 	}
-    if !enabled {
-        return units, nil // RBAC disabled, return all units
-    }
+	if !enabled {
+		return units, nil // RBAC disabled, return all units
+	}
 
-    var filtered []string
-    for _, unit := range units {
-        canRead, err := m.Can(ctx, principal, ActionUnitRead, unit)
-        if err != nil {
-            continue // Skip on error
-        }
-        if canRead { filtered = append(filtered, unit) }
-    }
+	var filtered []string
+	for _, unit := range units {
+		canRead, err := m.Can(ctx, principal, ActionUnitRead, unit)
+		if err != nil {
+			continue // Skip on error
+		}
+		if canRead {
+			filtered = append(filtered, unit)
+		}
+	}
 
-    return filtered, nil
+	return filtered, nil
 }
 
 // CreatePermission creates a new permission
 func (m *RBACManager) CreatePermission(ctx context.Context, permission *Permission) error {
 	return m.store.CreatePermission(ctx, permission)
 }
-
-
 
 // DeletePermission deletes a permission. The organization is extracted from context.
 func (m *RBACManager) DeletePermission(ctx context.Context, id string) error {

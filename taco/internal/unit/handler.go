@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/diggerhq/digger/opentaco/internal/deps"
 	"github.com/diggerhq/digger/opentaco/internal/domain"
 	"github.com/diggerhq/digger/opentaco/internal/logging"
+	"github.com/diggerhq/digger/opentaco/internal/pagination"
 	"github.com/diggerhq/digger/opentaco/internal/query"
 	"github.com/diggerhq/digger/opentaco/internal/rbac"
 	"github.com/diggerhq/digger/opentaco/internal/storage"
@@ -23,7 +25,7 @@ import (
 // Handler serves the management API (unit CRUD and locking).
 type Handler struct {
 	store       domain.UnitManagement
-	blobStore   storage.UnitStore      // For legacy deps like ComputeUnitStatus
+	blobStore   storage.UnitStore // For legacy deps like ComputeUnitStatus
 	rbacManager *rbac.RBACManager
 	signer      *auth.Signer
 	queryStore  query.Store
@@ -48,26 +50,26 @@ func (h *Handler) resolveUnitIdentifier(ctx context.Context, identifier string) 
 	if err != nil {
 		return "", err
 	}
-	
+
 	normalized := domain.DecodeUnitID(decoded)
-	
+
 	// If already a UUID, return as-is
 	if domain.IsUUID(normalized) {
 		return normalized, nil
 	}
-	
+
 	// If resolver is not available, return normalized name (will fail at repository layer)
 	if h.resolver == nil {
 		return normalized, nil
 	}
-	
+
 	// Get org from context for resolution
 	orgCtx, ok := domain.OrgFromContext(ctx)
 	if !ok {
 		// No org context, return normalized name
 		return normalized, nil
 	}
-	
+
 	// Resolve name to UUID using the identifier resolver
 	// Note: ResolveUnit signature is (ctx, identifier, orgID)
 	uuid, err := h.resolver.ResolveUnit(ctx, normalized, orgCtx.OrgID)
@@ -75,17 +77,17 @@ func (h *Handler) resolveUnitIdentifier(ctx context.Context, identifier string) 
 		// If resolution fails, return error
 		return "", err
 	}
-	
+
 	return uuid, nil
 }
 
 type CreateUnitRequest struct {
-	Name                 string  `json:"name"`
-	TFEAutoApply         *bool   `json:"tfe_auto_apply"`
-	TFEExecutionMode     *string `json:"tfe_execution_mode"`
-	TFETerraformVersion  *string `json:"tfe_terraform_version"`
-	TFEEngine            *string `json:"tfe_engine"`
-	TFEWorkingDirectory  *string `json:"tfe_working_directory"`
+	Name                string  `json:"name"`
+	TFEAutoApply        *bool   `json:"tfe_auto_apply"`
+	TFEExecutionMode    *string `json:"tfe_execution_mode"`
+	TFETerraformVersion *string `json:"tfe_terraform_version"`
+	TFEEngine           *string `json:"tfe_engine"`
+	TFEWorkingDirectory *string `json:"tfe_working_directory"`
 }
 
 type CreateUnitResponse struct {
@@ -145,7 +147,7 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 			)
 			analytics.SendEssential("unit_create_failed_already_exists")
 			return c.JSON(http.StatusConflict, map[string]string{
-				"error": "Unit already exists",
+				"error":  "Unit already exists",
 				"detail": fmt.Sprintf("A unit with name '%s' already exists in this organization", name),
 			})
 		}
@@ -157,7 +159,7 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 		)
 		analytics.SendEssential("unit_create_failed_storage_error")
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to create unit",
+			"error":  "Failed to create unit",
 			"detail": err.Error(),
 		})
 	}
@@ -193,11 +195,11 @@ func (h *Handler) CreateUnit(c echo.Context) error {
 }
 
 type UpdateUnitRequest struct {
-	TFEAutoApply         *bool   `json:"tfe_auto_apply"`
-	TFEExecutionMode     *string `json:"tfe_execution_mode"`
-	TFETerraformVersion  *string `json:"tfe_terraform_version"`
-	TFEEngine            *string `json:"tfe_engine"`
-	TFEWorkingDirectory  *string `json:"tfe_working_directory"`
+	TFEAutoApply        *bool   `json:"tfe_auto_apply"`
+	TFEExecutionMode    *string `json:"tfe_execution_mode"`
+	TFETerraformVersion *string `json:"tfe_terraform_version"`
+	TFEEngine           *string `json:"tfe_engine"`
+	TFEWorkingDirectory *string `json:"tfe_working_directory"`
 }
 
 func (h *Handler) UpdateUnit(c echo.Context) error {
@@ -259,7 +261,7 @@ func (h *Handler) UpdateUnit(c echo.Context) error {
 					"unit_id", unitID,
 					"error", err)
 				return c.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "Failed to update unit settings",
+					"error":  "Failed to update unit settings",
 					"detail": err.Error(),
 				})
 			}
@@ -272,7 +274,7 @@ func (h *Handler) UpdateUnit(c echo.Context) error {
 		"org_id", orgCtx.OrgID)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"id": unitID,
+		"id":      unitID,
 		"message": "Unit updated successfully",
 	})
 }
@@ -281,6 +283,7 @@ func (h *Handler) ListUnits(c echo.Context) error {
 	logger := logging.FromContext(c)
 	ctx := c.Request().Context()
 	prefix := c.QueryParam("prefix")
+	pageParams := pagination.Parse(c, 50, 200)
 
 	// Get org UUID from domain context (set by middleware for both JWT and webhook routes)
 	orgCtx, ok := domain.OrgFromContext(ctx)
@@ -309,7 +312,7 @@ func (h *Handler) ListUnits(c echo.Context) error {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to list units",
+			"error":  "Failed to list units",
 			"detail": err.Error(),
 		})
 	}
@@ -320,7 +323,7 @@ func (h *Handler) ListUnits(c echo.Context) error {
 		if u.OrgName != "" {
 			absoluteName = domain.BuildAbsoluteName(u.OrgName, u.Name)
 		}
-		
+
 		domainUnits = append(domainUnits, &domain.Unit{
 			ID:           u.ID,
 			Name:         u.Name,
@@ -331,15 +334,31 @@ func (h *Handler) ListUnits(c echo.Context) error {
 			LockInfo:     convertLockInfo(u.LockInfo),
 		})
 	}
-	domain.SortUnitsByID(domainUnits)
+	sort.Slice(domainUnits, func(i, j int) bool {
+		return strings.ToLower(domainUnits[i].Name) < strings.ToLower(domainUnits[j].Name)
+	})
+
+	total := len(domainUnits)
+	start := pageParams.Offset()
+	if start > total {
+		start = total
+	}
+	end := start + pageParams.PageSize
+	if end > total {
+		end = total
+	}
+	pagedUnits := domainUnits[start:end]
 
 	logger.Info("Units listed successfully",
 		"operation", "list_units",
-		"count", len(domainUnits),
+		"count", len(pagedUnits),
 	)
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"units": domainUnits,
-		"count": len(domainUnits),
+		"units":     pagedUnits,
+		"count":     len(pagedUnits),
+		"total":     total,
+		"page":      pageParams.Page,
+		"page_size": pageParams.PageSize,
 	})
 }
 
@@ -347,13 +366,13 @@ func (h *Handler) GetUnit(c echo.Context) error {
 	logger := logging.FromContext(c)
 	ctx := c.Request().Context()
 	encodedID := c.Param("id")
-	
+
 	logger.Info("🔍 GetUnit called",
 		"operation", "get_unit",
 		"encoded_id", encodedID,
 		"headers", c.Request().Header,
 	)
-	
+
 	id, err := h.resolveUnitIdentifier(ctx, encodedID)
 	if err != nil {
 		logger.Warn("Unit not found during resolution",
@@ -362,16 +381,16 @@ func (h *Handler) GetUnit(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
-	
+
 	logger.Info("🔍 Unit identifier resolved",
 		"operation", "get_unit",
 		"resolved_id", id,
 	)
-	
+
 	if err := domain.ValidateUnitID(id); err != nil {
 		logger.Warn("Invalid unit ID",
 			"operation", "get_unit",
@@ -416,12 +435,12 @@ func (h *Handler) GetUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get unit"})
 	}
-	
+
 	absoluteName := metadata.Name
 	if metadata.OrgName != "" {
 		absoluteName = domain.BuildAbsoluteName(metadata.OrgName, metadata.Name)
 	}
-	
+
 	return c.JSON(http.StatusOK, &domain.Unit{
 		ID:           metadata.ID,
 		Name:         metadata.Name,
@@ -430,7 +449,7 @@ func (h *Handler) GetUnit(c echo.Context) error {
 		Updated:      metadata.Updated,
 		Locked:       metadata.Locked,
 		LockInfo:     convertLockInfo(metadata.LockInfo),
-		
+
 		// Include TFE workspace settings
 		TFEAutoApply:        metadata.TFEAutoApply,
 		TFETerraformVersion: metadata.TFETerraformVersion,
@@ -452,7 +471,7 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
@@ -464,12 +483,12 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	
+
 	logger.Info("Deleting unit",
 		"operation", "delete_unit",
 		"unit_id", id,
 	)
-	
+
 	if err := h.store.Delete(c.Request().Context(), id); err != nil {
 		if err == storage.ErrNotFound {
 			logger.Info("Unit not found for delete",
@@ -485,7 +504,7 @@ func (h *Handler) DeleteUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete unit"})
 	}
-	
+
 	logger.Info("Unit deleted successfully",
 		"operation", "delete_unit",
 		"unit_id", id,
@@ -508,7 +527,7 @@ func (h *Handler) DownloadUnit(c echo.Context) error {
 		)
 		analytics.SendEssential("taco_unit_pull_failed")
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
@@ -521,12 +540,12 @@ func (h *Handler) DownloadUnit(c echo.Context) error {
 		analytics.SendEssential("taco_unit_pull_failed")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	
+
 	logger.Info("Downloading unit",
 		"operation", "download_unit",
 		"unit_id", id,
 	)
-	
+
 	data, err := h.store.Download(ctx, id)
 	if err != nil {
 		analytics.SendEssential("taco_unit_pull_failed")
@@ -544,7 +563,7 @@ func (h *Handler) DownloadUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to download unit"})
 	}
-	
+
 	logger.Info("Unit downloaded successfully",
 		"operation", "download_unit",
 		"unit_id", id,
@@ -569,7 +588,7 @@ func (h *Handler) UploadUnit(c echo.Context) error {
 		)
 		analytics.SendEssential("taco_unit_push_failed")
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
@@ -593,14 +612,14 @@ func (h *Handler) UploadUnit(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Failed to read request body"})
 	}
 	lockID := c.QueryParam("if_locked_by")
-	
+
 	logger.Info("Uploading unit",
 		"operation", "upload_unit",
 		"unit_id", id,
 		"lock_id", lockID,
 		"size_bytes", len(data),
 	)
-	
+
 	if err := h.store.Upload(c.Request().Context(), id, data, lockID); err != nil {
 		analytics.SendEssential("taco_unit_push_failed")
 		if err == storage.ErrNotFound {
@@ -630,7 +649,7 @@ func (h *Handler) UploadUnit(c echo.Context) error {
 	// commenting out for now until this functionality is fixed
 	// Best-effort dependency graph update
 	//go deps.UpdateGraphOnWrite(c.Request().Context(), h.store, id, data)
-	
+
 	logger.Info("Unit uploaded successfully",
 		"operation", "upload_unit",
 		"unit_id", id,
@@ -658,7 +677,7 @@ func (h *Handler) LockUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
 	}
-	
+
 	if err := domain.ValidateUnitID(id); err != nil {
 		logger.Warn("Invalid unit ID for lock",
 			"operation", "lock_unit",
@@ -674,14 +693,14 @@ func (h *Handler) LockUnit(c echo.Context) error {
 		req.Version = "1.0.0"
 	}
 	lockInfo := &storage.LockInfo{ID: req.ID, Who: req.Who, Version: req.Version, Created: time.Now()}
-	
+
 	logger.Info("Locking unit",
 		"operation", "lock_unit",
 		"unit_id", id,
 		"lock_id", lockInfo.ID,
 		"who", lockInfo.Who,
 	)
-	
+
 	if err := h.store.Lock(c.Request().Context(), id, lockInfo); err != nil {
 		if err == storage.ErrNotFound {
 			logger.Info("Unit not found for lock",
@@ -708,7 +727,7 @@ func (h *Handler) LockUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to lock unit"})
 	}
-	
+
 	logger.Info("Unit locked successfully",
 		"operation", "lock_unit",
 		"unit_id", id,
@@ -734,7 +753,7 @@ func (h *Handler) UnlockUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Unit not found"})
 	}
-	
+
 	if err := domain.ValidateUnitID(id); err != nil {
 		logger.Warn("Invalid unit ID for unlock",
 			"operation", "unlock_unit",
@@ -751,13 +770,13 @@ func (h *Handler) UnlockUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Lock ID required"})
 	}
-	
+
 	logger.Info("Unlocking unit",
 		"operation", "unlock_unit",
 		"unit_id", id,
 		"lock_id", req.ID,
 	)
-	
+
 	if err := h.store.Unlock(c.Request().Context(), id, req.ID); err != nil {
 		if err == storage.ErrNotFound {
 			logger.Info("Unit not found for unlock",
@@ -782,7 +801,7 @@ func (h *Handler) UnlockUnit(c echo.Context) error {
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to unlock unit"})
 	}
-	
+
 	logger.Info("Unit unlocked successfully",
 		"operation", "unlock_unit",
 		"unit_id", id,
@@ -811,7 +830,7 @@ func (h *Handler) ListVersions(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
@@ -890,7 +909,7 @@ func (h *Handler) RestoreVersion(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
@@ -966,7 +985,7 @@ func (h *Handler) GetUnitStatus(c echo.Context) error {
 			"error", err,
 		)
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Unit not found",
+			"error":  "Unit not found",
 			"detail": err.Error(),
 		})
 	}
@@ -994,7 +1013,7 @@ func (h *Handler) GetUnitStatus(c echo.Context) error {
 		// On errors, prefer a 200 with green/empty as per implementation notes
 		return c.JSON(http.StatusOK, st)
 	}
-	
+
 	logger.Info("Unit status retrieved successfully",
 		"operation", "get_unit_status",
 		"unit_id", id,

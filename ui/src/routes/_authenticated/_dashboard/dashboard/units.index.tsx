@@ -34,12 +34,14 @@ export const Route = createFileRoute(
   pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    
+    const pageSize = 20;
     const unitsData = await listUnitsFn({
       data: {
         organisationId: organisationId || '', 
         userId: user?.id || '', 
-        email: user?.email || ''
+        email: user?.email || '',
+        page: 1,
+        pageSize,
       }
     });
     
@@ -170,32 +172,55 @@ function CreateUnitModal({ onUnitCreated, onUnitOptimistic, onUnitFailed }: {
 
 function RouteComponent() {
   const {  unitsData, organisationId, user } = Route.useLoaderData()
-  const [units, setUnits] = useState(unitsData?.units || [])
+  const [pageData, setPageData] = useState(unitsData)
+  const [currentPage, setCurrentPage] = useState(unitsData?.page || 1)
+  const pageSize = (pageData as any)?.page_size || 20
+  const total = (pageData as any)?.total || (pageData as any)?.units?.length || 0
+  const units = (pageData?.units || []).slice().sort((a: any, b: any) => a.name.localeCompare(b.name))
   const navigate = Route.useNavigate()
   const router = useRouter()
+
+  async function loadPage(page: number) {
+    const next = await listUnitsFn({
+      data: {
+        organisationId: organisationId || '',
+        userId: user?.id || '',
+        email: user?.email || '',
+        page,
+        pageSize,
+      },
+    })
+    setPageData(next)
+    setCurrentPage(next?.page || page)
+  }
   
   // Handle optimistic update - add immediately
   function handleUnitOptimistic(tempUnit: any) {
-    setUnits(prev => [{
-      ...tempUnit,
-      locked: false,
-      size: 0,
-      updated: new Date(),
-      isOptimistic: true
-    }, ...prev])
+    setPageData(prev => {
+      const nextUnits = [{
+        ...tempUnit,
+        locked: false,
+        size: 0,
+        updated: new Date(),
+        isOptimistic: true
+      }, ...(prev?.units || [])]
+      return { ...prev, units: nextUnits }
+    })
   }
   
   // Handle actual creation - refresh from server
   async function handleUnitCreated() {
-    const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
-    setUnits(unitsData.units)
+    await loadPage(1)
   }
   
   // Handle failure - remove optimistic unit
   function handleUnitFailed() {
-    setUnits(prev => prev.filter((u: any) => !u.isOptimistic))
+    setPageData(prev => ({ ...prev, units: (prev?.units || []).filter((u: any) => !u.isOptimistic) }))
   }
   
+  const canGoPrev = currentPage > 1
+  const canGoNext = currentPage * pageSize < total
+
   return (<>
     <div className="container mx-auto p-4">
       <div className="mb-6">
@@ -280,6 +305,15 @@ function RouteComponent() {
         </TableBody>
       </Table>
       )}
+      <div className="flex items-center justify-between pt-3">
+        <p className="text-sm text-muted-foreground">
+          Showing {units.length} of {total} units (page {currentPage}, {pageSize} per page)
+        </p>
+        <div className="space-x-2">
+          <Button variant="outline" size="sm" disabled={!canGoPrev} onClick={() => loadPage(currentPage - 1)}>Previous</Button>
+          <Button variant="outline" size="sm" disabled={!canGoNext} onClick={() => loadPage(currentPage + 1)}>Next</Button>
+        </div>
+      </div>
         </CardContent>
       </Card>
     </div>

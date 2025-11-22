@@ -4,9 +4,9 @@ import { verifyToken } from "./tokens";
 import { deleteToken } from "./tokens";
 
 export const getTokensFn = createServerFn({method: 'GET'})
-    .inputValidator((data: {organizationId: string, userId: string}) => data)
-    .handler(async ({data: {organizationId, userId}}) => {
-        return getTokens(organizationId, userId);
+    .inputValidator((data: {organizationId: string, userId: string, page?: number, pageSize?: number}) => data)
+    .handler(async ({data: {organizationId, userId, page = 1, pageSize = 20}}) => {
+        return getTokens(organizationId, userId, page, pageSize);
 })
 
 export const createTokenFn = createServerFn({method: 'POST'})

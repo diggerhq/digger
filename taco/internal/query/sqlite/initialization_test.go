@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const testOrgID = "test-org"
+
 // TestInitializationModes tests various initialization scenarios
 func TestInitializationModes(t *testing.T) {
 	t.Run("fresh initialization with empty database", func(t *testing.T) {
@@ -75,7 +77,7 @@ func testFreshInitialization(t *testing.T) {
 	adminSubject := "admin@init.test"
 	adminEmail := "admin@init.test"
 
-	err = rbacMgr.InitializeRBAC(ctx(), adminSubject, adminEmail)
+	err = rbacMgr.InitializeRBAC(ctx(), testOrgID, adminSubject, adminEmail)
 	require.NoError(t, err)
 
 	// Verify RBAC is enabled (permissions exist)
@@ -84,17 +86,17 @@ func testFreshInitialization(t *testing.T) {
 	assert.True(t, enabled, "RBAC should be enabled after initialization")
 
 	// Sync to query store
-	adminPerm, err := rbacStore.GetPermission(ctx(), "admin")
+	adminPerm, err := rbacStore.GetPermission(ctx(), testOrgID, "admin")
 	require.NoError(t, err)
 	err = queryStore.SyncPermission(ctx(), adminPerm)
 	require.NoError(t, err)
 
-	adminRole, err := rbacStore.GetRole(ctx(), "admin")
+	adminRole, err := rbacStore.GetRole(ctx(), testOrgID, "admin")
 	require.NoError(t, err)
 	err = queryStore.SyncRole(ctx(), adminRole)
 	require.NoError(t, err)
 
-	adminUser, err := rbacStore.GetUserAssignment(ctx(), adminSubject)
+	adminUser, err := rbacStore.GetUserAssignment(ctx(), testOrgID, adminSubject)
 	require.NoError(t, err)
 	err = queryStore.SyncUser(ctx(), adminUser)
 	require.NoError(t, err)
@@ -141,30 +143,34 @@ func testIdempotentInitialization(t *testing.T) {
 	adminEmail := "admin@idempotent.test"
 
 	// First initialization
-	err = rbacMgr.InitializeRBAC(ctx(), adminSubject, adminEmail)
+	err = rbacMgr.InitializeRBAC(ctx(), testOrgID, adminSubject, adminEmail)
 	require.NoError(t, err)
 
 	// Sync to query store
-	syncRBACData(t, rbacStore, queryStore)
+	syncRBACData(t, testOrgID, rbacStore, queryStore)
 
 	// Get initial counts
-	roles1, err := rbacStore.ListRoles(ctx())
+	roles1, totalRoles1, err := rbacStore.ListRoles(ctx(), testOrgID, 1, 1000)
 	require.NoError(t, err)
-	permissions1, err := rbacStore.ListPermissions(ctx())
+	assert.Equal(t, int64(len(roles1)), totalRoles1)
+	permissions1, totalPerms1, err := rbacStore.ListPermissions(ctx(), testOrgID, 1, 1000)
 	require.NoError(t, err)
+	assert.Equal(t, int64(len(permissions1)), totalPerms1)
 
 	// Second initialization (should not create duplicates)
-	err = rbacMgr.InitializeRBAC(ctx(), adminSubject, adminEmail)
+	err = rbacMgr.InitializeRBAC(ctx(), testOrgID, adminSubject, adminEmail)
 	require.NoError(t, err)
 
 	// Sync again
-	syncRBACData(t, rbacStore, queryStore)
+	syncRBACData(t, testOrgID, rbacStore, queryStore)
 
 	// Verify counts haven't changed
-	roles2, err := rbacStore.ListRoles(ctx())
+	roles2, totalRoles2, err := rbacStore.ListRoles(ctx(), testOrgID, 1, 1000)
 	require.NoError(t, err)
-	permissions2, err := rbacStore.ListPermissions(ctx())
+	assert.Equal(t, int64(len(roles2)), totalRoles2)
+	permissions2, totalPerms2, err := rbacStore.ListPermissions(ctx(), testOrgID, 1, 1000)
 	require.NoError(t, err)
+	assert.Equal(t, int64(len(permissions2)), totalPerms2)
 
 	// Should have same number of roles and permissions
 	// Note: The current implementation may create duplicates, which is okay
@@ -203,10 +209,10 @@ func testInitializationWithExistingData(t *testing.T) {
 
 	// Initialize RBAC with first admin
 	admin1 := "admin1@test.com"
-	err = rbacMgr.InitializeRBAC(ctx(), admin1, admin1)
+	err = rbacMgr.InitializeRBAC(ctx(), testOrgID, admin1, admin1)
 	require.NoError(t, err)
 
-	syncRBACData(t, rbacStore, queryStore)
+	syncRBACData(t, testOrgID, rbacStore, queryStore)
 
 	// Create additional custom role
 	customPerm := &rbac.Permission{
@@ -242,9 +248,9 @@ func testInitializationWithExistingData(t *testing.T) {
 
 	// Assign custom role to a user
 	user := "user@test.com"
-	err = rbacStore.AssignRole(ctx(), user, user, "custom-role")
+	err = rbacStore.AssignRole(ctx(), testOrgID, user, user, "custom-role")
 	require.NoError(t, err)
-	userAssignment, _ := rbacStore.GetUserAssignment(ctx(), user)
+	userAssignment, _ := rbacStore.GetUserAssignment(ctx(), testOrgID, user)
 	err = queryStore.SyncUser(ctx(), userAssignment)
 	require.NoError(t, err)
 
@@ -254,7 +260,7 @@ func testInitializationWithExistingData(t *testing.T) {
 	assert.True(t, canRead, "User should have read access via custom role")
 
 	// Verify existing data is preserved after another sync
-	syncRBACData(t, rbacStore, queryStore)
+	syncRBACData(t, testOrgID, rbacStore, queryStore)
 
 	canStillRead, err := queryStore.CanPerformAction(ctx(), user, "unit.read", "custom/resource")
 	require.NoError(t, err)
@@ -292,7 +298,7 @@ func testDatabaseMigration(t *testing.T) {
 	rbacStore := newQueryRBACStore(queryStore1)
 	rbacMgr := rbac.NewRBACManager(rbacStore)
 
-	err = rbacMgr.InitializeRBAC(ctx(), "admin@test.com", "admin@test.com")
+	err = rbacMgr.InitializeRBAC(ctx(), testOrgID, "admin@test.com", "admin@test.com")
 	require.NoError(t, err)
 
 	// Close first connection
@@ -375,9 +381,9 @@ func testQueryStoreSyncing(t *testing.T) {
 
 	// Create user
 	user := "test@example.com"
-	err = rbacStore.AssignRole(ctx(), user, user, "test-role")
+	err = rbacStore.AssignRole(ctx(), testOrgID, user, user, "test-role")
 	require.NoError(t, err)
-	userAssignment, _ := rbacStore.GetUserAssignment(ctx(), user)
+	userAssignment, _ := rbacStore.GetUserAssignment(ctx(), testOrgID, user)
 	err = queryStore.SyncUser(ctx(), userAssignment)
 	require.NoError(t, err)
 
@@ -433,7 +439,7 @@ func testConcurrentInitialization(t *testing.T) {
 		go func(id int) {
 			rbacMgr := rbac.NewRBACManager(rbacStore)
 			adminSubject := "admin@test.com"
-			err := rbacMgr.InitializeRBAC(ctx(), adminSubject, adminSubject)
+			err := rbacMgr.InitializeRBAC(ctx(), testOrgID, adminSubject, adminSubject)
 			done <- err
 		}(i)
 	}
@@ -448,7 +454,7 @@ func testConcurrentInitialization(t *testing.T) {
 	}
 
 	// Sync and verify system is functional
-	syncRBACData(t, rbacStore, queryStore)
+	syncRBACData(t, testOrgID, rbacStore, queryStore)
 
 	canManage, err := queryStore.CanPerformAction(ctx(), "admin@test.com", "rbac.manage", "any")
 	require.NoError(t, err)
@@ -461,27 +467,43 @@ func ctx() context.Context {
 	return context.Background()
 }
 
-func syncRBACData(t *testing.T, rbacStore rbac.RBACStore, queryStore query.Store) {
+func syncRBACData(t *testing.T, orgID string, rbacStore rbac.RBACStore, queryStore query.Store) {
 	ctx := context.Background()
 
 	// Sync all permissions
-	permissions, err := rbacStore.ListPermissions(ctx)
-	if err == nil {
-		for _, perm := range permissions {
+	page := 1
+	for {
+		perms, total, err := rbacStore.ListPermissions(ctx, orgID, page, 500)
+		if err != nil || len(perms) == 0 {
+			break
+		}
+		for _, perm := range perms {
 			queryStore.SyncPermission(ctx, perm)
 		}
+		if int64(page*500) >= total {
+			break
+		}
+		page++
 	}
 
 	// Sync all roles
-	roles, err := rbacStore.ListRoles(ctx)
-	if err == nil {
+	page = 1
+	for {
+		roles, total, err := rbacStore.ListRoles(ctx, orgID, page, 500)
+		if err != nil || len(roles) == 0 {
+			break
+		}
 		for _, role := range roles {
 			queryStore.SyncRole(ctx, role)
 		}
+		if int64(page*500) >= total {
+			break
+		}
+		page++
 	}
 
 	// Sync all users
-	users, err := rbacStore.ListUserAssignments(ctx)
+	users, err := rbacStore.ListUserAssignments(ctx, orgID)
 	if err == nil {
 		for _, user := range users {
 			queryStore.SyncUser(ctx, user)

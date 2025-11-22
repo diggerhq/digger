@@ -2,9 +2,15 @@ import { createServerFn } from "@tanstack/react-start"
 import { createUnit, getUnit, listUnits, getUnitVersions, unlockUnit, lockUnit, getUnitStatus, deleteUnit, downloadLatestState, forcePushState, restoreUnitStateVersion } from "./statesman_units"
 
 export const listUnitsFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string}) => data)
+  .inputValidator((data : {userId: string, organisationId: string, email: string, page?: number, pageSize?: number}) => data)
   .handler(async ({ data }) => {
-    const units : any = await listUnits(data.organisationId, data.userId, data.email);
+    const units : any = await listUnits(
+      data.organisationId, 
+      data.userId, 
+      data.email,
+      data.page ?? 1,
+      data.pageSize ?? 20,
+    );
     return units;
 })
 

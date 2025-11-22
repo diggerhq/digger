@@ -8,25 +8,26 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
 
 // Client is the OpenTaco SDK client
 type Client struct {
-    baseURL    string
-    httpClient *http.Client
-    authToken  string
+	baseURL    string
+	httpClient *http.Client
+	authToken  string
 }
 
 // NewClient creates a new OpenTaco client
 func NewClient(baseURL string) *Client {
-    return &Client{
-        baseURL: baseURL,
-        httpClient: &http.Client{
-            Timeout: 30 * time.Second,
-        },
-    }
+	return &Client{
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
 }
 
 // NewClientWithHTTPClient creates a new client with a custom HTTP client
@@ -39,11 +40,11 @@ func NewClientWithHTTPClient(baseURL string, httpClient *http.Client) *Client {
 
 // UnitMetadata represents unit metadata
 type UnitMetadata struct {
-    ID       string    `json:"id"`
-    Size     int64     `json:"size"`
-    Updated  time.Time `json:"updated"`
-    Locked   bool      `json:"locked"`
-    LockInfo *LockInfo `json:"lock,omitempty"`
+	ID       string    `json:"id"`
+	Size     int64     `json:"size"`
+	Updated  time.Time `json:"updated"`
+	Locked   bool      `json:"locked"`
+	LockInfo *LockInfo `json:"lock,omitempty"`
 }
 
 // LockInfo represents lock information
@@ -63,26 +64,29 @@ type Version struct {
 
 // CreateUnitRequest represents a request to create a unit
 type CreateUnitRequest struct {
-    Name string `json:"name"`
+	Name string `json:"name"`
 }
 
 // CreateUnitResponse represents the response from creating a unit
 type CreateUnitResponse struct {
-    ID      string    `json:"id"`
-    Created time.Time `json:"created"`
+	ID      string    `json:"id"`
+	Created time.Time `json:"created"`
 }
 
 // ListUnitsResponse represents the response from listing units
 type ListUnitsResponse struct {
-    Units []*UnitMetadata `json:"units"`
-    Count  int              `json:"count"`
+	Units    []*UnitMetadata `json:"units"`
+	Count    int             `json:"count"`
+	Total    int64           `json:"total"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"page_size"`
 }
 
 // ListVersionsResponse represents the response from listing versions
 type ListVersionsResponse struct {
-    UnitID   string     `json:"unit_id"`
-    Versions []*Version `json:"versions"`
-    Count    int        `json:"count"`
+	UnitID   string     `json:"unit_id"`
+	Versions []*Version `json:"versions"`
+	Count    int        `json:"count"`
 }
 
 // RestoreVersionRequest represents a request to restore a version
@@ -93,165 +97,179 @@ type RestoreVersionRequest struct {
 
 // RestoreVersionResponse represents the response from restoring a version
 type RestoreVersionResponse struct {
-    UnitID    string    `json:"unit_id"`
-    Timestamp time.Time `json:"restored_timestamp"`
-    Message   string    `json:"message"`
+	UnitID    string    `json:"unit_id"`
+	Timestamp time.Time `json:"restored_timestamp"`
+	Message   string    `json:"message"`
 }
 
 // UnitStatus represents the dependency status API response
 type UnitStatus struct {
-    UnitID string         `json:"unit_id"`
-    Status  string         `json:"status"`
-    Incoming []IncomingEdge `json:"incoming"`
-    Summary Summary        `json:"summary"`
+	UnitID   string         `json:"unit_id"`
+	Status   string         `json:"status"`
+	Incoming []IncomingEdge `json:"incoming"`
+	Summary  Summary        `json:"summary"`
 }
 
 type IncomingEdge struct {
-    EdgeID      string `json:"edge_id,omitempty"`
-    FromUnitID  string `json:"from_unit_id"`
-    FromOutput  string `json:"from_output"`
-    Status      string `json:"status"`
-    InDigest    string `json:"in_digest,omitempty"`
-    OutDigest   string `json:"out_digest,omitempty"`
-    LastInAt    string `json:"last_in_at,omitempty"`
-    LastOutAt   string `json:"last_out_at,omitempty"`
+	EdgeID     string `json:"edge_id,omitempty"`
+	FromUnitID string `json:"from_unit_id"`
+	FromOutput string `json:"from_output"`
+	Status     string `json:"status"`
+	InDigest   string `json:"in_digest,omitempty"`
+	OutDigest  string `json:"out_digest,omitempty"`
+	LastInAt   string `json:"last_in_at,omitempty"`
+	LastOutAt  string `json:"last_out_at,omitempty"`
 }
 
 type Summary struct {
-    IncomingOK      int `json:"incoming_ok"`
-    IncomingPending int `json:"incoming_pending"`
-    IncomingUnknown int `json:"incoming_unknown"`
+	IncomingOK      int `json:"incoming_ok"`
+	IncomingPending int `json:"incoming_pending"`
+	IncomingUnknown int `json:"incoming_unknown"`
 }
 
 // CreateUnit creates a new unit
 func (c *Client) CreateUnit(ctx context.Context, unitID string) (*CreateUnitResponse, error) {
-    req := CreateUnitRequest{Name: unitID}
-    
-    resp, err := c.doJSON(ctx, "POST", "/v1/units", req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	req := CreateUnitRequest{Name: unitID}
 
-    if resp.StatusCode != http.StatusCreated {
-        return nil, parseError(resp)
-    }
+	resp, err := c.doJSON(ctx, "POST", "/v1/units", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    var result CreateUnitResponse
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, fmt.Errorf("failed to decode response: %w", err)
-    }
+	if resp.StatusCode != http.StatusCreated {
+		return nil, parseError(resp)
+	}
 
-    return &result, nil
+	var result CreateUnitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
 }
 
-// ListUnits lists all units with optional prefix filter
-func (c *Client) ListUnits(ctx context.Context, prefix string) (*ListUnitsResponse, error) {
-    path := "/v1/units"
-    if prefix != "" {
-        path += "?prefix=" + url.QueryEscape(prefix)
-    }
+// ListUnits lists units with optional prefix and pagination.
+func (c *Client) ListUnits(ctx context.Context, prefix string, page int, pageSize int) (*ListUnitsResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 50
+	}
 
-    resp, err := c.do(ctx, "GET", path, nil)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	params := url.Values{}
+	if prefix != "" {
+		params.Set("prefix", prefix)
+	}
+	params.Set("page", strconv.Itoa(page))
+	params.Set("page_size", strconv.Itoa(pageSize))
 
-    if resp.StatusCode != http.StatusOK {
-        return nil, parseError(resp)
-    }
+	path := "/v1/units"
+	if encoded := params.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
 
-    var result ListUnitsResponse
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, fmt.Errorf("failed to decode response: %w", err)
-    }
+	resp, err := c.do(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    return &result, nil
+	if resp.StatusCode != http.StatusOK {
+		return nil, parseError(resp)
+	}
+
+	var result ListUnitsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
 }
 
 // GetUnit gets unit metadata
 func (c *Client) GetUnit(ctx context.Context, unitID string) (*UnitMetadata, error) {
-    encodedID := encodeUnitID(unitID)
-    resp, err := c.do(ctx, "GET", "/v1/units/"+encodedID, nil)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	encodedID := encodeUnitID(unitID)
+	resp, err := c.do(ctx, "GET", "/v1/units/"+encodedID, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return nil, parseError(resp)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return nil, parseError(resp)
+	}
 
-    var result UnitMetadata
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, fmt.Errorf("failed to decode response: %w", err)
-    }
+	var result UnitMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
 
-    return &result, nil
+	return &result, nil
 }
 
 // DeleteUnit deletes a unit
 func (c *Client) DeleteUnit(ctx context.Context, unitID string) error {
-    encodedID := encodeUnitID(unitID)
-    resp, err := c.do(ctx, "DELETE", "/v1/units/"+encodedID, nil)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	encodedID := encodeUnitID(unitID)
+	resp, err := c.do(ctx, "DELETE", "/v1/units/"+encodedID, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusNoContent {
-        return parseError(resp)
-    }
+	if resp.StatusCode != http.StatusNoContent {
+		return parseError(resp)
+	}
 
-    return nil
+	return nil
 }
 
 // DownloadUnit downloads unit data
 func (c *Client) DownloadUnit(ctx context.Context, unitID string) ([]byte, error) {
-    encodedID := encodeUnitID(unitID)
-    resp, err := c.do(ctx, "GET", "/v1/units/"+encodedID+"/download", nil)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	encodedID := encodeUnitID(unitID)
+	resp, err := c.do(ctx, "GET", "/v1/units/"+encodedID+"/download", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return nil, parseError(resp)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return nil, parseError(resp)
+	}
 
-    return io.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 // UploadUnit uploads unit data
 func (c *Client) UploadUnit(ctx context.Context, unitID string, data []byte, lockID string) error {
-    encodedID := encodeUnitID(unitID)
-    path := "/v1/units/" + encodedID + "/upload"
-    if lockID != "" {
-        path += "?if_locked_by=" + url.QueryEscape(lockID)
-    }
+	encodedID := encodeUnitID(unitID)
+	path := "/v1/units/" + encodedID + "/upload"
+	if lockID != "" {
+		path += "?if_locked_by=" + url.QueryEscape(lockID)
+	}
 
-    resp, err := c.do(ctx, "POST", path, bytes.NewReader(data))
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	resp, err := c.do(ctx, "POST", path, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return parseError(resp)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return parseError(resp)
+	}
 
-    return nil
+	return nil
 }
 
 // LockUnit locks a unit
 func (c *Client) LockUnit(ctx context.Context, unitID string, lockInfo *LockInfo) (*LockInfo, error) {
-    encodedID := encodeUnitID(unitID)
-    resp, err := c.doJSON(ctx, "POST", "/v1/units/"+encodedID+"/lock", lockInfo)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	encodedID := encodeUnitID(unitID)
+	resp, err := c.doJSON(ctx, "POST", "/v1/units/"+encodedID+"/lock", lockInfo)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, parseError(resp)
@@ -267,14 +285,14 @@ func (c *Client) LockUnit(ctx context.Context, unitID string, lockInfo *LockInfo
 
 // UnlockUnit unlocks a unit
 func (c *Client) UnlockUnit(ctx context.Context, unitID string, lockID string) error {
-    req := map[string]string{"id": lockID}
-    encodedID := encodeUnitID(unitID)
-    
-    resp, err := c.doJSON(ctx, "DELETE", "/v1/units/"+encodedID+"/unlock", req)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	req := map[string]string{"id": lockID}
+	encodedID := encodeUnitID(unitID)
+
+	resp, err := c.doJSON(ctx, "DELETE", "/v1/units/"+encodedID+"/unlock", req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return parseError(resp)
@@ -286,20 +304,20 @@ func (c *Client) UnlockUnit(ctx context.Context, unitID string, lockID string) e
 // Helper methods
 
 func (c *Client) do(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
-    req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create request: %w", err)
-    }
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
 
-    if body != nil {
-        req.Header.Set("Content-Type", "application/json")
-    }
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
-    if c.authToken != "" {
-        req.Header.Set("Authorization", "Bearer "+c.authToken)
-    }
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
 
-    return c.httpClient.Do(req)
+	return c.httpClient.Do(req)
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, payload interface{}) (*http.Response, error) {
@@ -317,9 +335,9 @@ func (c *Client) doJSON(ctx context.Context, method, path string, payload interf
 
 // ListUnitVersions lists all versions for a unit
 func (c *Client) ListUnitVersions(ctx context.Context, unitID string) ([]*Version, error) {
-    encodedID := encodeUnitID(unitID)
-    path := fmt.Sprintf("/v1/units/%s/versions", encodedID)
-	
+	encodedID := encodeUnitID(unitID)
+	path := fmt.Sprintf("/v1/units/%s/versions", encodedID)
+
 	resp, err := c.do(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -340,14 +358,14 @@ func (c *Client) ListUnitVersions(ctx context.Context, unitID string) ([]*Versio
 
 // RestoreUnitVersion restores a unit to a specific version
 func (c *Client) RestoreUnitVersion(ctx context.Context, unitID string, versionTimestamp time.Time, lockID string) error {
-    encodedID := encodeUnitID(unitID)
-    path := fmt.Sprintf("/v1/units/%s/restore", encodedID)
-	
+	encodedID := encodeUnitID(unitID)
+	path := fmt.Sprintf("/v1/units/%s/restore", encodedID)
+
 	req := RestoreVersionRequest{
 		Timestamp: versionTimestamp,
 		LockID:    lockID,
 	}
-	
+
 	resp, err := c.doJSON(ctx, "POST", path, req)
 	if err != nil {
 		return err
@@ -363,21 +381,21 @@ func (c *Client) RestoreUnitVersion(ctx context.Context, unitID string, versionT
 
 // GetUnitStatus fetches dependency status for a unit
 func (c *Client) GetUnitStatus(ctx context.Context, unitID string) (*UnitStatus, error) {
-    encodedID := encodeUnitID(unitID)
-    path := "/v1/units/" + encodedID + "/status"
-    resp, err := c.do(ctx, "GET", path, nil)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-    if resp.StatusCode != http.StatusOK {
-        return nil, parseError(resp)
-    }
-    var st UnitStatus
-    if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
-        return nil, fmt.Errorf("failed to decode response: %w", err)
-    }
-    return &st, nil
+	encodedID := encodeUnitID(unitID)
+	path := "/v1/units/" + encodedID + "/status"
+	resp, err := c.do(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, parseError(resp)
+	}
+	var st UnitStatus
+	if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &st, nil
 }
 
 func parseError(resp *http.Response) error {
@@ -395,7 +413,7 @@ func parseError(resp *http.Response) error {
 
 // encodeUnitID encodes a unit ID for use in URLs by replacing slashes with double underscores
 func encodeUnitID(id string) string {
-    return strings.ReplaceAll(id, "/", "__")
+	return strings.ReplaceAll(id, "/", "__")
 }
 
 // SetBearerToken sets the Authorization bearer token for subsequent requests.

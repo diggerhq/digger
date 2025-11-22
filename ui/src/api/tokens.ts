@@ -3,8 +3,13 @@ function generateRequestId(): string {
     return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export const getTokens = async (organizationId: string, userId: string) => {
-    const query = new URLSearchParams({ org_id: organizationId, user_id: userId });
+export const getTokens = async (organizationId: string, userId: string, page = 1, pageSize = 20) => {
+    const query = new URLSearchParams({ 
+        org_id: organizationId, 
+        user_id: userId,
+        page: page.toString(),
+        page_size: pageSize.toString(),
+    });
     const url = `${process.env.TOKENS_SERVICE_BACKEND_URL}/api/v1/tokens?${query.toString()}`;
     const response = await fetch(url, {
         method: 'GET',

@@ -16,7 +16,7 @@ export const Route = createFileRoute(
   component: RouteComponent,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const tokens = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
+    const tokens = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || '', page: 1, pageSize: 20}})
     return { tokens, user, organisationId }
   },
   // Disable caching for token data - always fetch fresh
@@ -26,13 +26,29 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { tokens, user, organisationId } = Route.useLoaderData()
-  const [tokenList, setTokenList] = useState<typeof tokens>(tokens)
+  const [tokenPage, setTokenPage] = useState<typeof tokens>(tokens)
+  const [currentPage, setCurrentPage] = useState<number>(tokens?.page ?? 1)
+  const [pageSize] = useState<number>(tokens?.page_size ?? 20)
   const [newToken, setNewToken] = useState('')
   const [open, setOpen] = useState(false)
   const [nickname, setNickname] = useState('')
   const [expiry, setExpiry] = useState<'1_week' | '30_days' | 'no_expiry'>('1_week')
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
+  const tokenList = tokenPage?.tokens ?? []
+  const totalTokens = tokenPage?.total ?? tokenList.length
+  const effectivePage = tokenPage?.page ?? currentPage
+  const effectivePageSize = tokenPage?.page_size ?? pageSize
+  const canGoNext = effectivePage * effectivePageSize < totalTokens
+  const canGoPrev = effectivePage > 1
+
+  const refreshTokens = async (page: number = currentPage) => {
+    const next = await getTokensFn({
+      data: { organizationId: organisationId, userId: user?.id || '', page, pageSize },
+    })
+    setTokenPage(next)
+    setCurrentPage(next?.page ?? page)
+  }
   const computeExpiry = (value: '1_week' | '30_days' | 'no_expiry'): string | null => {
     console.log('value', value)
     if (value === 'no_expiry') return null
@@ -74,8 +90,7 @@ function RouteComponent() {
       setOpen(false)
       setNickname('')
       setExpiry('no_expiry')
-      const newTokenList = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
-      setTokenList(newTokenList)
+      await refreshTokens(1)
     } finally {
       setSubmitting(false)
     }
@@ -95,8 +110,7 @@ function RouteComponent() {
       })
     }).finally(async () => {
       setSubmitting(false)
-      const newTokenList = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
-      setTokenList(newTokenList)
+      await refreshTokens(currentPage)
     })
   }
   return (
@@ -160,40 +174,55 @@ function RouteComponent() {
           {tokenList.length === 0 ? (
             <p className="text-sm text-muted-foreground">No tokens generated yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-left">Name</TableHead>
-                  <TableHead className="text-left">Token</TableHead>
-                  <TableHead className="text-left">Expires</TableHead>
-                  <TableHead className="text-left">Created</TableHead>
-                  <TableHead className="text-left">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tokenList.map((token, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{token.name}</TableCell>
-                    <TableCell>•••••••••••{token.token.slice(-4)}</TableCell>
-                    <TableCell>
-                      {isTokenExpired(token)
-                        ? <span className="text-destructive">This token has expired</span>
-                        : (token.expires_at ? formatDateString(token.expires_at) : 'No expiry')}
-                    </TableCell>
-                    <TableCell>{formatDateString(token.created_at)}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRevokeToken(token.id)}
-                      >
-                        Revoke
-                      </Button>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-left">Name</TableHead>
+                    <TableHead className="text-left">Token</TableHead>
+                    <TableHead className="text-left">Expires</TableHead>
+                    <TableHead className="text-left">Created</TableHead>
+                    <TableHead className="text-left">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {tokenList.map((token, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{token.name}</TableCell>
+                      <TableCell>•••••••••••{token.token.slice(-4)}</TableCell>
+                      <TableCell>
+                        {isTokenExpired(token)
+                          ? <span className="text-destructive">This token has expired</span>
+                          : (token.expires_at ? formatDateString(token.expires_at) : 'No expiry')}
+                      </TableCell>
+                      <TableCell>{formatDateString(token.created_at)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRevokeToken(token.id)}
+                        >
+                          Revoke
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-between pt-3">
+                <p className="text-sm text-muted-foreground">
+                  Showing {tokenList.length} of {totalTokens} tokens (page {effectivePage})
+                </p>
+                <div className="space-x-2">
+                  <Button variant="outline" size="sm" disabled={!canGoPrev} onClick={() => refreshTokens(effectivePage - 1)}>
+                    Previous
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={!canGoNext} onClick={() => refreshTokens(effectivePage + 1)}>
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </CardContent>

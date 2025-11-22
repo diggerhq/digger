@@ -62,10 +62,18 @@ func (r *TokenRepository) CreateToken(ctx context.Context, userID, orgID, name s
 	return token, nil
 }
 
-// ListTokens returns all tokens for a given user ID and org
-func (r *TokenRepository) ListTokens(ctx context.Context, userID, orgID string) ([]*types.Token, error) {
+// ListTokens returns tokens for a given user ID and org with pagination.
+func (r *TokenRepository) ListTokens(ctx context.Context, userID, orgID string, page, pageSize int) ([]*types.Token, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
 	var tokens []*types.Token
-	query := r.db.WithContext(ctx)
+	query := r.db.WithContext(ctx).Model(&types.Token{})
 
 	// Filter by userID if provided
 	if userID != "" {
@@ -77,11 +85,17 @@ func (r *TokenRepository) ListTokens(ctx context.Context, userID, orgID string) 
 		query = query.Where("org_id = ?", orgID)
 	}
 
-	if err := query.Order("created_at DESC").Find(&tokens).Error; err != nil {
-		return nil, fmt.Errorf("failed to list tokens: %w", err)
+	// Count total matching tokens (without pagination)
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count tokens: %w", err)
 	}
 
-	return tokens, nil
+	if err := query.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&tokens).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list tokens: %w", err)
+	}
+
+	return tokens, total, nil
 }
 
 // DeleteToken deletes a token by ID
@@ -100,7 +114,7 @@ func (r *TokenRepository) DeleteToken(ctx context.Context, tokenID string) error
 func (r *TokenRepository) VerifyToken(ctx context.Context, tokenValue, userID, orgID string) (*types.Token, error) {
 	// Hash the provided token to compare with stored hash
 	tokenHash := hashToken(tokenValue)
-	
+
 	var token types.Token
 	query := r.db.WithContext(ctx).Where("token = ?", tokenHash)
 
@@ -165,4 +179,3 @@ func hashToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hash[:])
 }
-

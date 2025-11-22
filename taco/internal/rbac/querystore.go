@@ -33,10 +33,10 @@ func (s *queryRBACStore) CreatePermission(ctx context.Context, perm *Permission)
 	if perm.Description != "" {
 		description = perm.Description // Prefer explicit description if provided
 	}
-	
+
 	typePerm := types.Permission{
 		OrgID:       perm.OrgID, // ✅ FIX: Set org_id for org-scoped RBAC
-		Name:        perm.ID, // "unit-read" (identifier, NOT UUID)
+		Name:        perm.ID,    // "unit-read" (identifier, NOT UUID)
 		Description: description,
 		CreatedBy:   perm.CreatedBy,
 		CreatedAt:   perm.CreatedAt,
@@ -64,23 +64,41 @@ func (s *queryRBACStore) GetPermission(ctx context.Context, orgID, id string) (*
 	return convertTypesPermissionToRbac(&typePerm), nil
 }
 
-func (s *queryRBACStore) ListPermissions(ctx context.Context, orgID string) ([]*Permission, error) {
+func (s *queryRBACStore) ListPermissions(ctx context.Context, orgID string, page, pageSize int) ([]*Permission, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
 	var typePerms []types.Permission
-	err := s.db.WithContext(ctx).
+	base := s.db.WithContext(ctx).
 		Where("org_id = ?", orgID).
 		Preload("Rules").
-		Preload("Rules.Actions").
+		Preload("Rules.Actions")
+
+	var total int64
+	if err := base.Model(&types.Permission{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := base.
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
 		Find(&typePerms).Error
 
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	perms := make([]*Permission, len(typePerms))
 	for i, tp := range typePerms {
 		perms[i] = convertTypesPermissionToRbac(&tp)
 	}
-	return perms, nil
+	return perms, total, nil
 }
 
 func (s *queryRBACStore) DeletePermission(ctx context.Context, orgID, id string) error {
@@ -100,10 +118,10 @@ func (s *queryRBACStore) CreateRole(ctx context.Context, role *Role) error {
 	if role.Description != "" {
 		description = role.Description // Prefer explicit description if provided
 	}
-	
+
 	typeRole := types.Role{
 		OrgID:       role.OrgID, // ✅ FIX: Set org_id for org-scoped RBAC
-		Name:        role.ID, // "admin" (identifier, NOT UUID)
+		Name:        role.ID,    // "admin" (identifier, NOT UUID)
 		Description: description,
 		CreatedBy:   role.CreatedBy,
 		CreatedAt:   role.CreatedAt,
@@ -148,22 +166,40 @@ func (s *queryRBACStore) GetRole(ctx context.Context, orgID, id string) (*Role, 
 	return convertTypesRoleToRbac(&typeRole), nil
 }
 
-func (s *queryRBACStore) ListRoles(ctx context.Context, orgID string) ([]*Role, error) {
+func (s *queryRBACStore) ListRoles(ctx context.Context, orgID string, page, pageSize int) ([]*Role, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
 	var typeRoles []types.Role
-	err := s.db.WithContext(ctx).
+	base := s.db.WithContext(ctx).
 		Where("org_id = ?", orgID).
-		Preload("Permissions").
+		Preload("Permissions")
+
+	var total int64
+	if err := base.Model(&types.Role{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := base.
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
 		Find(&typeRoles).Error
 
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	roles := make([]*Role, len(typeRoles))
 	for i, tr := range typeRoles {
 		roles[i] = convertTypesRoleToRbac(&tr)
 	}
-	return roles, nil
+	return roles, total, nil
 }
 
 func (s *queryRBACStore) DeleteRole(ctx context.Context, orgID, id string) error {
@@ -229,7 +265,7 @@ func (s *queryRBACStore) AssignRole(ctx context.Context, orgID, subject, email, 
 		RoleID: role.ID,
 		OrgID:  orgID,
 	}
-	
+
 	if err := s.db.WithContext(ctx).Table("user_roles").Create(&userRole).Error; err != nil {
 		return err
 	}
@@ -353,7 +389,7 @@ func convertTypesPermissionToRbac(tp *types.Permission) *Permission {
 	rules := make([]PermissionRule, len(tp.Rules))
 	for i, r := range tp.Rules {
 		resources := extractResourcesFromRule(&r)
-		
+
 		// Convert actions - check WildcardAction flag
 		var actions []Action
 		if r.WildcardAction {
@@ -363,7 +399,7 @@ func convertTypesPermissionToRbac(tp *types.Permission) *Permission {
 			// Otherwise, convert from RuleAction records
 			actions = convertRuleActionsToActions(r.Actions)
 		}
-		
+
 		rules[i] = PermissionRule{
 			Actions:   actions,
 			Resources: resources,
@@ -372,9 +408,9 @@ func convertTypesPermissionToRbac(tp *types.Permission) *Permission {
 	}
 
 	return &Permission{
-		ID:          tp.ID,   // UUID
+		ID:          tp.ID,    // UUID
 		OrgID:       tp.OrgID, // ✅ FIX: Copy org_id from database model
-		Name:        tp.Name, // Identifier like "unit-read"
+		Name:        tp.Name,  // Identifier like "unit-read"
 		Description: tp.Description,
 		Rules:       rules,
 		CreatedAt:   tp.CreatedAt,
@@ -389,9 +425,9 @@ func convertTypesRoleToRbac(tr *types.Role) *Role {
 	}
 
 	return &Role{
-		ID:          tr.ID,   // UUID
+		ID:          tr.ID,    // UUID
 		OrgID:       tr.OrgID, // ✅ FIX: Copy org_id from database model
-		Name:        tr.Name, // Identifier like "admin"
+		Name:        tr.Name,  // Identifier like "admin"
 		Description: tr.Description,
 		Permissions: permIDs,
 		CreatedAt:   tr.CreatedAt,
@@ -421,7 +457,7 @@ func convertRbacRulesToTypes(rules []PermissionRule) []types.Rule {
 	for i, r := range rules {
 		// Marshal resource patterns to JSON
 		resourcePatternsJSON, _ := json.Marshal(r.Resources)
-		
+
 		typeRules[i] = types.Rule{
 			Effect:           r.Effect,
 			WildcardAction:   containsWildcard(actionsToStrings(r.Actions)),
@@ -459,12 +495,12 @@ func extractResourcesFromRule(r *types.Rule) []string {
 			return patterns
 		}
 	}
-	
+
 	// Fallback: check wildcard flag
 	if r.WildcardResource {
 		return []string{"*"}
 	}
-	
+
 	// Default: no resources (deny by default)
 	return []string{}
 }
@@ -485,4 +521,3 @@ func containsWildcard(strs []string) bool {
 	}
 	return false
 }
-
