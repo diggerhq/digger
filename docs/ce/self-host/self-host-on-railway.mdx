@@ -14,7 +14,7 @@ This is a specific case of [Deploy as docker image](./deploy-docker).
 
     📢 DISCLOSURE: This template was created by [@sidpalas](https://github.com/sidpalas). He will recieve a (small) payment if you use it from the [Railway template kickback program](https://railway.com/open-source-kickback).
 
-2. Set your GitHub organization name.
+2. Set your GitHub organization name (or username, if the repo you plan to use belongs to an individual user).
 
     ![](/images/self-host/railway/set-github-org.png)
 
@@ -32,9 +32,7 @@ This is a specific case of [Deploy as docker image](./deploy-docker).
 
     ![](/images/self-host/railway/github-app-setup.png)
 
-    ⚠️ **IMPORTANT:** Make sure you are authenticated to the GitHub user or organization you want to use digger with and grant access for the app to the corresponding repos.
-
-6. After creating the GitHub app, copy the provided values into their corresponding environment variables (overwriting the default `REPLACE_ME_AFTER_GH_APP_CREATION` values):
+6. After creating the GitHub app, copy the provided values into their corresponding environment variables (overwriting the placeholder `REPLACE_ME_AFTER_GH_APP_CREATION` values):
 
     ```bash
     GITHUB_APP_ID=
