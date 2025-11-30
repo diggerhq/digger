@@ -129,7 +129,8 @@
               "ce/self-host/deploy-docker-compose",
               "ce/self-host/deploy-binary",
               "ce/self-host/deploy-helm",
-              "ce/self-host/self-host-on-azure"
+              "ce/self-host/self-host-on-azure",
+              "ce/self-host/self-host-on-railway"
             ]
           },
           {
