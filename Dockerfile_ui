@@ -38,6 +38,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # Bring in built assets and server entry from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server-start.js ./
+COPY --from=builder /app/request-logging.js ./
 
 EXPOSE 3030
 

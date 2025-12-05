@@ -1,0 +1,267 @@
+name: Staging Deployment
+
+on:
+  push:
+    branches:
+      - introduce-monitoring
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: ["develop"]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Backend EE
+          - service: backend-ee
+            image_name: ${{ github.repository }}/digger-backend-ee
+            dockerfile: Dockerfile_backend_ee
+            context: .
+            depot_project: kcld4zgwzx
+            runner: ubuntu-latest
+          
+          # Drift
+          - service: drift
+            image_name: ${{ github.repository }}/drift
+            dockerfile: Dockerfile_drift
+            context: .
+            depot_project: f11hp4hlmg
+            runner: ubuntu-latest
+          
+          # Projects Refresh
+          - service: projects-refresh
+            image_name: ${{ github.repository }}/projects-refresh-service
+            dockerfile: Dockerfile_bg_projects_refresh
+            context: .
+            depot_project: "p9zgmm1k3n"
+            runner: ubuntu-latest
+          
+          # UI
+          - service: ui
+            image_name: ${{ github.repository }}/taco-ui
+            dockerfile: Dockerfile_ui
+            context: .
+            depot_project: n4w66j9g6t
+            runner: ubuntu-larger
+          
+          # Taco Statesman
+          - service: taco-statesman
+            image_name: ${{ github.repository }}/taco-statesman
+            dockerfile: Dockerfile_statesman
+            context: ./taco
+            depot_project: q63j2g84tp
+            runner: ubuntu-latest
+          
+          # Taco Token Service
+          - service: taco-token-service
+            image_name: ${{ github.repository }}/taco-token-service
+            dockerfile: Dockerfile_token_service
+            context: ./taco
+            depot_project: q63j2g84tp
+            runner: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate staging tag
+        id: tag
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          STAGING_TAG="staging-${SHORT_SHA}"
+          echo "tag=${STAGING_TAG}" >> $GITHUB_OUTPUT
+          echo "Generated staging tag: ${STAGING_TAG}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: docker-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ matrix.image_name }}
+          tags: |
+            type=raw,value=${{ steps.tag.outputs.tag }}
+            type=raw,value=${{ steps.tag.outputs.tag }}-${{ matrix.service }}
+
+      - name: Setup Depot
+        if: matrix.depot_project != ''
+        uses: depot/setup-action@v1
+      
+      - name: Build and push Docker image (Depot)
+        if: matrix.depot_project != ''
+        uses: depot/build-push-action@v1
+        with:
+          project: ${{ matrix.depot_project }}
+          token: ${{ secrets.DEPOT_TOKEN }}
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=${{ steps.tag.outputs.tag }}
+
+      - name: Build and push Docker image (Standard)
+        if: matrix.depot_project == ''
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            VERSION=${{ steps.tag.outputs.tag }}
+
+      - name: Output image info
+        run: |
+          echo "✅ Built and pushed: ${{ env.REGISTRY }}/${{ matrix.image_name }}:${{ steps.tag.outputs.tag }}"
+          echo "Service: ${{ matrix.service }}"
+          echo "Tag: ${{ steps.tag.outputs.tag }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "PR: #${{ github.event.pull_request.number }}"
+
+  update-helm-chart:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Generate staging tag
+        id: tag
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          STAGING_TAG="staging-${SHORT_SHA}"
+          echo "tag=${STAGING_TAG}" >> $GITHUB_OUTPUT
+          echo "Generated staging tag: ${STAGING_TAG}"
+
+      - name: Checkout helm charts repo
+        uses: actions/checkout@v4
+        with:
+          repository: diggerhq/opentaco-helm-charts
+          token: ${{ secrets.HELM_CHARTS_PAT }}
+          ref: main
+      
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+      
+      - name: Update values-staging.yaml
+        run: |
+          STAGING_TAG="${{ steps.tag.outputs.tag }}"
+          VALUES_FILE="opentaco/values-staging.yaml"
+          
+          if [ ! -f "$VALUES_FILE" ]; then
+            echo "Error: $VALUES_FILE not found"
+            exit 1
+          fi
+          
+          echo "Updating values-staging.yaml with staging tag: ${STAGING_TAG}"
+          
+          # Update all service image tags
+          yq eval ".taco-orchestrator.digger.image.tag = \"${STAGING_TAG}\"" -i "$VALUES_FILE"
+          yq eval ".taco-drift.drift.image.tag = \"${STAGING_TAG}\"" -i "$VALUES_FILE"
+          yq eval ".taco-ui.ui.image.tag = \"${STAGING_TAG}\"" -i "$VALUES_FILE"
+          yq eval ".taco-statesman.taco.image.tag = \"${STAGING_TAG}\"" -i "$VALUES_FILE"
+          yq eval ".taco-token-service.tokenService.image.tag = \"${STAGING_TAG}\"" -i "$VALUES_FILE"
+          
+          echo "Updated successfully!"
+          echo "---"
+          echo "Updated tags:"
+          yq eval ".taco-orchestrator.digger.image.tag" "$VALUES_FILE"
+          yq eval ".taco-drift.drift.image.tag" "$VALUES_FILE"
+          yq eval ".taco-ui.ui.image.tag" "$VALUES_FILE"
+          yq eval ".taco-statesman.taco.image.tag" "$VALUES_FILE"
+          yq eval ".taco-token-service.tokenService.image.tag" "$VALUES_FILE"
+      
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          STAGING_TAG="${{ steps.tag.outputs.tag }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          COMMIT="${{ github.sha }}"
+          
+          git add opentaco/values-staging.yaml
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          # Create commit message
+          git commit -m "chore(staging): update all services to ${STAGING_TAG}" \
+            -m "Automated update from staging deployment." \
+            -m "" \
+            -m "PR: #${PR_NUMBER}" \
+            -m "Commit: ${COMMIT}" \
+            -m "Staging Tag: ${STAGING_TAG}"
+          
+          git push
+          
+          echo "✅ Successfully updated helm chart values-staging.yaml with ${STAGING_TAG}"
+
+  summary:
+    needs: [build-and-push, update-helm-chart]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment Summary
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          STAGING_TAG="staging-${SHORT_SHA}"
+          
+          echo "## 🚀 Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Staging Tag:** \`${STAGING_TAG}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Built Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend EE | \`ghcr.io/${{ github.repository }}/digger-backend-ee:${STAGING_TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Drift | \`ghcr.io/${{ github.repository }}/drift:${STAGING_TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Projects Refresh | \`ghcr.io/${{ github.repository }}/projects-refresh-service:${STAGING_TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| UI | \`ghcr.io/${{ github.repository }}/taco-ui:${STAGING_TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Taco Statesman | \`ghcr.io/${{ github.repository }}/taco-statesman:${STAGING_TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Taco Token Service | \`ghcr.io/${{ github.repository }}/taco-token-service:${STAGING_TAG}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull Images" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}/digger-backend-ee:${STAGING_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}/drift:${STAGING_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}/projects-refresh-service:${STAGING_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}/taco-ui:${STAGING_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}/taco-statesman:${STAGING_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository }}/taco-token-service:${STAGING_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Helm Chart Updated ✅" >> $GITHUB_STEP_SUMMARY
+          echo "The helm chart \`values-staging.yaml\` has been automatically updated in the [opentaco-helm-charts](https://github.com/diggerhq/opentaco-helm-charts) repository with tag \`${STAGING_TAG}\`." >> $GITHUB_STEP_SUMMARY
+
