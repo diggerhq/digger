@@ -12,6 +12,15 @@
     "dark": "#8101E4"
   },
   "favicon": "/favicon.png",
+  "seo": {
+    "metatags": {
+      "og:image": "/logo/light.png",
+      "og:title": "OpenTaco Documentation",
+      "og:description": "OpenTaco is an all-in-one Toolkit for Terraform",
+      "twitter:card": "summary_large_image",
+      "twitter:image": "/logo/light.png"
+    }
+  },
   "navigation": {
     "anchors": [
       {
@@ -20,10 +29,7 @@
         "groups": [
           {
             "group": "Introduction",
-            "pages": [
-              "readme/introduction",
-              "readme/howitworks"
-            ]
+            "pages": ["readme/introduction", "readme/howitworks"]
           },
           {
             "group": "Getting Started",
@@ -177,9 +183,7 @@
           },
           {
             "group": "Contributing",
-            "pages": [
-              "ce/contributing/setup-dev-environment"
-            ]
+            "pages": ["ce/contributing/setup-dev-environment"]
           },
           {
             "group": "Troubleshooting",
