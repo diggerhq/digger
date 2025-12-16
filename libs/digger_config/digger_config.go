@@ -541,7 +541,7 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 
 	if fileName == "" {
 		slog.Info("no digger config file found, using default empty configuration", "workingDir", workingDir)
-		// Return empty configuration when no config file exists
+		// return empty configuration when no config file exists
 		configYaml = &DiggerConfigYaml{}
 	} else {
 		slog.Debug("reading digger config file", "fileName", fileName)

@@ -2,18 +2,19 @@ package integration
 
 import (
 	"context"
-	"github.com/diggerhq/digger/libs/ci/generic"
-	"github.com/diggerhq/digger/libs/execution"
-	"github.com/diggerhq/digger/libs/locking"
-	"github.com/diggerhq/digger/libs/locking/aws"
-	"github.com/diggerhq/digger/libs/storage"
 	"log"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/diggerhq/digger/libs/comment_utils/summary"
+	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/diggerhq/digger/libs/execution"
+	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/locking/aws"
+	"github.com/diggerhq/digger/libs/storage"
+
+	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/github/models"
@@ -238,9 +239,13 @@ var githubContextNewPullRequestMinJson = `{
     "event": {
       "action": "opened",
       "number": 11,
-	  "repository": {
-		"default_branch": "main"
-	  },
+     "repository": {
+    "default_branch": "main",
+    "full_name": "diggerhq/digger_demo"
+     },
+     "sender": {
+    "login": "test-user"
+     },
       "pull_request": {
         "active_lock_reason": null,
 		"number": 11,

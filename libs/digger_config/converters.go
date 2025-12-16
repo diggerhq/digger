@@ -158,11 +158,13 @@ func copyStage(stage *StageYaml) *Stage {
 
 func copyWorkflowConfiguration(config *WorkflowConfigurationYaml) *WorkflowConfiguration {
 	result := WorkflowConfiguration{}
-	result.OnPullRequestClosed = config.OnPullRequestClosed
-	result.OnPullRequestPushed = config.OnPullRequestPushed
-	result.OnCommitToDefault = config.OnCommitToDefault
-	result.OnPullRequestConvertedToDraft = config.OnPullRequestConvertedToDraft
-	result.SkipMergeCheck = config.SkipMergeCheck
+	if config != nil {
+		result.OnPullRequestClosed = config.OnPullRequestClosed
+		result.OnPullRequestPushed = config.OnPullRequestPushed
+		result.OnCommitToDefault = config.OnCommitToDefault
+		result.OnPullRequestConvertedToDraft = config.OnPullRequestConvertedToDraft
+		result.SkipMergeCheck = config.SkipMergeCheck
+	}
 	return &result
 }
 
@@ -193,13 +195,13 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 func copyReporterConfig(r *ReportingConfigYaml) ReporterConfig {
 	if r == nil {
 		return ReporterConfig{
-			AiSummary: false,
+			AiSummary:       false,
 			CommentsEnabled: true,
 		}
 	}
 
 	return ReporterConfig{
-		AiSummary: r.AiSummary,
+		AiSummary:       r.AiSummary,
 		CommentsEnabled: r.CommentsEnabled,
 	}
 
