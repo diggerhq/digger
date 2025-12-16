@@ -540,8 +540,9 @@ func LoadDiggerConfigYaml(workingDir string, generateProjects bool, changedFiles
 	}
 
 	if fileName == "" {
-		slog.Error("digger config file not found", "workingDir", workingDir)
-		return nil, nil, fmt.Errorf("could not find digger.yml or digger.yaml in root of repository")
+		slog.Info("no digger config file found, using default empty configuration", "workingDir", workingDir)
+		// Return empty configuration when no config file exists
+		configYaml = &DiggerConfigYaml{}
 	} else {
 		slog.Debug("reading digger config file", "fileName", fileName)
 		data, err := os.ReadFile(fileName)
