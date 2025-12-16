@@ -6,11 +6,16 @@ import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
 import { createGzip } from 'node:zlib';
 import serverHandler from './dist/server/server.js';
+import { extractUserInfoFromRequest, logRequestInit, logResponse } from './request-logging.js';
+
+// Verify logging functions are loaded
+console.log('✅ Request logging module loaded');
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT = process.env.PORT || 3030;
 const HOST = process.env.HOST || '0.0.0.0';
 const REQUEST_TIMEOUT = 60 * 1000; // 60s timeout for requests
+const COMMIT_SHA = process.env.COMMIT_SHA || 'unknown';
 
 // Configure global fetch with connection pooling for much better performance
 // Without this, every fetch creates a new TCP connection (DNS + handshake overhead)
@@ -68,9 +73,45 @@ const server = createServer(async (req, res) => {
   const requestId = req.headers['x-request-id'] || `ssr-${Math.random().toString(36).slice(2, 10)}`;
   const requestStart = Date.now();
   
+  // Parse URL early for logging
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+  const method = req.method;
+  
+  // Debug: Log that request handler is being called
+  console.log(`[DEBUG] Request received: ${method} ${pathname} [${requestId}]`);
+  
+  // Extract user ID and org ID and log request initialization
+  // Always log, even if extraction fails
+  let userId = 'anonymous';
+  let orgId = 'anonymous';
+  try {
+    const userInfo = await extractUserInfoFromRequest(req);
+    userId = userInfo.userId;
+    orgId = userInfo.orgId;
+  } catch (error) {
+    console.error(`User info extraction error [${requestId}]:`, error);
+  }
+  
+  // Always log request initialization
+  try {
+    logRequestInit(method, pathname, requestId, userId, orgId);
+  } catch (error) {
+    console.error(`Request logging error [${requestId}]:`, error);
+    // Fallback to direct console.log if logging function fails
+    console.log(JSON.stringify({
+      event: 'request_initialized',
+      method,
+      path: pathname,
+      requestId,
+      userId,
+      orgId,
+    }));
+  }
+  
   // Set request timeout
   req.setTimeout(REQUEST_TIMEOUT, () => {
-    console.error(`⏱️  Request timeout (${REQUEST_TIMEOUT}ms): ${req.method} ${req.url} [${requestId}]`);
+    console.error(`⏱️  Request timeout (${REQUEST_TIMEOUT}ms): ${req.method} ${req.url} [${requestId}] [commitSha: ${COMMIT_SHA}]`);
     if (!res.headersSent) {
       res.writeHead(408, { 'Content-Type': 'text/plain' });
       res.end('Request Timeout');
@@ -78,8 +119,6 @@ const server = createServer(async (req, res) => {
   });
   
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const pathname = url.pathname;
 
     // Try to serve static files from dist/client first
     // Serve: /assets/*, *.js, *.css, *.json, images, fonts, favicons
@@ -99,6 +138,13 @@ const server = createServer(async (req, res) => {
           'Cache-Control': 'public, max-age=31536000, immutable',
         });
         res.end(content);
+        // Log response for static files
+        try {
+          const latency = Date.now() - requestStart;
+          logResponse(method, pathname, requestId, latency, 200, COMMIT_SHA);
+        } catch (err) {
+          console.error(`Response logging error [${requestId}]:`, err);
+        }
         return;
       } catch (err) {
         // File not found, fall through to SSR handler
@@ -132,9 +178,9 @@ const server = createServer(async (req, res) => {
     
     // Log slow SSR requests
     if (ssrTime > 2000) {
-      console.log(`🔥 VERY SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      console.debug(`🔥 VERY SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}] [commitSha: ${COMMIT_SHA}]`);
     } else if (ssrTime > 1000) {
-      console.log(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}]`);
+      console.debug(`⚠️  SLOW SSR: ${req.method} ${pathname} took ${ssrTime}ms [${requestId}] [commitSha: ${COMMIT_SHA}]`);
     }
 
     // Convert Web Standard Response to Node.js response
@@ -221,12 +267,27 @@ const server = createServer(async (req, res) => {
     } else {
       res.end();
     }
+    
+    // Log response after sending
+    try {
+      const latency = Date.now() - requestStart;
+      logResponse(method, pathname, requestId, latency, res.statusCode, COMMIT_SHA);
+    } catch (err) {
+      console.error(`Response logging error [${requestId}]:`, err);
+    }
   } catch (error) {
     console.error(`Server error [${requestId}]:`, error);
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'text/plain');
       res.end('Internal Server Error');
+    }
+    // Log error response
+    try {
+      const latency = Date.now() - requestStart;
+      logResponse(method, pathname, requestId, latency, res.statusCode || 500, COMMIT_SHA);
+    } catch (err) {
+      console.error(`Error response logging error [${requestId}]:`, err);
     }
   }
 });

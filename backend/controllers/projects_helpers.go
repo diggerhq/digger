@@ -210,9 +210,12 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 		return fmt.Errorf("error generating realtime comment message: %v", err)
 	}
 
-	summary, err := GenerateChecksSummaryForBatch(batch)
-	if err != nil {
-		slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+	var summary = ""
+	if batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed {
+		summary, err = GenerateChecksSummaryForBatch(batch)
+		if err != nil {
+			slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+		}
 	}
 
 	if isPlanBatch {
@@ -397,10 +400,14 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 		"```\n"
 
 
-	summary, err := GenerateChecksSummaryForJob(job)
-	if err != nil {
-		slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+	var summary = ""
+	if job.Status == orchestrator_scheduler.DiggerJobSucceeded || job.Status == orchestrator_scheduler.DiggerJobFailed {
+		summary, err = GenerateChecksSummaryForJob(job)
+		if err != nil {
+			slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+		}
 	}
+
 
 	slog.Debug("Updating PR status for job", "jobId", job.DiggerJobID, "status", status, "conclusion", conclusion)
 	if isPlan {

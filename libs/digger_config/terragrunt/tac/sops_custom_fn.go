@@ -45,3 +45,8 @@ func NoopSopsDecryptFile(params []string, trackInclude *config.TrackInclude, ter
 	terragruntOptions.Logger.Debugf("SOPS decryption function has been replaced with a no-op version. This is to ensure that generation of projects is successful.")
 	return "{}", nil
 }
+
+func NoopGetEnv(params []string, trackInclude *config.TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error) {
+	terragruntOptions.Logger.Debugf("get_env function has been replaced with a no-op version. This is to ensure that generation of projects is successful.")
+	return "", nil
+}

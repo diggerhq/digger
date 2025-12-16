@@ -2,21 +2,21 @@
 title: UI local setup
 ---
 
-The UI is a TanStack Start app that authenticates via WorkOS and calls both backend and statesman.
+The UI is a TanStack Start app that authenticates via WorkOS and calls both backend and statesman. It also acts as the public gateway when tunneling (e.g., ngrok): expose the UI port, and point external callbacks to the UI domain.
 
 ## Quick start
 
 1. Copy `.env.example` to `.env.local` in `ui/` and fill the essentials:
    ```bash
    # URLs
-   PUBLIC_URL=http://localhost:3030
-   ALLOWED_HOSTS=localhost,127.0.0.1
+   PUBLIC_URL=http://localhost:3030                            # replace host with your public tunnel when exposing UI
+   ALLOWED_HOSTS=localhost,127.0.0.1                           # include your public tunnel host here
 
    # WorkOS (User Management)
    WORKOS_CLIENT_ID=<your_workos_client_id>
    WORKOS_API_KEY=<your_workos_api_key>
    WORKOS_COOKIE_PASSWORD=<32+ random chars>
-   WORKOS_REDIRECT_URI=http://localhost:3030/api/auth/callback
+   WORKOS_REDIRECT_URI=http://localhost:3030/api/auth/callback # replace host with your public tunnel; must match WorkOS config
    WORKOS_WEBHOOK_SECRET=<if using webhooks locally via tunnel>
 
    # Backend
@@ -40,7 +40,7 @@ The UI is a TanStack Start app that authenticates via WorkOS and calls both back
    pnpm install   # or npm install
    pnpm dev --host --port 3030
    ```
-   Open `http://localhost:3030` and sign in with a WorkOS user that belongs to at least one org.
+   Open `http://localhost:3030` (or your tunnel URL) and sign in with a WorkOS user that belongs to at least one org. Ensure the WorkOS redirect URI matches the public URL you configured.
 3. Ensure backend + statesman were started and the same secrets are in place (see [Backend](./backend) and [Statesman](./statesman)).
 4. Sync the WorkOS org/user to both services using the curl snippets on those pages (required for repos/units to load).
 
@@ -49,3 +49,4 @@ The UI is a TanStack Start app that authenticates via WorkOS and calls both back
 - **NotFound/Forbidden listing units**: statesman org/user not synced or webhook secret mismatch.
 - **404 on repos or GitHub connect**: backend missing org/user, `DIGGER_ENABLE_API_ENDPOINTS` not set, or `ORCHESTRATOR_GITHUB_APP_URL` points to a non-existent path.
 - **WorkOS login succeeds but dashboard redirects to / or errors**: the signed-in user has no WorkOS org membership; add to an org and resync to services.
+- **WorkOS redirect blocked**: public URL not whitelisted; add your tunnel host to `ALLOWED_HOSTS` and to the WorkOS redirect URI list.

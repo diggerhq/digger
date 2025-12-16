@@ -6,11 +6,18 @@ export const Route = createFileRoute('/_orchestrator/repos/$namespace/projects/$
     handlers: {
       POST: async ({ request, params }) => {
         try {
-          const body = await request.json();
+
+          // Clone headers and strip problematic ones
+          const headers = new Headers(request.headers);
+          headers.delete('content-length');
+          headers.delete('transfer-encoding');
+
           const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/repos/${params.namespace}/projects/${params.projectName}/jobs/${params.jobId}/set-status`, {
             method: 'POST',
-            headers: request.headers,
-            body: JSON.stringify(body)
+            headers: headers,
+            body: request.body,
+            // @ts-expect-error: 'duplex' is required by Node/undici for streaming bodies
+            duplex: 'half',            
           });
 
           return response;

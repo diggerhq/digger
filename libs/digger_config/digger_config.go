@@ -18,6 +18,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ErrDiggerConfigNotFound is returned when neither digger.yml nor digger.yaml exists in the repository
+var ErrDiggerConfigNotFound = errors.New("digger config file not found")
+
 type DirWalker interface {
 	GetDirs(workingDir string, config DiggerConfigYaml) ([]string, error)
 }
@@ -39,7 +42,7 @@ func ReadDiggerYmlFileContents(dir string) (string, error) {
 			slog.Error("could not read digger config file",
 				"error", err,
 				"dir", dir)
-			return "", fmt.Errorf("could not read the file both digger.yml and digger.yaml are missing: %v", err)
+			return "", fmt.Errorf("%w: both digger.yml and digger.yaml are missing: %v", ErrDiggerConfigNotFound, err)
 		}
 	}
 	diggerYmlStr := string(diggerYmlBytes)

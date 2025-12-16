@@ -408,6 +408,59 @@ func GetGithubHostname() string {
 	return githubHostname
 }
 
+// IsAllReposInstallation checks if the GitHub App installation is configured to access all repositories
+// (as opposed to a selected subset). Returns true if installation is for "all" repos.
+// Note: This requires app-level JWT authentication, not installation token authentication.
+func IsAllReposInstallation(appId int64, installationId int64) (bool, error) {
+	githubAppPrivateKey := ""
+	githubAppPrivateKeyB64 := os.Getenv("GITHUB_APP_PRIVATE_KEY_BASE64")
+	if githubAppPrivateKeyB64 != "" {
+		decodedBytes, err := base64.StdEncoding.DecodeString(githubAppPrivateKeyB64)
+		if err != nil {
+			slog.Error("Failed to decode GITHUB_APP_PRIVATE_KEY_BASE64", "error", err)
+			return false, fmt.Errorf("error decoding private key: %v", err)
+		}
+		githubAppPrivateKey = string(decodedBytes)
+	} else {
+		githubAppPrivateKey = os.Getenv("GITHUB_APP_PRIVATE_KEY")
+		if githubAppPrivateKey == "" {
+			return false, fmt.Errorf("missing GitHub app private key")
+		}
+	}
+
+	// Use app-level transport (JWT) instead of installation token
+	atr, err := ghinstallation.NewAppsTransport(net.DefaultTransport, appId, []byte(githubAppPrivateKey))
+	if err != nil {
+		slog.Error("Failed to create GitHub app transport",
+			"appId", appId,
+			"error", err,
+		)
+		return false, fmt.Errorf("error creating app transport: %v", err)
+	}
+
+	client := github.NewClient(&net.Client{Transport: atr})
+
+	installation, _, err := client.Apps.GetInstallation(context.Background(), installationId)
+	if err != nil {
+		slog.Error("Failed to get GitHub installation details",
+			"installationId", installationId,
+			"error", err,
+		)
+		return false, fmt.Errorf("error getting installation details: %v", err)
+	}
+
+	repositorySelection := installation.GetRepositorySelection()
+	isAllRepos := repositorySelection == "all"
+
+	slog.Debug("Checked installation repository selection",
+		"installationId", installationId,
+		"repositorySelection", repositorySelection,
+		"isAllRepos", isAllRepos,
+	)
+
+	return isAllRepos, nil
+}
+
 func GetWorkflowIdAndUrlFromDiggerJobId(client *github.Client, repoOwner string, repoName string, diggerJobID string) (int64, string, error) {
 	slog.Debug("Looking for workflow for job",
 		"diggerJobId", diggerJobID,

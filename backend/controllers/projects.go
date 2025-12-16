@@ -1026,24 +1026,27 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting refreshed batch"})
 		return
 	}
-	//err = UpdateCheckStatusForBatch(d.GithubClientProvider, refreshedBatch)
 	slog.Debug("Attempting to update GitHub Check Run for batch",
 		"batchId", batch.ID,
 		"checkRunId", refreshedBatch.CheckRunId,
 		"vcs", refreshedBatch.VCS,
 		"jobId", jobId)
-	err = UpdateCheckRunForBatch(d.GithubClientProvider, refreshedBatch)
-	if err != nil {
-		slog.Warn("DIAGNOSTIC #7: Failed to update GitHub Check Run for batch (non-fatal)",
-			"batchId", batch.ID,
-			"checkRunId", refreshedBatch.CheckRunId,
-			"vcs", refreshedBatch.VCS,
-			"error", err,
-			"errorType", fmt.Sprintf("%T", err))
-				// Continue processing - Check Run update is best-effort, not critical
-	} else {
-		slog.Debug("Successfully updated GitHub Check Run for batch", "batchId", batch.ID)
-	}
+
+	// performing this in a goroutine to avoid huge latencies (added by ai summary gen)
+	go func() {
+		err = UpdateCheckRunForBatch(d.GithubClientProvider, refreshedBatch)
+		if err != nil {
+			slog.Warn("DIAGNOSTIC #7: Failed to update GitHub Check Run for batch (non-fatal)",
+				"batchId", batch.ID,
+				"checkRunId", refreshedBatch.CheckRunId,
+				"vcs", refreshedBatch.VCS,
+				"error", err,
+				"errorType", fmt.Sprintf("%T", err))
+			// Continue processing - Check Run update is best-effort, not critical
+		} else {
+			slog.Debug("Successfully updated GitHub Check Run for batch", "batchId", batch.ID)
+		}
+	}()
 
 	slog.Debug("Fetching refreshed job", "jobId", jobId, "batchId", batch.ID)
 	refreshedJob, err := models.DB.GetDiggerJob(jobId)
@@ -1056,25 +1059,29 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting refreshed job"})
 		return
 	}
-	//err = UpdateCommitStatusForJob(d.GithubClientProvider, refreshedJob)
 	slog.Debug("Attempting to update GitHub Check Run for job",
 		"jobId", jobId,
 		"checkRunId", refreshedJob.CheckRunId,
 		"vcs", refreshedJob.Batch.VCS,
 		"batchId", batch.ID)
-	err = UpdateCheckRunForJob(d.GithubClientProvider, refreshedJob)
-	if err != nil {
-		slog.Warn("DIAGNOSTIC #9: Failed to update GitHub Check Run for job (non-fatal)",
-			"jobId", jobId,
-			"checkRunId", refreshedJob.CheckRunId,
-			"batchId", batch.ID,
-			"vcs", refreshedJob.Batch.VCS,
-			"error", err,
-			"errorType", fmt.Sprintf("%T", err))
-		// Continue processing - Check Run update is best-effort, not critical
-	} else {
-		slog.Debug("Successfully updated GitHub Check Run for job", "jobId", jobId)
-	}
+
+	// performing this in a goroutine to avoid huge latencies (added by ai summary gen)
+	go func() {
+		err = UpdateCheckRunForJob(d.GithubClientProvider, refreshedJob)
+		if err != nil {
+			slog.Warn("DIAGNOSTIC #9: Failed to update GitHub Check Run for job (non-fatal)",
+				"jobId", jobId,
+				"checkRunId", refreshedJob.CheckRunId,
+				"batchId", batch.ID,
+				"vcs", refreshedJob.Batch.VCS,
+				"error", err,
+				"errorType", fmt.Sprintf("%T", err))
+			// Continue processing - Check Run update is best-effort, not critical
+		} else {
+			slog.Debug("Successfully updated GitHub Check Run for job", "jobId", jobId)
+		}
+	}()
+
 
 	if batch.ReportTerraformOutputs {
 		slog.Info("Generating Terraform outputs summary", "batchId", batch.ID)

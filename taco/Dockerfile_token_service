@@ -7,6 +7,7 @@ WORKDIR /go/src/github.com/diggerhq/digger/taco
 
 # Copy go.mod/go.sum first for better layer caching
 COPY cmd/token_service/go.mod cmd/token_service/go.sum ./cmd/token_service/
+COPY internal/go.mod internal/go.sum ./internal/
 RUN cd cmd/token_service && go mod download
 
 # Copy source code

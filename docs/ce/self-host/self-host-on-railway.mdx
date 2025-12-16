@@ -1,0 +1,49 @@
+---
+title: "Self Host on Railway"
+---
+
+This guide will show you how to set up digger on [Railway](https://railway.com).
+
+This is a specific case of [Deploy as docker image](./deploy-docker).
+
+![](/images/self-host/railway/canvas.png)
+
+1. Use the following template. It will create the Digger + PostgreSQL services and prepopulate many of the necessary environment variables.
+
+    [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/VByV1N?referralCode=P06La2)
+
+    📢 DISCLOSURE: This template was created by [@sidpalas](https://github.com/sidpalas). He will recieve a (small) payment if you use it from the [Railway template kickback program](https://railway.com/open-source-kickback).
+
+2. Set your GitHub organization name (or username, if the repo you plan to use belongs to an individual user).
+
+    ![](/images/self-host/railway/set-github-org.png)
+
+3. Deploy.
+
+4. Navigate to the pubilc domain for the Digger service (`Settings > Public Networking`).
+    
+    ![](/images/self-host/railway/digger-live.png)
+
+5. Create the GitHub App
+
+    Navigate to `your_digger_hostname/github/setup` and sign in with the `HTTP_BASIC_AUTH_USERNAME` and `HTTP_BASIC_AUTH_PASSWORD` values. 
+  
+    These are geneated automatically by Railway when performing the initial deployment and can be retrieved from the `Variables` tab for the Digger service.
+
+    ![](/images/self-host/railway/github-app-setup.png)
+
+6. After creating the GitHub app, copy the provided values into their corresponding environment variables (overwriting the placeholder `REPLACE_ME_AFTER_GH_APP_CREATION` values):
+
+    ```bash
+    GITHUB_APP_ID=
+    GITHUB_APP_CLIENT_ID=
+    GITHUB_APP_CLIENT_SECRET=
+    GITHUB_APP_PRIVATE_KEY_BASE64=
+    GITHUB_WEBHOOK_SECRET=
+    ```
+
+    💡 **Tip:** When copying base64 values (e.g. the app key file), double clicking the text often does NOT select any trailing `=` characters. Make sure to copy them too!
+
+7. Redeploy.
+
+8. Create a PR to verify Digger is working properly.

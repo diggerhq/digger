@@ -136,7 +136,28 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			)
 			return nil
 		}
-		
+
+		// Check if the error is due to missing digger config and the app is installed for all repos
+		if errors.Is(err, digger_config.ErrDiggerConfigNotFound) {
+			slog.Debug("Digger config not found, checking if app is installed for all repos",
+				"prNumber", prNumber,
+				"repoFullName", repoFullName,
+			)
+			isAllRepos, checkErr := utils.IsAllReposInstallation(appId, installationId)
+			if checkErr != nil {
+				slog.Warn("Failed to check if installation is for all repos",
+					"error", checkErr,
+				)
+			} else if isAllRepos {
+				slog.Info("Digger config not found but GitHub App is installed for all repos, skipping error comment",
+					"prNumber", prNumber,
+					"repoFullName", repoFullName,
+				)
+				return nil
+			}
+		}
+
+
 		slog.Error("Error getting Digger config for PR",
 			"prNumber", prNumber,
 			"repoFullName", repoFullName,

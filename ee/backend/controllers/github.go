@@ -62,6 +62,7 @@ func GithubAppConnections(c *gin.Context) {
 			"check_run",
 			"create",
 			"delete",
+			"installation_repositories",
 			"issue_comment",
 			"issues",
 			"status",

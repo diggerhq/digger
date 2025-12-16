@@ -52,6 +52,7 @@ require (
 
 require (
 	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
+	github.com/sethvargo/go-retry v0.3.0
 	gorm.io/datatypes v1.2.7
 )
 

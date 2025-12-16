@@ -2,6 +2,9 @@ package tac
 
 import (
 	"fmt"
+	"log/slog"
+	"strings"
+
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -11,8 +14,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
-	"log/slog"
-	"strings"
 )
 
 const (
@@ -184,6 +185,7 @@ func attemptEvaluateLocals(
 	}
 
 	evalCtx.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, contextExtensions.TrackInclude, terragruntOptions)
+	evalCtx.Functions[config.FuncNameGetEnv] = wrapStringSliceToStringAsFuncImpl(NoopGetEnv, contextExtensions.TrackInclude, terragruntOptions)
 
 	// Track the locals that were evaluated for logging purposes
 	newlyEvaluatedLocalNames := []string{}

@@ -22,8 +22,7 @@
             "group": "Introduction",
             "pages": [
               "readme/introduction",
-              "readme/howitworks",
-              "readme/feedback"
+              "readme/howitworks"
             ]
           },
           {
@@ -129,7 +128,8 @@
               "ce/self-host/deploy-docker-compose",
               "ce/self-host/deploy-binary",
               "ce/self-host/deploy-helm",
-              "ce/self-host/self-host-on-azure"
+              "ce/self-host/self-host-on-azure",
+              "ce/self-host/self-host-on-railway"
             ]
           },
           {
@@ -139,7 +139,6 @@
               "ce/reference/action-inputs",
               "ce/reference/api",
               "ce/reference/terraform.lock",
-              "ce/securing-digger/spec-signing",
               "ce/reference/comment-args"
             ]
           },
@@ -172,7 +171,8 @@
               "ce/local-development/overview",
               "ce/local-development/backend",
               "ce/local-development/statesman",
-              "ce/local-development/ui"
+              "ce/local-development/ui",
+              "ce/local-development/github-app"
             ]
           },
           {

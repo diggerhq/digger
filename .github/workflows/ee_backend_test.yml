@@ -22,9 +22,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Test that the docker image still builds successfully
-        run: |
-          export COMMIT_SHA=$(git rev-parse --short HEAD)
-          docker build -t testingbuild:latest --build-arg COMMIT_SHA=${COMMIT_SHA} . -f Dockerfile_backend
+        uses: depot/setup-action@v1
+      
+      - name: Build Docker image with Depot
+        uses: depot/build-push-action@v1
+        with:
+          project: kcld4zgwzx
+          token: ${{ secrets.DEPOT_TOKEN }}
+          context: .
+          file: ./Dockerfile_backend_ee
+          push: false
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
 
       - name: Deps
         run: go get -v ./...

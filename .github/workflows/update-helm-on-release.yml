@@ -32,8 +32,6 @@ jobs:
             SERVICE="backend-ee"
             VERSION="${TAG_NAME##backend-ee/}"
             YAML_PATH=".taco-orchestrator.digger.image.tag"
-            echo "Backend EE detected - skipping helm update (disabled for manual control)"
-            exit 0
           elif [[ $TAG_NAME == drift/v* ]]; then
             SERVICE="drift"
             VERSION="${TAG_NAME##drift/}"

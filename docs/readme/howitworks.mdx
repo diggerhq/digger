@@ -2,19 +2,39 @@
 title: "How it works"
 ---
 
-Digger has 2 main components:
+Before OpenTaco the project was called digger and it consisted of purely a piece for PR automation. This engine was responsible for
+integrating with github actions and running CI jobs with terraform in response to certain events. We call this the PR Automation or "orchestrator" service.
 
-- A CLI agent that runs in your CI and interacts with Terraform CLI
-- An orchestrator backend that responds to events from GitHub and triggers CI jobs
+The same engine now became part of the OpenTaco suite and continues to be improved.
 
-When a PR is opened, Digger starts a CI job that runs `terraform plan` and posts plan output as comment. You can then comment "digger apply" to run `terraform apply`. Digger can also be configured to run apply only after the PR has been merged; to check plan output against OPA policies; to run drift detection on schedule; and so on.
+The OpenTaco architecture consists of these components:
 
-The orchestrator backend does not have access to your cloud account, or terraform states, or plan output, or tfvars, or any other sensitive data. It just triggers CI jobs; your sensitive data never leaves the high-trust environment of your CI. For this reason, there is little reason to self-host the backend of Digger (although you still can). Much easier to use the managed cloud version of the orchestrator.
+- Statesman: Offers states management and remote runs capabilities
+- Drift: All drift detection capabilities including detection and remediation
+- Token: A token validation service (internal)
+- Orchestrator (formerly digger): Responsible for starting and stopping CI Jobs, currently responsible for all of PR automation.
+- UI: the UI layer, also acts as a gateway proxy to the other services
 
-<Note>
-Digger can also run as a standalone GitHub Action without a backend. In this case:
-- comments and status checks will be updated with a delay
-- all applies will run sequentially in one job without concurrency
-- clashing applies from other jobs will fail as they cannot be queued
-- buckets / tables for PR-level locks need to be configured manually in your cloud account
-</Note>
+```mermaid
+flowchart LR
+    subgraph Clients
+        dev[Developer / User]
+    end
+
+    subgraph OpenTaco
+        ui[UI<br/>• Gateway proxy<br/>• Token validation]
+
+        subgraph Backend Services
+            orch[Orchestrator<br/>• Start/stop CI jobs<br/>• PR automation]
+            states[Statesman<br/>• State mgmt<br/>• Remote runs]
+            drift[Drift<br/>• Drift detection<br/>• Remediation]
+        end
+    end
+
+    dev -->|HTTP / Browser| ui
+
+    %% Forward validated requests internally
+    ui --> orch
+    ui --> states
+    ui --> drift
+```

@@ -511,6 +511,40 @@ func (db *Database) GithubRepoRemoved(installationId int64, appId int64, repoFul
 	return item, nil
 }
 
+// SoftDeleteRepoAndProjects soft deletes a repo and all its projects for the given org and repo full name.
+func (db *Database) SoftDeleteRepoAndProjects(orgId uint, repoFullName string) error {
+	return db.GormDB.Transaction(func(tx *gorm.DB) error {
+		// Soft-delete projects first
+		if err := tx.Where("organisation_id = ? AND repo_full_name = ?", orgId, repoFullName).Delete(&Project{}).Error; err != nil {
+			slog.Error("failed to soft delete projects for repo", "orgId", orgId, "repoFullName", repoFullName, "error", err)
+			return err
+		}
+		// Soft-delete repo
+		if err := tx.Where("organisation_id = ? AND repo_full_name = ?", orgId, repoFullName).Delete(&Repo{}).Error; err != nil {
+			slog.Error("failed to soft delete repo", "orgId", orgId, "repoFullName", repoFullName, "error", err)
+			return err
+		}
+		return nil
+	})
+}
+
+// SoftDeleteReposAndProjectsByInstallation soft deletes all repos and projects for a specific installation in an org.
+func (db *Database) SoftDeleteReposAndProjectsByInstallation(orgId uint, installationId int64) error {
+	var repos []Repo
+	if err := db.GormDB.Where("organisation_id = ? AND github_app_installation_id = ?", orgId, installationId).Find(&repos).Error; err != nil {
+		slog.Error("failed to fetch repos for soft delete", "orgId", orgId, "installationId", installationId, "error", err)
+		return err
+	}
+
+	for _, repo := range repos {
+		if err := db.SoftDeleteRepoAndProjects(orgId, repo.RepoFullName); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (db *Database) GetGithubAppInstallationByOrgAndRepo(orgId any, repo string, status GithubAppInstallStatus) (*GithubAppInstallation, error) {
 	link, err := db.GetGithubInstallationLinkForOrg(orgId)
 	if err != nil {

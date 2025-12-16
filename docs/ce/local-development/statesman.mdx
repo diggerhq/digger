@@ -4,6 +4,22 @@ title: Statesman local setup
 
 Statesman serves state storage + Terraform Cloud-compatible APIs. The UI uses its internal endpoints, so enable webhook auth and sync your org/user.
 
+## First-time setup (SQLite migrations)
+
+If using SQLite with persistence, run migrations before starting:
+
+```bash
+cd taco
+
+# If you get checksum errors, regenerate the hash first:
+atlas migrate hash --dir file://migrations/sqlite
+
+# Apply migrations (adjust path to match your OPENTACO_SQLITE_DB_PATH)
+atlas migrate apply --dir file://migrations/sqlite --url "sqlite://cmd/statesman/data/taco.db"
+```
+
+If you don't have Atlas installed: `make atlas-install`
+
 ## Quick start
 
 1. Set env vars:
@@ -23,6 +39,15 @@ Statesman serves state storage + Terraform Cloud-compatible APIs. The UI uses it
 ## Sync org and user (required for UI)
 
 Statesman resolves orgs by `external_org_id` (your WorkOS org id). If it cannot resolve, `/internal/api/units` will 500.
+
+A helper script is available at `taco/cmd/statesman/sync-org.sh` - edit the values before running:
+
+```bash
+chmod +x taco/cmd/statesman/sync-org.sh
+./taco/cmd/statesman/sync-org.sh
+```
+
+Or run manually:
 
 ```bash
 SECRET=$OPENTACO_ENABLE_INTERNAL_ENDPOINTS
@@ -49,6 +74,8 @@ curl -s -X POST http://localhost:8080/internal/api/users \
 
 ## Troubleshooting
 
+- **"no such table: organizations"**: Run migrations first (see First-time setup above).
+- **Atlas checksum mismatch**: Run `atlas migrate hash --dir file://migrations/sqlite` then retry apply.
 - **403**: webhook secret mismatch (`OPENTACO_ENABLE_INTERNAL_ENDPOINTS` vs UI `STATESMAN_BACKEND_WEBHOOK_SECRET`).
-- **404/500 resolving org**: org not synced; rerun the `orgs/sync` call above.
+- **404/500 resolving org**: org not synced; rerun the sync script or `orgs/sync` call above.
 - **SQLite quirks**: defaults to SQLite in-process; no config needed for local. For Postgres/MySQL, set `TACO_QUERY_BACKEND` and related envs (see `docs/ce/state-management/query-backend`).
