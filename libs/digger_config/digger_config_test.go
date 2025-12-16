@@ -99,8 +99,27 @@ func TestNoDiggerYaml(t *testing.T) {
 	defer deleteFile()
 
 	os.Chdir(tempDir)
-	_, _, _, _, err := LoadDiggerConfig("./", true, nil, nil)
-	assert.Error(t, err, "expected error since digger.yml and digger.yaml is missing")
+	config, configYaml, _, _, err := LoadDiggerConfig("./", true, nil, nil)
+	assert.NoError(t, err, "should handle missing digger.yml gracefully")
+	assert.NotNil(t, config, "config should not be nil")
+	assert.NotNil(t, configYaml, "configYaml should not be nil")
+	assert.Equal(t, 0, len(config.Projects), "should have no projects when no config file exists")
+}
+
+func TestNoDiggerYamlWithoutProjectGeneration(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	terraformFile := ""
+	deleteFile := createFile(path.Join(tempDir, "main.tf"), terraformFile)
+	defer deleteFile()
+
+	os.Chdir(tempDir)
+	config, configYaml, _, _, err := LoadDiggerConfig("./", false, nil, nil)
+	assert.NoError(t, err, "should handle missing digger.yml gracefully even without project generation")
+	assert.NotNil(t, config, "config should not be nil")
+	assert.NotNil(t, configYaml, "configYaml should not be nil")
+	assert.Equal(t, 0, len(config.Projects), "should have no projects when no config file exists")
 }
 
 func TestDefaultDiggerConfig(t *testing.T) {
