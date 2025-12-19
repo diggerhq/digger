@@ -8,7 +8,6 @@
   <a href="https://docs.digger.dev/">Docs</a>
 </h2>
 
-
 ---
 
 > Heads-up: We’ve rebranded!
@@ -17,14 +16,14 @@
 >
 > TL;DR
 > - Before: Best-in-class Terraform PR automation (a solid improvement upon Atlantis)
-> - After: The only piece of software you need to run Terraform or OpenTofu in production <br/> <br/>
->We'll gradually update all our marketing material to reflect the same!
+> - After: The only piece of software you need to run Terraform or OpenTofu in production. <br/> <br/>
+> We'll gradually update all our marketing material to reflect the same!
 
 ---
 
 CI/CD for Terraform is [tricky](https://itnext.io/pains-in-terraform-collaboration-249a56b4534e). To make life easier, specialized CI systems aka [TACOS](https://itnext.io/spice-up-your-infrastructure-as-code-with-tacos-1a9c179e0783) exist - Terraform Cloud, Spacelift, Atlantis, etc.
 
-But why have 2 CI systems? Why not reuse the async jobs infrastructure with compute, orchestration, logs, etc of your existing CI?
+But why have 2 CI systems? Why not reuse the async jobs infrastructure (compute, orchestration, logs, etc.) of your existing CI?
 
 Digger runs Terraform natively in your CI. This is:
 
@@ -64,50 +63,41 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 - Apply-after-merge workflows
 - Web UI (cloud-based)
 - Read more about differences with Atlantis in our [blog post](https://medium.com/@DiggerHQ/digger-and-atlantis-key-differences-c08029ffe112)
-  ​
 
 ## Compared to Terraform Cloud and other TACOs
 
-- Open source; orchestrator can be self-hosted
+- Open source; the orchestrator can be self-hosted
 - Unlimited runs and unlimited resources-under-management on all tiers
 - Jobs run in your CI, not on a third-party server
 - Supports PR automation (apply before merge)
 - No duplication of the CI/CD stack
-- Secrets not shared with a third party
+- Secrets not shared with a third-party
 
 ## How Digger is Used
 
-- [Production ready Terraform setup powered by Digger CI/CD](https://medium.com/converge-bio/production-ready-terraform-setup-powered-by-digger-ci-cd-47f18803cdd9) - authored by Amit Lavi from [Converge Bio](https://converge-bio.com/)
+- [Production-ready Terraform setup powered by Digger CI/CD](https://medium.com/converge-bio/production-ready-terraform-setup-powered-by-digger-ci-cd-47f18803cdd9) - authored by Amit Lavi from [Converge Bio](https://converge-bio.com/)
 
 - ["I like Digger more than Terraform Cloud and Atlantis"](https://zenn.dev/kiwamizamurai/articles/48594bcad234fb) (Translated from Japanese), includes an [example repo](https://github.com/kiwamizamurai/digger_tutorial)
 
-- How the data ops team at [Brevo](https://www.brevo.com/) uses Digger (a part of this [podcast](https://youtu.be/511RilKsQCY?si=FTPlehy3hVd7zXAM), french)
+- How the data ops team at [Brevo](https://www.brevo.com/) uses Digger (a part of this [podcast](https://youtu.be/511RilKsQCY?si=FTPlehy3hVd7zXAM), French)
 
 - ["Use Digger to run Terraform in a different GCP project for each environment"](https://qiita.com/Takayoshi_Makabe/items/d0206cc5c356023c0561) (Japanese)
 
 - ["Automatically merging pull requests after terraform apply with Digger"](https://kakakakakku.hatenablog.com/entry/2025/03/10/143453) (Japanese)
   
-
-
-
-
-
-
-
-
 ## Contributing
 
 We love contributions. Check out our [contributing guide](CONTRIBUTING.md) to get started.
 
-Please pick an issue that already exists if you’re interested in contributing, otherwise, feel free to create an issue and triage with the maintainers before creating a PR.
+Please pick an existing issue if you’re interested in contributing; otherwise, feel free to create an issue and triage it with the maintainers before creating a PR.
 
 Not sure where to get started? You can:
 
-- Join our <a href="https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q">Slack</a>, and ask us any questions there.
+- Join our [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q), and ask us any questions there.
 
 ## Telemetry
 
-Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for detail. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
+Digger collects anonymized telemetry. See [usage.go](https://github.com/diggerhq/digger/blob/develop/cli/pkg/usage/usage.go) for details. You can disable telemetry collection either by setting `telemetry: false` in digger.yml, or by setting the `TELEMETRY` env variable to `false`.
 
 ## Running migrations
 
@@ -117,7 +107,7 @@ atlas migrate apply --url $DATABASE_URL --allow-dirty
 
 ## Local postgres
 
-Might need disabling ssl if running default docker image
+You might need to disable SSL if running the default docker image.
 
 ```
 export DATABASE_URL=postgres://postgres:root@localhost:5432/postgres?sslmode=disable
@@ -127,5 +117,5 @@ export DATABASE_URL=postgres://postgres:root@localhost:5432/postgres?sslmode=dis
 
 - [Docs](https://docs.digger.dev/) for comprehensive documentation and guides
 - [Slack](https://join.slack.com/t/diggertalk/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q) for discussion with the community and Digger team.
-- [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull request
+- [GitHub](https://github.com/diggerhq/digger) for code, issues, and pull requests
 - [Medium](https://medium.com/@DiggerHQ) for terraform automation and collaboration insights, articles, tutorials, and updates.
