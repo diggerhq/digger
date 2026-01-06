@@ -44,7 +44,6 @@ func (ci CIName) String() string {
 }
 
 func DetectCI() CIName {
-
 	notEmpty := func(key string) bool {
 		return os.Getenv(key) != ""
 	}
@@ -62,7 +61,6 @@ func DetectCI() CIName {
 		return Azure
 	}
 	return None
-
 }
 
 func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
@@ -98,7 +96,6 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 		for _, command := range job.Commands {
 			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, job.RequestedBy, teams, approvals, approvalTeams, []string{})
-
 			if err != nil {
 				return false, false, fmt.Errorf("error checking policy: %v", err)
 			}
@@ -218,7 +215,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	}
 
 	allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, teams, approvals, approvalTeams, []string{})
-
 	if err != nil {
 		return nil, "error checking policy", fmt.Errorf("error checking policy: %v", err)
 	}
@@ -293,6 +289,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	switch command {
 
 	case "digger plan":
+		_, _, err = reporter.Report(job.ProjectName, reporting.AsTitle())
+		if err != nil {
+			slog.Error("Failed to report project name", "error", err)
+		}
+
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "plan")
 		if err != nil {
 			slog.Error("failed to send usage report", "error", err)
@@ -335,7 +336,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 					planReportMessage = planReportMessage + strings.Join(preformattedMessaged, "<br>")
 					_, _, err = reporter.Report(planReportMessage, planPolicyFormatter)
-
 					if err != nil {
 						slog.Error("Failed to report plan.", "error", err)
 					}
@@ -368,6 +368,11 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return &result, plan, nil
 		}
 	case "digger apply":
+		_, _, err = reporter.Report(job.ProjectName, reporting.AsTitle())
+		if err != nil {
+			slog.Error("Failed to report project name", "error", err)
+		}
+
 		appliesPerProject[job.ProjectName] = false
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "apply")
 		if err != nil {
@@ -433,7 +438,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			applySummary, applyPerformed, output, err := diggerExecutor.Apply()
 			if err != nil {
-				//TODO reuse executor error handling
+				// TODO reuse executor error handling
 				slog.Error("Failed to Run digger apply command.", "error", err)
 
 				msg := fmt.Sprintf("Failed to run digger apply command. %v", err)
@@ -456,7 +461,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			slog.Error("Failed to send usage report.", "error", err)
 		}
 		_, err = diggerExecutor.Destroy()
-
 		if err != nil {
 			slog.Error("Failed to Run digger destroy command.", "error", err)
 			msg := fmt.Sprintf("failed to run digger destroy command: %v", err)
@@ -592,7 +596,6 @@ func RunJob(
 
 	for _, command := range job.Commands {
 		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, nil, requestedBy, teams, approvals, approvalTeams, []string{})
-
 		if err != nil {
 			return fmt.Errorf("error checking policy: %v", err)
 		}
@@ -787,7 +790,6 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrate
 
 	if !isMerged {
 		combinedStatus, err := ciService.GetCombinedPullRequestStatus(prNumber)
-
 		if err != nil {
 			log.Fatalf("failed to get combined status, %v", err)
 		}
@@ -797,7 +799,6 @@ func MergePullRequest(ciService ci.PullRequestService, prNumber int, mergeStrate
 		}
 
 		prIsMergeable, err := ciService.IsMergeable(prNumber)
-
 		if err != nil {
 			log.Fatalf("failed to check if PR is mergeable, %v", err)
 		}
