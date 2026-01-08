@@ -43,7 +43,7 @@ Digger runs Terraform natively in your CI. This is:
 ## Getting Started
 
 - [GitHub Actions + AWS](https://docs.digger.dev/getting-started/github-actions-+-aws)
-- [GitHub Actions + GCP](https://docs.digger.dev/getting-started/github-actions-and-gcp)
+- [GitHub Actions + GCP](https://docs.opentaco.dev/ce/gcp/setting-up-gcp-+-gh-actions)
 
 ## How it works
 
