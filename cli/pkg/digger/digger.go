@@ -430,13 +430,28 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 
 			// Check apply policy before apply
+			slog.Debug("Calling CheckApplyPolicy",
+				"organisation", SCMOrganisation,
+				"repository", SCMrepository,
+				"projectName", job.ProjectName,
+				"projectDir", job.ProjectDir,
+				"command", command,
+				"requestedBy", requestedBy)
 			allowedToApplyByApplyPolicy, applyPolicyViolations, err := policyChecker.CheckApplyPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, teams, approvals, approvalTeams, planPolicyViolations)
+			slog.Debug("CheckApplyPolicy result",
+				"allowed", allowedToApplyByApplyPolicy,
+				"violationsCount", len(applyPolicyViolations),
+				"violations", applyPolicyViolations,
+				"error", err)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to run apply policy check before apply. %v", err)
 				slog.Error("Failed to run apply policy check before apply", "error", err)
 				return nil, msg, fmt.Errorf("%s", msg)
 			}
 			if !allowedToApplyByApplyPolicy {
+				slog.Info("Apply policy check denied",
+					"violationsCount", len(applyPolicyViolations),
+					"violations", applyPolicyViolations)
 				var applyPolicyFormatter func(report string) string
 				summary := fmt.Sprintf("Policy violation for <b>%v - %v</b>", job.ProjectName, command)
 				if reporter.SupportsMarkdown() {
@@ -446,12 +461,19 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				}
 
 				applyPolicyReportMessage := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:<br>", requestedBy, command)
+				slog.Debug("Base report message created", "message", applyPolicyReportMessage)
 				if len(applyPolicyViolations) > 0 {
+					slog.Debug("Adding violations to report", "count", len(applyPolicyViolations))
 					preformattedMessages := make([]string, 0)
-					for _, message := range applyPolicyViolations {
-						preformattedMessages = append(preformattedMessages, fmt.Sprintf("    %v", message))
+					for i, message := range applyPolicyViolations {
+						formatted := fmt.Sprintf("    %v", message)
+						preformattedMessages = append(preformattedMessages, formatted)
+						slog.Debug("Formatted violation", "index", i, "original", message, "formatted", formatted)
 					}
 					applyPolicyReportMessage = applyPolicyReportMessage + strings.Join(preformattedMessages, "<br>")
+					slog.Debug("Final report message with violations", "message", applyPolicyReportMessage)
+				} else {
+					slog.Warn("No violations in array despite policy denial")
 				}
 				_, _, err = reporter.Report(applyPolicyReportMessage, applyPolicyFormatter)
 				if err != nil {

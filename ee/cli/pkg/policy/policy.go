@@ -3,6 +3,7 @@ package policy
 import (
 	"github.com/diggerhq/digger/libs/git_utils"
 	"github.com/samber/lo"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -116,10 +117,21 @@ func (p DiggerRepoPolicyProvider) GetPlanPolicy(organisation string, repository 
 }
 
 func (p DiggerRepoPolicyProvider) GetApplyPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
+	slog.Debug("GetApplyPolicy called",
+		"organisation", organisation,
+		"repository", repository,
+		"projectname", projectname,
+		"projectDir", projectDir,
+		"managementRepoUrl", p.ManagementRepoUrl)
 	policy, err := p.getPolicyFileContents(repository, projectname, projectDir, "apply.rego")
 	if err != nil {
+		slog.Error("Error getting apply policy file", "error", err)
 		return policy, err
 	}
+	slog.Debug("GetApplyPolicy result",
+		"policyLength", len(policy),
+		"policyEmpty", policy == "",
+		"policyContent", policy)
 	return policy, nil
 }
 

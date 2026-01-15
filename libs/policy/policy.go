@@ -754,28 +754,51 @@ func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMreposit
 	}
 
 	results, err := query.Eval(ctx, rego.EvalInput(input))
+	slog.Debug("OPA evaluation completed",
+		"resultsCount", len(results),
+		"error", err)
+
 	if len(results) == 0 || len(results[0].Expressions) == 0 {
 		slog.Error("No result found from apply policy evaluation")
 		return false, nil, fmt.Errorf("no result found")
 	}
 
 	expressions := results[0].Expressions
+	slog.Debug("Processing expressions from OPA results",
+		"expressionCount", len(expressions))
 
 	decisionsResult := make([]string, 0)
-	for _, expression := range expressions {
+	for i, expression := range expressions {
+		slog.Debug("Processing expression",
+			"index", i,
+			"valueType", fmt.Sprintf("%T", expression.Value),
+			"value", expression.Value)
+
 		decisions, ok := expression.Value.([]interface{})
 
 		if !ok {
-			slog.Error("Apply policy decision is not a slice of interfaces")
+			slog.Error("Apply policy decision is not a slice of interfaces",
+				"actualType", fmt.Sprintf("%T", expression.Value))
 			return false, nil, fmt.Errorf("decision is not a slice of interfaces")
 		}
+
+		slog.Debug("Decisions array received",
+			"decisionsCount", len(decisions))
+
 		if len(decisions) > 0 {
-			for _, d := range decisions {
-				decisionsResult = append(decisionsResult, d.(string))
-				slog.Info("Apply policy violation", "reason", d)
+			for j, d := range decisions {
+				decisionStr := d.(string)
+				decisionsResult = append(decisionsResult, decisionStr)
+				slog.Info("Apply policy violation found",
+					"index", j,
+					"reason", decisionStr)
 			}
 		}
 	}
+
+	slog.Debug("Final decisions result",
+		"totalViolations", len(decisionsResult),
+		"violations", decisionsResult)
 
 	if len(decisionsResult) > 0 {
 		slog.Info("Apply policy check failed",
