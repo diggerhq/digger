@@ -42,8 +42,8 @@ func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepositor
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string) (bool, error) {
-	return true, nil
+func (p NoOpPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string) (bool, []string, error) {
+	return true, nil, nil
 }
 
 func getAccessPolicyForOrganisation(p *DiggerHttpPolicyProvider) (string, *http.Response, error) {
@@ -707,7 +707,7 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string) (bool, error) {
+func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string) (bool, []string, error) {
 	slog.Debug("Checking apply policy",
 		"organisation", SCMOrganisation,
 		"repository", SCMrepository,
@@ -719,7 +719,7 @@ func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMreposit
 
 	if err != nil {
 		slog.Error("Error fetching apply policy", "error", err)
-		return false, err
+		return false, nil, err
 	}
 
 	input := map[string]interface{}{
@@ -735,7 +735,7 @@ func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMreposit
 
 	if policy == "" {
 		slog.Debug("No apply policy found, allowing action")
-		return true, nil
+		return true, nil, nil
 	}
 
 	ctx := context.Background()
@@ -744,43 +744,53 @@ func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMreposit
 		"policy", policy)
 
 	query, err := rego.New(
-		rego.Query("data.digger.allow"),
+		rego.Query("data.digger.deny"),
 		rego.Module("digger", policy),
 	).PrepareForEval(ctx)
 
 	if err != nil {
 		slog.Error("Failed to prepare apply policy evaluation", "error", err)
-		return false, err
+		return false, nil, err
 	}
 
 	results, err := query.Eval(ctx, rego.EvalInput(input))
 	if len(results) == 0 || len(results[0].Expressions) == 0 {
 		slog.Error("No result found from apply policy evaluation")
-		return false, fmt.Errorf("no result found")
+		return false, nil, fmt.Errorf("no result found")
 	}
 
 	expressions := results[0].Expressions
 
+	decisionsResult := make([]string, 0)
 	for _, expression := range expressions {
-		decision, ok := expression.Value.(bool)
+		decisions, ok := expression.Value.([]interface{})
+
 		if !ok {
-			slog.Error("Apply policy decision is not a boolean")
-			return false, fmt.Errorf("decision is not a boolean")
+			slog.Error("Apply policy decision is not a slice of interfaces")
+			return false, nil, fmt.Errorf("decision is not a slice of interfaces")
 		}
-		if !decision {
-			slog.Info("Apply policy denied action",
-				"user", requestedBy,
-				"action", command,
-				"project", projectName)
-			return false, nil
+		if len(decisions) > 0 {
+			for _, d := range decisions {
+				decisionsResult = append(decisionsResult, d.(string))
+				slog.Info("Apply policy violation", "reason", d)
+			}
 		}
+	}
+
+	if len(decisionsResult) > 0 {
+		slog.Info("Apply policy check failed",
+			"violations", len(decisionsResult),
+			"organisation", SCMOrganisation,
+			"repository", SCMrepository,
+			"project", projectName)
+		return false, decisionsResult, nil
 	}
 
 	slog.Info("Apply policy allowed action",
 		"user", requestedBy,
 		"action", command,
 		"project", projectName)
-	return true, nil
+	return true, []string{}, nil
 }
 
 func NewPolicyChecker(hostname string, organisationName string, authToken string) Checker {
