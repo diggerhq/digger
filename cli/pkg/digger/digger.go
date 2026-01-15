@@ -430,14 +430,30 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			}
 
 			// Check apply policy before apply
+			// Try to retrieve the terraform plan JSON if plan storage is configured
+			var terraformPlanJson string
+			if os.Getenv("PLAN_UPLOAD_DESTINATION") != "" {
+				slog.Debug("Plan storage configured, attempting to retrieve plan for apply policy check")
+				retrievedPlanJson, err := executor.RetrievePlanJson()
+				if err != nil {
+					slog.Warn("Failed to retrieve plan JSON for apply policy check, proceeding without plan data", "error", err)
+				} else {
+					terraformPlanJson = retrievedPlanJson
+					slog.Debug("Successfully retrieved plan JSON for apply policy check", "planLength", len(terraformPlanJson))
+				}
+			} else {
+				slog.Debug("Plan storage not configured, apply policy will not have terraform plan data")
+			}
+
 			slog.Debug("Calling CheckApplyPolicy",
 				"organisation", SCMOrganisation,
 				"repository", SCMrepository,
 				"projectName", job.ProjectName,
 				"projectDir", job.ProjectDir,
 				"command", command,
-				"requestedBy", requestedBy)
-			allowedToApplyByApplyPolicy, applyPolicyViolations, err := policyChecker.CheckApplyPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, teams, approvals, approvalTeams, planPolicyViolations)
+				"requestedBy", requestedBy,
+				"hasTerraformPlan", terraformPlanJson != "")
+			allowedToApplyByApplyPolicy, applyPolicyViolations, err := policyChecker.CheckApplyPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, teams, approvals, approvalTeams, planPolicyViolations, terraformPlanJson)
 			slog.Debug("CheckApplyPolicy result",
 				"allowed", allowedToApplyByApplyPolicy,
 				"violationsCount", len(applyPolicyViolations),

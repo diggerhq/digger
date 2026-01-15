@@ -42,7 +42,7 @@ func (p NoOpPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMrepositor
 	return true, nil
 }
 
-func (p NoOpPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string) (bool, []string, error) {
+func (p NoOpPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string, planOutput string) (bool, []string, error) {
 	return true, nil, nil
 }
 
@@ -707,13 +707,14 @@ func (p DiggerPolicyChecker) CheckDriftPolicy(SCMOrganisation string, SCMreposit
 	return true, nil
 }
 
-func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string) (bool, []string, error) {
+func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMrepository string, projectName string, projectDir string, command string, prNumber *int, requestedBy string, teams []string, approvals []string, approvalTeams []string, planPolicyViolations []string, planOutput string) (bool, []string, error) {
 	slog.Debug("Checking apply policy",
 		"organisation", SCMOrganisation,
 		"repository", SCMrepository,
 		"project", projectName,
 		"command", command,
-		"requestedBy", requestedBy)
+		"requestedBy", requestedBy,
+		"hasPlanOutput", planOutput != "")
 
 	policy, err := p.PolicyProvider.GetApplyPolicy(SCMOrganisation, SCMrepository, projectName, projectDir)
 
@@ -731,6 +732,23 @@ func (p DiggerPolicyChecker) CheckApplyPolicy(SCMOrganisation string, SCMreposit
 		"planPolicyViolations": planPolicyViolations,
 		"action":               command,
 		"project":              projectName,
+	}
+
+	// Include terraform plan JSON if available
+	if planOutput != "" {
+		slog.Debug("Parsing terraform plan for apply policy", "planLength", len(planOutput))
+		var tfplan map[string]interface{}
+		err := json.Unmarshal([]byte(planOutput), &tfplan)
+		if err != nil {
+			slog.Error("Failed to parse terraform plan JSON for apply policy", "error", err)
+			// Don't fail the policy check, just proceed without plan data
+		} else {
+			input["terraform"] = tfplan
+			slog.Debug("Terraform plan included in apply policy input",
+				"hasResourceChanges", tfplan["resource_changes"] != nil)
+		}
+	} else {
+		slog.Debug("No terraform plan available for apply policy check")
 	}
 
 	if policy == "" {
