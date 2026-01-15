@@ -476,20 +476,13 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					applyPolicyFormatter = reporting.AsComment(summary)
 				}
 
-				applyPolicyReportMessage := fmt.Sprintf("User %s is not allowed to perform action: %s. Check your policies :x:<br>", requestedBy, command)
-				slog.Debug("Base report message created", "message", applyPolicyReportMessage)
+				applyPolicyReportMessage := "Terraform apply failed validation checks :x:<br>"
 				if len(applyPolicyViolations) > 0 {
-					slog.Debug("Adding violations to report", "count", len(applyPolicyViolations))
 					preformattedMessages := make([]string, 0)
-					for i, message := range applyPolicyViolations {
-						formatted := fmt.Sprintf("    %v", message)
-						preformattedMessages = append(preformattedMessages, formatted)
-						slog.Debug("Formatted violation", "index", i, "original", message, "formatted", formatted)
+					for _, message := range applyPolicyViolations {
+						preformattedMessages = append(preformattedMessages, fmt.Sprintf("    %v", message))
 					}
 					applyPolicyReportMessage = applyPolicyReportMessage + strings.Join(preformattedMessages, "<br>")
-					slog.Debug("Final report message with violations", "message", applyPolicyReportMessage)
-				} else {
-					slog.Warn("No violations in array despite policy denial")
 				}
 				_, _, err = reporter.Report(applyPolicyReportMessage, applyPolicyFormatter)
 				if err != nil {
