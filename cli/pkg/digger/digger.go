@@ -429,6 +429,19 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				return nil, msg, errors.New(msg)
 			}
 
+			// Check apply policy before apply
+			allowedToApplyByApplyPolicy, err := policyChecker.CheckApplyPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, requestedBy, teams, approvals, approvalTeams, planPolicyViolations)
+			if err != nil {
+				msg := fmt.Sprintf("Failed to run apply policy check before apply. %v", err)
+				slog.Error("Failed to run apply policy check before apply", "error", err)
+				return nil, msg, fmt.Errorf("%s", msg)
+			}
+			if !allowedToApplyByApplyPolicy {
+				msg := reportPolicyError(job.ProjectName, command, requestedBy, reporter)
+				slog.Error(msg)
+				return nil, msg, errors.New(msg)
+			}
+
 			// Running apply
 
 			applySummary, applyPerformed, output, err := diggerExecutor.Apply()

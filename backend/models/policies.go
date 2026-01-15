@@ -6,6 +6,7 @@ const (
 	POLICY_TYPE_ACCESS = "access"
 	POLICY_TYPE_PLAN   = "plan"
 	POLICY_TYPE_DRIFT  = "drift"
+	POLICY_TYPE_APPLY  = "apply"
 )
 
 type Policy struct {
