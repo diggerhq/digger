@@ -59,6 +59,10 @@ func (s *DiggerDefaultPolicyProvider) GetDriftPolicy() (string, error) {
 	return "package digger\n", nil
 }
 
+func (s *DiggerDefaultPolicyProvider) GetApplyPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
+	return "package digger\n", nil
+}
+
 func (s *DiggerDefaultPolicyProvider) GetOrganisation() string {
 	return "ORGANISATIONDIGGER"
 }
@@ -87,6 +91,10 @@ func (s *DiggerExamplePolicyProvider) GetPlanPolicy(organisation string, reposit
 }
 
 func (s *DiggerExamplePolicyProvider) GetDriftPolicy() (string, error) {
+	return "package digger\n", nil
+}
+
+func (s *DiggerExamplePolicyProvider) GetApplyPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n", nil
 }
 
@@ -121,6 +129,10 @@ func (s *DiggerExamplePolicyProvider2) GetPlanPolicy(organisation string, reposi
 }
 
 func (s *DiggerExamplePolicyProvider2) GetDriftPolicy() (string, error) {
+	return "package digger\n", nil
+}
+
+func (s *DiggerExamplePolicyProvider2) GetApplyPolicy(organisation string, repository string, projectname string, projectDir string) (string, error) {
 	return "package digger\n", nil
 }
 
