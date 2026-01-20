@@ -319,11 +319,11 @@ runs:
       with:
         clean: false
         ref: refs/pull/${{ github.event.issue.number }}/merge
-      if: ${{ github.event_name == 'issue_comment' && inputs.configure-checkout == 'true' }}
+      if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && inputs.configure-checkout == 'true' }}
     - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
       with:
         clean: false
-      if: ${{ github.event_name != 'issue_comment' && inputs.configure-checkout == 'true' }}
+      if: ${{ !(github.event_name == 'issue_comment' && github.event.issue.pull_request) && inputs.configure-checkout == 'true' }}
     - name: Set up Google Auth Using A Service Account Key
       uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
       with:
