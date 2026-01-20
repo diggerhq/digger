@@ -128,8 +128,12 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 				// this is an pull request, skip
 				continue
 			}
-
-			allIssues = append(allIssues, &ci.Issue{ID: int64(*issue.Number), Title: *issue.Title, Body: *issue.Body})
+			var body string
+			if issue.Body != nil {
+				// github issue body is optional, so we need to check if it is nil
+				body = *issue.Body
+			}
+			allIssues = append(allIssues, &ci.Issue{ID: int64(*issue.Number), Title: *issue.Title, Body: body})
 		}
 		if resp.NextPage == 0 {
 			break
@@ -264,14 +268,16 @@ func (svc GithubService) DeleteComment(id string) error {
 
 type GithubCommentReaction string
 
-const GithubCommentPlusOneReaction GithubCommentReaction = "+1"
-const GithubCommentMinusOneReaction GithubCommentReaction = "-1"
-const GithubCommentLaughReaction GithubCommentReaction = "laugh"
-const GithubCommentConfusedReaction GithubCommentReaction = "confused"
-const GithubCommentHeartReaction GithubCommentReaction = "heart"
-const GithubCommentHoorayReaction GithubCommentReaction = "hooray"
-const GithubCommentRocketReaction GithubCommentReaction = "rocket"
-const GithubCommentEyesReaction GithubCommentReaction = "eyes"
+const (
+	GithubCommentPlusOneReaction  GithubCommentReaction = "+1"
+	GithubCommentMinusOneReaction GithubCommentReaction = "-1"
+	GithubCommentLaughReaction    GithubCommentReaction = "laugh"
+	GithubCommentConfusedReaction GithubCommentReaction = "confused"
+	GithubCommentHeartReaction    GithubCommentReaction = "heart"
+	GithubCommentHoorayReaction   GithubCommentReaction = "hooray"
+	GithubCommentRocketReaction   GithubCommentReaction = "rocket"
+	GithubCommentEyesReaction     GithubCommentReaction = "eyes"
+)
 
 func (svc GithubService) CreateCommentReaction(id string, reaction string) error {
 	commentId, err := strconv.ParseInt(id, 10, 64)
@@ -354,23 +360,23 @@ func (svc GithubService) CreateCheckRun(name string, status string, conclusion s
 
 	ctx := context.Background()
 	checkRun, resp, err := client.Checks.CreateCheckRun(ctx, owner, repoName, opts)
-	
+
 	// Log rate limit information
 	if resp != nil {
 		limit := resp.Header.Get("X-RateLimit-Limit")
 		remaining := resp.Header.Get("X-RateLimit-Remaining")
 		reset := resp.Header.Get("X-RateLimit-Reset")
-		
+
 		if limit != "" && remaining != "" {
 			limitInt, _ := strconv.Atoi(limit)
 			remainingInt, _ := strconv.Atoi(remaining)
-			
+
 			// Calculate percentage remaining
 			var percentRemaining float64
 			if limitInt > 0 {
 				percentRemaining = (float64(remainingInt) / float64(limitInt)) * 100
 			}
-			
+
 			// Log based on severity
 			if remainingInt == 0 {
 				slog.Error("GitHub API rate limit EXHAUSTED",
@@ -401,17 +407,17 @@ func (svc GithubService) CreateCheckRun(name string, status string, conclusion s
 			}
 		}
 	}
-	
+
 	return checkRun, err
 }
 
 type GithubCheckRunUpdateOptions struct {
-	Status *string
+	Status     *string
 	Conclusion *string
-	Title *string
-	Summary *string
-	Text *string
-	Actions []*github.CheckRunAction
+	Title      *string
+	Summary    *string
+	Text       *string
+	Actions    []*github.CheckRunAction
 }
 
 func (svc GithubService) UpdateCheckRun(checkRunId string, options GithubCheckRunUpdateOptions) (*github.CheckRun, error) {
@@ -497,8 +503,8 @@ func (svc GithubService) UpdateCheckRun(checkRunId string, options GithubCheckRu
 	}
 
 	opts := github.UpdateCheckRunOptions{
-		Name:   *existingCheckRun.Name,
-		Output: output,
+		Name:    *existingCheckRun.Name,
+		Output:  output,
 		Actions: newActions,
 	}
 
@@ -906,7 +912,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			"action", *event.Action)
 
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
@@ -924,7 +929,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			"comment", *event.Comment.Body)
 
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
@@ -979,7 +983,6 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 		"action", *payload.Action)
 
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
