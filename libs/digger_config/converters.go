@@ -280,6 +280,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.CommentRenderMode = CommentRenderModeBasic
 	}
 
+	if diggerYaml.TrustedAppIDs != nil {
+		diggerConfig.TrustedAppIDs = append([]int64(nil), diggerYaml.TrustedAppIDs...)
+	} else {
+		diggerConfig.TrustedAppIDs = []int64{}
+	}
+
 	if diggerYaml.MentionDriftedProjectsInPR != nil {
 		diggerConfig.MentionDriftedProjectsInPR = *diggerYaml.MentionDriftedProjectsInPR
 	} else {

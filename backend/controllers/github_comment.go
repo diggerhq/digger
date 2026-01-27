@@ -173,6 +173,27 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return fmt.Errorf("error getting digger config")
 	}
 
+	if payload.Sender.GetType() == "Bot" {
+		if lo.Contains(prLabelsStr, "digger:allowbot") {
+			slog.Info("Allowing bot comment due to label override",
+				"issueNumber", issueNumber,
+				"label", "digger:allowbot",
+			)
+		} else {
+			commentUserID := payload.GetComment().GetUser().GetID()
+			if commentUserID == 0 {
+				commentUserID = payload.GetSender().GetID()
+			}
+			if !lo.Contains(config.TrustedAppIDs, commentUserID) {
+				slog.Info("Ignoring bot comment from untrusted app",
+					"issueNumber", issueNumber,
+					"commentUserId", commentUserID,
+				)
+				return nil
+			}
+		}
+	}
+
 	if config.DisableDiggerApplyComment && strings.HasPrefix(cleanedComment, "digger apply") {
 		slog.Info("Digger configured to disable apply comment in PRs, ignoring comment", "DisableDiggerApplyComment", config.DisableDiggerApplyComment)
 		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {

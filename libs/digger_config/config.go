@@ -25,6 +25,7 @@ type DiggerConfig struct {
 	AutoMerge                     bool
 	AutoMergeStrategy             AutomergeStrategy
 	Telemetry                     bool
+	TrustedAppIDs                 []int64
 	Workflows                     map[string]Workflow
 	MentionDriftedProjectsInPR    bool
 	TraverseToNestedProjects      bool

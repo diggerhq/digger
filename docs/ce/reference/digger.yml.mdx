@@ -35,6 +35,8 @@ report_terraform_outputs: true
 mention_drifted_projects_in_pr: false
 disable_digger_apply_comment: false
 disable_digger_apply_status_check: false
+trusted_appIDs:
+  - 41898282
 respect_layers: false
 reporting:
   ai_summary: false
@@ -199,6 +201,10 @@ workflows:
 
 <ParamField path="disable_digger_apply_status_check" type="boolean" default="false">
   Disable the status check that verifies apply was executed.
+</ParamField>
+
+<ParamField path="trusted_appIDs" type="array" default="[]">
+  Allow bot comments from these GitHub user IDs. Example: `trusted_appIDs: [41898282]` for GitHub Actions.
 </ParamField>
 
 <ParamField path="comment_render_mode" type="string" default="basic">
