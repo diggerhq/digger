@@ -3,8 +3,11 @@ function generateRequestId(): string {
     return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export async function listUnits(orgId: string, userId: string, email: string) {
-    const response = await fetch(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`, {
+export async function listUnits(orgId: string, userId: string, email: string, page: number = 1, pageSize: number = 20) {
+    const url = new URL(`${process.env.STATESMAN_BACKEND_URL}/internal/api/units`);
+    url.searchParams.set('page', String(page));
+    url.searchParams.set('page_size', String(pageSize));
+    const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

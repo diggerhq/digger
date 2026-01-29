@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/diggerhq/digger/opentaco/internal/logging"
+	"github.com/diggerhq/digger/opentaco/internal/pagination"
 	querytypes "github.com/diggerhq/digger/opentaco/cmd/token_service/query/types"
 	"github.com/labstack/echo/v4"
 )
@@ -39,6 +40,14 @@ type TokenResponse struct {
 	UpdatedAt  time.Time  `json:"updated_at"`
 	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+}
+
+type TokenListResponse struct {
+	Tokens   []TokenResponse `json:"tokens"`
+	Count    int             `json:"count"`
+	Total    int64           `json:"total"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"page_size"`
 }
 
 // VerifyTokenRequest represents the request to verify a token
@@ -89,17 +98,18 @@ func (h *Handler) CreateToken(c echo.Context) error {
 func (h *Handler) ListTokens(c echo.Context) error {
 	userID := c.QueryParam("user_id")
 	orgID := c.QueryParam("org_id")
+	pageParams := pagination.Parse(c, 25, 200)
 
-	tokens, err := h.repo.ListTokens(c.Request().Context(), userID, orgID)
+	tokens, total, err := h.repo.ListTokens(c.Request().Context(), userID, orgID, pageParams.Page, pageParams.PageSize)
 	if err != nil {
 		logger := logging.FromContext(c)
 		logger.Error("Failed to list tokens", "user_id", userID, "org_id", orgID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to list tokens"})
 	}
 
-	responses := make([]TokenResponse, len(tokens))
-	for i, token := range tokens {
-		responses[i] = toTokenResponseHidden(token) // Hide token hash
+	responses := make([]TokenResponse, 0, len(tokens))
+	for _, token := range tokens {
+		responses = append(responses, toTokenResponseHidden(token)) // Hide token hash
 	}
 
 	// Prevent caching of token list responses
@@ -107,7 +117,13 @@ func (h *Handler) ListTokens(c echo.Context) error {
 	c.Response().Header().Set("Pragma", "no-cache")
 	c.Response().Header().Set("Expires", "0")
 
-	return c.JSON(http.StatusOK, responses)
+	return c.JSON(http.StatusOK, TokenListResponse{
+		Tokens:   responses,
+		Count:    len(responses),
+		Total:    total,
+		Page:     pageParams.Page,
+		PageSize: pageParams.PageSize,
+	})
 }
 
 // DeleteToken deletes a token by ID
@@ -206,4 +222,3 @@ func toTokenResponseHidden(token *querytypes.Token) TokenResponse {
 	
 	return resp
 }
-
