@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -294,14 +295,16 @@ func (svc GithubService) DeleteComment(id string) error {
 
 type GithubCommentReaction string
 
-const GithubCommentPlusOneReaction GithubCommentReaction = "+1"
-const GithubCommentMinusOneReaction GithubCommentReaction = "-1"
-const GithubCommentLaughReaction GithubCommentReaction = "laugh"
-const GithubCommentConfusedReaction GithubCommentReaction = "confused"
-const GithubCommentHeartReaction GithubCommentReaction = "heart"
-const GithubCommentHoorayReaction GithubCommentReaction = "hooray"
-const GithubCommentRocketReaction GithubCommentReaction = "rocket"
-const GithubCommentEyesReaction GithubCommentReaction = "eyes"
+const (
+	GithubCommentPlusOneReaction  GithubCommentReaction = "+1"
+	GithubCommentMinusOneReaction GithubCommentReaction = "-1"
+	GithubCommentLaughReaction    GithubCommentReaction = "laugh"
+	GithubCommentConfusedReaction GithubCommentReaction = "confused"
+	GithubCommentHeartReaction    GithubCommentReaction = "heart"
+	GithubCommentHoorayReaction   GithubCommentReaction = "hooray"
+	GithubCommentRocketReaction   GithubCommentReaction = "rocket"
+	GithubCommentEyesReaction     GithubCommentReaction = "eyes"
+)
 
 func (svc GithubService) CreateCommentReaction(id string, reaction string) error {
 	commentId, err := strconv.ParseInt(id, 10, 64)
@@ -1064,7 +1067,6 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			"action", *event.Action)
 
 		changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 		if err != nil {
 			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 			return nil, nil, 0, fmt.Errorf("could not get changed files")
@@ -1081,14 +1083,29 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 			"prNumber", prNumber,
 			"comment", *event.Comment.Body)
 
-		changedFiles, err := ciService.GetChangedFiles(prNumber)
+		if event.Issue.IsPullRequest() {
+			changedFiles, err := ciService.GetChangedFiles(prNumber)
+			if err != nil {
+				slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
+				return nil, nil, 0, fmt.Errorf("could not get changed files")
+			}
 
-		if err != nil {
-			slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
-			return nil, nil, 0, fmt.Errorf("could not get changed files")
+			impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
+		} else {
+			// Drift detection issue title is in the format: "Drift detected in project: $projectName"
+			// Extract project name from issue title
+			re := regexp.MustCompile(`^Drift detected in project: (\S+)`)
+			matches := re.FindStringSubmatch(*event.Issue.Title)
+			var projectName string
+			if len(matches) > 1 {
+				projectName = matches[1]
+			} else {
+				slog.Error("could not extract project name from issue title", "issueTitle", *event.Issue.Title)
+				return nil, nil, 0, fmt.Errorf("could not extract project name from issue title")
+			}
+			impactedProjects = diggerConfig.GetProjects(projectName)
 		}
 
-		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
 		requestedProject := scheduler.ParseProjectName(*event.Comment.Body)
 
 		if requestedProject == "" {
@@ -1137,7 +1154,6 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 		"action", *payload.Action)
 
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
-
 	if err != nil {
 		slog.Error("could not get changed files", "error", err, "prNumber", prNumber)
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
