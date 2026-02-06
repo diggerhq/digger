@@ -211,6 +211,12 @@
             "description": "Strategy to use when auto-merging PRs",
             "default": "squash"
         },
+        "trusted_appIDs": {
+            "items": {
+                "type": "integer"
+            },
+            "type": "array"
+        },
         "comment_render_mode": {
             "type": "string",
             "enum": [
