@@ -42,40 +42,54 @@ func NewHandler(store domain.UnitManagement, blobStore storage.UnitStore, rbacMa
 }
 
 // resolveUnitIdentifier resolves a unit identifier (name or UUID) to its UUID
+// SECURITY: This function validates org ownership for all unit identifiers,
+// including direct UUIDs, to prevent IDOR attacks.
 func (h *Handler) resolveUnitIdentifier(ctx context.Context, identifier string) (string, error) {
 	// URL-decode first (Echo params may be URL-encoded)
 	decoded, err := domain.DecodeURLPath(identifier)
 	if err != nil {
 		return "", err
 	}
-	
+
 	normalized := domain.DecodeUnitID(decoded)
-	
-	// If already a UUID, return as-is
+
+	// Get org from context - required for security validation
+	orgCtx, ok := domain.OrgFromContext(ctx)
+	if !ok {
+		return "", fmt.Errorf("organization context required")
+	}
+
+	// If already a UUID, VALIDATE it belongs to the org (SECURITY FIX)
 	if domain.IsUUID(normalized) {
+		// If resolver is not available, we cannot validate - fail secure
+		if h.resolver == nil {
+			return "", fmt.Errorf("cannot validate unit ownership: resolver not available")
+		}
+
+		belongs, err := h.resolver.UnitBelongsToOrg(ctx, normalized, orgCtx.OrgID)
+		if err != nil {
+			return "", fmt.Errorf("failed to verify unit ownership: %w", err)
+		}
+		if !belongs {
+			// Don't reveal that the unit exists in another org
+			return "", fmt.Errorf("unit not found")
+		}
 		return normalized, nil
 	}
-	
+
 	// If resolver is not available, return normalized name (will fail at repository layer)
 	if h.resolver == nil {
 		return normalized, nil
 	}
-	
-	// Get org from context for resolution
-	orgCtx, ok := domain.OrgFromContext(ctx)
-	if !ok {
-		// No org context, return normalized name
-		return normalized, nil
-	}
-	
+
 	// Resolve name to UUID using the identifier resolver
-	// Note: ResolveUnit signature is (ctx, identifier, orgID)
+	// Note: ResolveUnit already validates org scope for name-based lookups
 	uuid, err := h.resolver.ResolveUnit(ctx, normalized, orgCtx.OrgID)
 	if err != nil {
 		// If resolution fails, return error
 		return "", err
 	}
-	
+
 	return uuid, nil
 }
 

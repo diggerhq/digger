@@ -6,8 +6,6 @@ import { OrganizationSwitcher, WorkOsWidgets } from '@workos-inc/widgets'
 import { DropdownMenu } from '@radix-ui/themes'
 
 type WorkosOrgSwitcherProps = {
-  userId: string
-  organisationId: string
   label?: string
   redirectTo?: string
   /**
@@ -22,8 +20,6 @@ type WorkosOrgSwitcherProps = {
 }
 
 export default function WorkosOrgSwitcher({
-  userId,
-  organisationId,
   label = 'My Orgs',
   redirectTo = '/dashboard/units',
   wrapWithProvider = false,
@@ -65,7 +61,7 @@ export default function WorkosOrgSwitcher({
   React.useEffect(() => {
     (async () => {
       try {
-        const token = await getWidgetsAuthToken({ data: { userId, organizationId: organisationId } })
+        const token = await getWidgetsAuthToken({ data: {} })
         setAuthToken(token)
         setLoading(false)
       } catch (e: any) {
@@ -73,7 +69,7 @@ export default function WorkosOrgSwitcher({
         setLoading(false)
       }
     })()
-  }, [userId, organisationId])
+  }, [])
 
   if (loading) return <p>Loading WorkOS…</p>
   if (error) return <p className="text-red-600">Error: {error}</p>

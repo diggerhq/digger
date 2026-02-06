@@ -24,5 +24,10 @@ type IdentifierResolver interface {
 	
 	// ResolveTag resolves a tag identifier to UUID within an organization
 	ResolveTag(ctx context.Context, identifier, orgID string) (string, error)
+
+	// UnitBelongsToOrg validates that a unit UUID belongs to the specified organization.
+	// Returns true if the unit exists and belongs to the org, false otherwise.
+	// This is used for security validation when a UUID is provided directly.
+	UnitBelongsToOrg(ctx context.Context, unitUUID, orgID string) (bool, error)
 }
 

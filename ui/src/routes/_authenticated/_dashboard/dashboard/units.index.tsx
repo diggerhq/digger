@@ -34,16 +34,10 @@ export const Route = createFileRoute(
   pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    
-    const unitsData = await listUnitsFn({
-      data: {
-        organisationId: organisationId || '', 
-        userId: user?.id || '', 
-        email: user?.email || ''
-      }
-    });
-    
-    return { unitsData: unitsData, user, organisationId } 
+
+    const unitsData = await listUnitsFn();
+
+    return { unitsData: unitsData, user, organisationId }
   }
 })
 
@@ -145,14 +139,11 @@ function CreateUnitModal({ onUnitCreated, onUnitOptimistic, onUnitFailed }: {
         </DialogHeader>
         <div className="py-2">
           <UnitCreateForm
-            userId={user?.id || ''}
-            email={user?.email || ''}
-            organisationId={organisationId}
             onCreatedOptimistic={(tempUnit) => {
               onUnitOptimistic(tempUnit)
               setOpen(false)
             }}
-            onCreated={() => { 
+            onCreated={() => {
               setOpen(false)
               onUnitCreated()
             }}
@@ -187,7 +178,7 @@ function RouteComponent() {
   
   // Handle actual creation - refresh from server
   async function handleUnitCreated() {
-    const unitsData = await listUnitsFn({data: {organisationId: organisationId, userId: user?.id || '', email: user?.email || ''}})
+    const unitsData = await listUnitsFn()
     setUnits(unitsData.units)
   }
   

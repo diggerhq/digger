@@ -2,17 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { createToken, getTokens } from "./tokens";
 import { verifyToken } from "./tokens";
 import { deleteToken } from "./tokens";
+import { requireAuth } from "./helpers";
 
 export const getTokensFn = createServerFn({method: 'GET'})
-    .inputValidator((data: {organizationId: string, userId: string}) => data)
-    .handler(async ({data: {organizationId, userId}}) => {
-        return getTokens(organizationId, userId);
+    .handler(async () => {
+        const auth = await requireAuth();
+        return getTokens(auth.organizationId, auth.userId);
 })
 
 export const createTokenFn = createServerFn({method: 'POST'})
-    .inputValidator((data: {organizationId: string, userId: string, name: string, expiresAt: string | null}) => data)
-    .handler(async ({data: {organizationId, userId, name, expiresAt}}) => {
-        return createToken(organizationId, userId, name, expiresAt);
+    .inputValidator((data: {name: string, expiresAt: string | null}) => data)
+    .handler(async ({data: {name, expiresAt}}) => {
+        const auth = await requireAuth();
+        return createToken(auth.organizationId, auth.userId, name, expiresAt);
 })
 
 export const verifyTokenFn = createServerFn({method: 'POST'})
@@ -22,7 +24,8 @@ export const verifyTokenFn = createServerFn({method: 'POST'})
 })
 
 export const deleteTokenFn = createServerFn({method: 'POST'})
-    .inputValidator((data: {organizationId: string, userId: string, tokenId: string}) => data)
-    .handler(async ({data: {organizationId, userId, tokenId}}) => {
-        return deleteToken(organizationId, userId, tokenId);
+    .inputValidator((data: {tokenId: string}) => data)
+    .handler(async ({data: {tokenId}}) => {
+        const auth = await requireAuth();
+        return deleteToken(auth.organizationId, auth.userId, tokenId);
 })

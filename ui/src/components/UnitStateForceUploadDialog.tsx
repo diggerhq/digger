@@ -12,7 +12,7 @@ import { Upload } from 'lucide-react'
 import { forcePushStateFn } from '@/api/statesman_serverFunctions'
 import { toast } from '@/hooks/use-toast'
 
-export default function UnitStateForceUploadDialog({ userId, organisationId, userEmail, unitId, isDisabled }: { userId: string, organisationId: string, userEmail: string, unitId: string, isDisabled: boolean }) {
+export default function UnitStateForceUploadDialog({ unitId, isDisabled }: { unitId: string, isDisabled: boolean }) {
   const [open, setOpen] = useState(false)
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -41,9 +41,6 @@ export default function UnitStateForceUploadDialog({ userId, organisationId, use
       setStatus('loading')
       await forcePushStateFn({
         data: {
-          userId: userId,
-          organisationId: organisationId,
-          email: userEmail,
           unitId: unitId,
           state: fileContent,
         },

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
@@ -111,4 +113,56 @@ func TestAutomergeWhenBatchIsSuccessfulStatus(t *testing.T) {
 	err = AutomergePRforBatchIfEnabled(gh, &batch)
 	assert.NoError(t, err)
 	assert.True(t, isMergeCalled)
+}
+
+func TestCharacterLimit(t *testing.T) {
+	tests := []struct {
+		name           string
+		inputLength    int
+		expectTruncate bool
+	}{
+		{
+			name:           "under limit - no truncation",
+			inputLength:    1000,
+			expectTruncate: false,
+		},
+		{
+			name:           "at limit - no truncation",
+			inputLength:    65535,
+			expectTruncate: false,
+		},
+		{
+			name:           "over limit - truncation applied",
+			inputLength:    70000,
+			expectTruncate: true,
+		},
+	}
+
+	const maxCheckRunTextLength = 65535
+	cutOffMsg := "\n[Character limit exceeded, output truncated]"
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := strings.Repeat("a", tt.inputLength)
+
+			result := input
+			if utf8.RuneCountInString(result) > maxCheckRunTextLength {
+				runes := []rune(result)
+				truncateAt := maxCheckRunTextLength - utf8.RuneCountInString(cutOffMsg)
+				result = string(runes[:truncateAt]) + cutOffMsg
+			}
+
+			if tt.expectTruncate {
+				assert.Equal(t, maxCheckRunTextLength, utf8.RuneCountInString(result),
+					"truncated output should be exactly 65535 characters")
+				assert.True(t, strings.HasSuffix(result, cutOffMsg),
+					"truncated output should end with cutoff message")
+			} else {
+				assert.Equal(t, tt.inputLength, utf8.RuneCountInString(result),
+					"non-truncated output should maintain original length")
+				assert.False(t, strings.HasSuffix(result, cutOffMsg),
+					"non-truncated output should not have cutoff message")
+			}
+		})
+	}
 }

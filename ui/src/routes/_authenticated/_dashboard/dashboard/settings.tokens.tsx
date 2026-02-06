@@ -16,7 +16,7 @@ export const Route = createFileRoute(
   component: RouteComponent,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const tokens = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
+    const tokens = await getTokensFn()
     return { tokens, user, organisationId }
   },
   // Disable caching for token data - always fetch fresh
@@ -67,14 +67,14 @@ function RouteComponent() {
     setSubmitting(true)
     try {
       const expiresAt = computeExpiry(expiry)
-      const created = await createTokenFn({data: {organizationId: organisationId, userId: user?.id || '', name: nickname || 'New Token', expiresAt}})
+      const created = await createTokenFn({data: {name: nickname || 'New Token', expiresAt}})
       if (created && created.token) {
         setNewToken(created.token)
       }
       setOpen(false)
       setNickname('')
       setExpiry('no_expiry')
-      const newTokenList = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
+      const newTokenList = await getTokensFn()
       setTokenList(newTokenList)
     } finally {
       setSubmitting(false)
@@ -82,7 +82,7 @@ function RouteComponent() {
   }
 
   const handleRevokeToken = async (tokenId: string) => {
-    deleteTokenFn({data: {organizationId: organisationId, userId: user?.id || '', tokenId: tokenId}}).then(() => {
+    deleteTokenFn({data: {tokenId: tokenId}}).then(() => {
       toast({
         title: 'Token revoked',
         description: 'The token has been revoked',
@@ -95,7 +95,7 @@ function RouteComponent() {
       })
     }).finally(async () => {
       setSubmitting(false)
-      const newTokenList = await getTokensFn({data: {organizationId: organisationId, userId: user?.id || ''}})
+      const newTokenList = await getTokensFn()
       setTokenList(newTokenList)
     })
   }

@@ -40,7 +40,7 @@ function DashboardComponent() {
                   
                 </h3>}
                 <div className="mt-2" />
-                {workosEnabled && <WorkosOrgSwitcher userId={user?.id || ''} organisationId={organisationId || ''} showSettingsItem />}
+                {workosEnabled && <WorkosOrgSwitcher showSettingsItem />}
                 
                 <div className="h-[1px] bg-border mt-2" />
               </div>

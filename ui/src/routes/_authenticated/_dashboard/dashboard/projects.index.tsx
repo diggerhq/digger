@@ -20,7 +20,7 @@ export const Route = createFileRoute(
   loader: async ({ context }) => {
     const { user, organisationId } = context;
     try {
-      const projects = await getProjectsFn({data: {userId: user?.id || '', organisationId: organisationId || ''}})
+      const projects = await getProjectsFn()
       return { projects, user, organisationId }
     } catch (error) {
       console.error('Error loading projects:', error);
@@ -50,9 +50,7 @@ function RouteComponent() {
                 {
                     data: {
                         projectId: project.id.toString(),
-                        driftEnabled: !project.drift_enabled,
-                        organisationId: organisationId || "",
-                        userId: user?.id || ""
+                        driftEnabled: !project.drift_enabled
                     }
                 }
             );

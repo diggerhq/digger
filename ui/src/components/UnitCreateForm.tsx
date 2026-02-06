@@ -8,9 +8,6 @@ import { createUnitFn } from '@/api/statesman_serverFunctions'
 import { Cloud, HardDrive } from 'lucide-react'
 
 type UnitCreateFormProps = {
-  userId: string
-  email: string
-  organisationId: string
   onCreated: (unit: { id: string; name: string }) => void
   onCreatedOptimistic?: (tempUnit: { id: string; name: string; isOptimistic: boolean }) => void
   onCreatedFailed?: () => void
@@ -18,15 +15,12 @@ type UnitCreateFormProps = {
   showBringOwnState?: boolean
 }
 
-export default function UnitCreateForm({ 
-  userId, 
-  email, 
-  organisationId, 
-  onCreated, 
+export default function UnitCreateForm({
+  onCreated,
   onCreatedOptimistic,
   onCreatedFailed,
-  onBringOwnState, 
-  showBringOwnState = true 
+  onBringOwnState,
+  showBringOwnState = true
 }: UnitCreateFormProps) {
   const [unitName, setUnitName] = React.useState('')
   const [unitType, setUnitType] = React.useState<'local' | 'remote'>('local')
@@ -57,9 +51,6 @@ const remoteRunsEnabled = true
       const finalUnitType = remoteRunsEnabled ? unitType : 'local'
       const unit = await createUnitFn({
         data: {
-          userId,
-          organisationId,
-          email,
           name: unitName.trim(),
           // Enable TFE remote execution for remote type
           // Auto-apply defaults to false - user must explicitly approve applies
@@ -69,12 +60,6 @@ const remoteRunsEnabled = true
           tfeEngine: finalUnitType === 'remote' ? engine : undefined,
         },
       })
-      // analytics: track unit creation
-      try {
-        const user = { id: userId, email }
-        const { trackUnitCreated } = await import('@/lib/analytics')
-        trackUnitCreated(user, organisationId, { id: unit.id, name: unit.name })
-      } catch {}
       onCreated({ id: unit.id, name: unit.name })
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create unit')

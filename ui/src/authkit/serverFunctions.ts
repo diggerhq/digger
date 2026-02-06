@@ -9,6 +9,7 @@ import { WidgetScope } from 'node_modules/@workos-inc/node/lib/widgets/interface
 import { syncOrgToBackend } from '@/api/orchestrator_orgs';
 import { syncOrgToStatesman } from '@/api/statesman_orgs';
 import { serverCache } from '@/lib/cache.server';
+import { requireAuth } from '@/api/helpers';
 
 export const getAuthorizationUrl = createServerFn({ method: 'GET' })
   .inputValidator((options?: GetAuthURLOptions) => options)
@@ -46,20 +47,21 @@ export const getOrganisationDetails = createServerFn({method: 'GET'})
 
 
 export const createOrganization = createServerFn({method: 'POST'})
-  .inputValidator((data: {name: string, userId: string, email: string}) => data)
-  .handler(async ({data: {name, userId, email}}) : Promise<Organization> => {
+  .inputValidator((data: {name: string}) => data)
+  .handler(async ({data: {name}}) : Promise<Organization> => {
+    const auth = await requireAuth();
     try {
       const organization = await getWorkOS().organizations.createOrganization({ name: name });
 
       await getWorkOS().userManagement.createOrganizationMembership({
         organizationId: organization.id,
-        userId: userId,
+        userId: auth.userId,
         roleSlug: "admin",
       });
 
       try {
-        await syncOrgToBackend(organization.id, organization.name, email);
-        await syncOrgToStatesman(organization.id, organization.name, organization.name, userId, email);
+        await syncOrgToBackend(organization.id, organization.name, auth.email);
+        await syncOrgToStatesman(organization.id, organization.name, organization.name, auth.userId, auth.email);
       } catch (error) {
         console.error('Error syncing organization to backend:', error);
         throw error;
@@ -132,26 +134,27 @@ export const ensureOrgExists = createServerFn({method: 'GET'})
 
 
 export const getWidgetsAuthToken = createServerFn({method: 'GET'})
-    .inputValidator((args: {userId: string, organizationId: string, scopes?: WidgetScope[]}) => args)
-    .handler(async ({data: {userId, organizationId, scopes}}) : Promise<string> => {
+    .inputValidator((args: {scopes?: WidgetScope[]}) => args)
+    .handler(async ({data: {scopes}}) : Promise<string> => {
+  const auth = await requireAuth();
   // Check cache first
-  const cached = serverCache.getWidgetToken(userId, organizationId);
+  const cached = serverCache.getWidgetToken(auth.userId, auth.organizationId);
   if (cached) {
-    console.debug(`✅ Widget token cache hit for ${userId}:${organizationId}`);
+    console.debug(`✅ Widget token cache hit for ${auth.userId}:${auth.organizationId}`);
     return cached;
   }
-  
+
   // Cache miss - generate new token
-  console.debug(`❌ Widget token cache miss, generating new token for ${userId}:${organizationId}`);
+  console.debug(`❌ Widget token cache miss, generating new token for ${auth.userId}:${auth.organizationId}`);
   const token = await getWorkOS().widgets.getToken({
-    userId: userId,
-    organizationId: organizationId,
+    userId: auth.userId,
+    organizationId: auth.organizationId,
     scopes: scopes ?? ['widgets:users-table:manage'] as WidgetScope[],
   });
-  
+
   // Store in cache
-  serverCache.setWidgetToken(userId, organizationId, token);
-  
+  serverCache.setWidgetToken(auth.userId, auth.organizationId, token);
+
   return token;
 })
 

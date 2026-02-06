@@ -48,6 +48,11 @@ type VerifyTokenRequest struct {
 	OrgID  string `json:"org_id"`
 }
 
+// DeleteTokenRequest represents the request to delete a token
+type DeleteTokenRequest struct {
+	OrgID string `json:"org_id" validate:"required"`
+}
+
 // CreateToken creates a new token
 func (h *Handler) CreateToken(c echo.Context) error {
 	var req CreateTokenRequest
@@ -85,10 +90,14 @@ func (h *Handler) CreateToken(c echo.Context) error {
 	return c.JSON(http.StatusCreated, toTokenResponse(token))
 }
 
-// ListTokens lists all tokens for a user and org
+// ListTokens lists all tokens for an org (org_id is required)
 func (h *Handler) ListTokens(c echo.Context) error {
-	userID := c.QueryParam("user_id")
 	orgID := c.QueryParam("org_id")
+	if orgID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "org_id is required"})
+	}
+
+	userID := c.QueryParam("user_id") // Optional filter within org
 
 	tokens, err := h.repo.ListTokens(c.Request().Context(), userID, orgID)
 	if err != nil {
@@ -110,16 +119,26 @@ func (h *Handler) ListTokens(c echo.Context) error {
 	return c.JSON(http.StatusOK, responses)
 }
 
-// DeleteToken deletes a token by ID
+// DeleteToken deletes a token by ID with org ownership validation
 func (h *Handler) DeleteToken(c echo.Context) error {
 	tokenID := c.Param("id")
 	if tokenID == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Token ID is required"})
 	}
 
-	if err := h.repo.DeleteToken(c.Request().Context(), tokenID); err != nil {
+	// Parse org_id from request body for ownership validation
+	var req DeleteTokenRequest
+	if err := c.Bind(&req); err != nil || req.OrgID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "org_id is required"})
+	}
+
+	// Delete with org validation - returns "not found" if token doesn't belong to org
+	if err := h.repo.DeleteTokenForOrg(c.Request().Context(), tokenID, req.OrgID); err != nil {
+		if err.Error() == "token not found" {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Token not found"})
+		}
 		logger := logging.FromContext(c)
-		logger.Error("Failed to delete token", "token_id", tokenID, "error", err)
+		logger.Error("Failed to delete token", "token_id", tokenID, "org_id", req.OrgID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -153,18 +172,19 @@ func (h *Handler) VerifyToken(c echo.Context) error {
 	})
 }
 
-// GetToken retrieves a token by ID
+// GetToken retrieves a token by ID with org ownership validation
 func (h *Handler) GetToken(c echo.Context) error {
 	tokenID := c.Param("id")
-	if tokenID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Token ID is required"})
+	orgID := c.QueryParam("org_id")
+
+	if tokenID == "" || orgID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Token ID and org_id are required"})
 	}
 
-	token, err := h.repo.GetToken(c.Request().Context(), tokenID)
+	// Get with org validation - returns "not found" if token doesn't belong to org
+	token, err := h.repo.GetTokenForOrg(c.Request().Context(), tokenID, orgID)
 	if err != nil {
-		logger := logging.FromContext(c)
-		logger.Error("Failed to get token", "token_id", tokenID, "error", err)
-		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Token not found"})
 	}
 
 	return c.JSON(http.StatusOK, toTokenResponseHidden(token)) // Hide token hash

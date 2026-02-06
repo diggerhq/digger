@@ -71,7 +71,7 @@ export function WorkosSettings({ userId, email, organisationId, role }: WorkosSe
   React.useEffect(() => {
     (async () => {
       try {
-        const authToken = await getWidgetsAuthToken({ data: { userId, organizationId: organisationId } });
+        const authToken = await getWidgetsAuthToken({ data: {} });
         setAuthToken(authToken);
         setLoading(false);
       } catch (e: any) {
@@ -79,7 +79,7 @@ export function WorkosSettings({ userId, email, organisationId, role }: WorkosSe
         setLoading(false);
       }
     })();
-  }, [userId, organisationId]);
+  }, []);
 
 
   if (loading) return <p>Loading WorkOS…</p>;
@@ -96,7 +96,7 @@ export function WorkosSettings({ userId, email, organisationId, role }: WorkosSe
         />
         <div className="h-4" />
         {/* Add your org creation UI here */}
-        <CreateOrganizationBtn userId={userId} email={email} />
+        <CreateOrganizationBtn />
         <div className="h-4" />
         <UserProfile authToken={authToken} />
         <div className="h-4" />

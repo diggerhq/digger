@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_authenticated/_dashboard/dashboard/repos
   pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const repos = await getReposFn({data: {organisationId, userId: user?.id || ''}})
+    const repos = await getReposFn()
     return { user, repos, organisationId };
   },
 })

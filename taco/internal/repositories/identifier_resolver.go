@@ -119,6 +119,27 @@ func (r *gormIdentifierResolver) ResolveTag(ctx context.Context, identifier, org
 	return r.resolveResource(ctx, "tags", identifier, orgID)
 }
 
+// UnitBelongsToOrg validates that a unit UUID belongs to the specified organization.
+// This is a security check to prevent IDOR attacks where an attacker provides
+// a unit UUID from another organization.
+func (r *gormIdentifierResolver) UnitBelongsToOrg(ctx context.Context, unitUUID, orgID string) (bool, error) {
+	if r.db == nil {
+		return false, fmt.Errorf("database not available")
+	}
+
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("units").
+		Where("id = ? AND org_id = ?", unitUUID, orgID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, fmt.Errorf("failed to verify unit ownership: %w", err)
+	}
+
+	return count > 0, nil
+}
+
 // resolveResource is the generic resolver for org-scoped resources
 func (r *gormIdentifierResolver) resolveResource(ctx context.Context, table, identifier, orgID string) (string, error) {
 	if r.db == nil {

@@ -511,9 +511,6 @@ jobs:
 
                 {!steps.unitCreated && (
                   <UnitCreateForm
-                    userId={userId}
-                    email={email}
-                    organisationId={organisationId}
                     onCreated={handleCreateUnit}
                     onBringOwnState={() => { setOnboardingMode('pr_only'); setCurrentStep('github') }}
                   />

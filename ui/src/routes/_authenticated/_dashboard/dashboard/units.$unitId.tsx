@@ -87,25 +87,25 @@ export const Route = createFileRoute(
   ),
   loader: async ({ context, params: {unitId} }) => {
     const { user, organisationId, organisationName } = context;
-    
+
     // Run all API calls in parallel instead of sequentially! 🚀
     const [unitData, unitVersionsData, unitStatusData] = await Promise.all([
-      getUnitFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}}),
-      getUnitVersionsFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}}),
-      getUnitStatusFn({data: {organisationId: organisationId || '', userId: user?.id || '', email: user?.email || '', unitId: unitId}})
+      getUnitFn({data: {unitId: unitId}}),
+      getUnitVersionsFn({data: {unitId: unitId}}),
+      getUnitStatusFn({data: {unitId: unitId}})
     ]);
-    
+
     const publicServerConfig = context.publicServerConfig
     const publicHostname = publicServerConfig.PUBLIC_HOSTNAME || '<hostname>'
 
 
-    return { 
-      unitData: unitData, 
+    return {
+      unitData: unitData,
       unitStatus: unitStatusData,
-      unitVersions: unitVersionsData.versions, 
-      user, 
+      unitVersions: unitVersionsData.versions,
+      user,
       organisationId,
-      organisationName, 
+      organisationName,
       publicHostname,
 
     }
@@ -174,9 +174,6 @@ function RouteComponent() {
     try {
       await unlockUnitFn({
         data: {
-          userId: user?.id || '',
-          organisationId: organisationId || '',
-          email: user?.email || '',
           unitId: unit.id,
         },
       })
@@ -202,9 +199,6 @@ function RouteComponent() {
     try {
       await lockUnitFn({
         data: {
-          userId: user?.id || '',
-          organisationId: organisationId || '',
-          email: user?.email || '',
           unitId: unit.id,
         },
       })
@@ -231,9 +225,6 @@ function RouteComponent() {
     try {
       await deleteUnitFn({
         data: {
-          userId: user?.id || '',
-          organisationId: organisationId || '',
-          email: user?.email || '',
           unitId: unit.id,
         },
       })
@@ -262,9 +253,6 @@ function RouteComponent() {
     try {
       const state : any = await downloadLatestStateFn({
         data: {
-          userId: user?.id || '',
-          organisationId: organisationId || '',
-          email: user?.email || '',
           unitId: unit.id,
         },
       })
@@ -278,16 +266,13 @@ function RouteComponent() {
         variant: "destructive"
       })
       return
-    } 
+    }
   }
   
   const handleRestoreStateVersion = async (timestamp: string, lockId: string) => {
     try {
       await restoreUnitStateVersionFn({
         data: {
-          userId: user?.id || '',
-          organisationId: organisationId || '',
-          email: user?.email || '',
           unitId: unit.id,
           timestamp: timestamp,
           lockId: lockId,
@@ -317,9 +302,6 @@ function RouteComponent() {
     try {
       await updateUnitFn({
         data: {
-          userId: user?.id || '',
-          organisationId: organisationId || '',
-          email: user?.email || '',
           unitId: unit.id,
           tfeAutoApply: undefined,
           tfeExecutionMode: undefined,
@@ -587,7 +569,7 @@ function RouteComponent() {
                       This will overwrite the remote state with your local state, ignoring any locks or version history.
                       Only use this if you are absolutely sure your local state is correct.
                     </p>
-                    <UnitStateForceUploadDialog userId={user?.id || ''} organisationId={organisationId || ''} userEmail={user?.email || ''} unitId={unit.id} isDisabled={unit.locked} />
+                    <UnitStateForceUploadDialog unitId={unit.id} isDisabled={unit.locked} />
                   </div>
 
                   <div className="pt-4 border-t">

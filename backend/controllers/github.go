@@ -113,11 +113,6 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 			"issueNumber", *event.Issue.Number,
 		)
 
-		if event.Sender.Type != nil && *event.Sender.Type == "Bot" {
-			slog.Debug("Ignoring bot comment", "senderType", *event.Sender.Type)
-			c.String(http.StatusOK, "OK")
-			return
-		}
 		go func(ctx context.Context) {
 			defer logging.InheritRequestLogger(ctx)()
 			handleIssueCommentEvent(gh, event, d.CiBackendProvider, appId64, d.GithubWebhookPostIssueCommentHooks)

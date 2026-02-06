@@ -46,7 +46,7 @@ export const Route = createFileRoute(
   ),
   loader: async ({ context, params: {projectid} }) => {
     const { user, organisationId } = context;
-    const project = await getProjectFn({data: {projectId: projectid, organisationId, userId: user?.id || ''}})
+    const project = await getProjectFn({data: {projectId: projectid}})
 
     return { project }
   }

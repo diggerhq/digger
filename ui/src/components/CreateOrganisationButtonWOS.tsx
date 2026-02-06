@@ -29,7 +29,7 @@ function validateOrgName(name: string): string | null {
   return null;
 }
 
-export default function CreateOrganizationBtn({ userId, email }: { userId: string, email: string }) {
+export default function CreateOrganizationBtn() {
   const [name, setName] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -65,7 +65,7 @@ export default function CreateOrganizationBtn({ userId, email }: { userId: strin
     }
     
     try {
-      const organization = await createOrganization({ data: { name: name.trim(), userId: userId, email: email } });
+      const organization = await createOrganization({ data: { name: name.trim() } });
       toast({
         title: "Organization created",
         description: "The page will now reload to refresh organisations list. To use this new organization, select it from the list.",

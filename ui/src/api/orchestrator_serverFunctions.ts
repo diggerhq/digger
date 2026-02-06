@@ -4,31 +4,28 @@ import { fetchRepos } from "./orchestrator_repos";
 import { getOrgSettings, updateOrgSettings } from "./orchestrator_orgs";
 import { testSlackWebhook } from "./drift_slack";
 import { fetchProjects, updateProject, fetchProject } from "./orchestrator_projects";
+import { requireAuth } from "./helpers";
 
 export const getOrgSettingsFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string}) => data)
-  .handler(async ({ data }) => {
-    const settings : any = await getOrgSettings(data.organisationId, data.userId)
+  .handler(async () => {
+    const auth = await requireAuth();
+    const settings : any = await getOrgSettings(auth.organizationId, auth.userId)
     return settings
 })
 
 export const updateOrgSettingsFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, settings: OrgSettings}) => data)
+  .inputValidator((data : {settings: OrgSettings}) => data)
   .handler(async ({ data }) => {
-    const settings : any = await updateOrgSettings(data.organisationId, data.userId, data.settings)
+    const auth = await requireAuth();
+    const settings : any = await updateOrgSettings(auth.organizationId, auth.userId, data.settings)
     return settings.result
 })
 
 export const getProjectsFn = createServerFn({method: 'GET'})
-    .inputValidator((data : {userId: string, organisationId: string}) => {
-      if (!data.userId || !data.organisationId) {
-        throw new Error('Missing required fields: userId and organisationId are required')
-      }
-      return data
-    })
-    .handler(async ({ data }) => {
+    .handler(async () => {
+      const auth = await requireAuth();
       try {
-        const projects : any = await fetchProjects(data.organisationId, data.userId)
+        const projects : any = await fetchProjects(auth.organizationId, auth.userId)
         return projects.result || []
       } catch (error) {
         console.error('Error in getProjectsFn:', error)
@@ -38,66 +35,69 @@ export const getProjectsFn = createServerFn({method: 'GET'})
 
 
 export const updateProjectFn = createServerFn({method: 'POST'})
-    .inputValidator((data : {projectId: string, driftEnabled: boolean, organisationId: string, userId: string}) => data)
+    .inputValidator((data : {projectId: string, driftEnabled: boolean}) => data)
     .handler(async ({ data }) => {
-    const project : any = await updateProject(data.projectId, data.driftEnabled, data.organisationId, data.userId)
-    return project.result
+      const auth = await requireAuth();
+      const project : any = await updateProject(data.projectId, data.driftEnabled, auth.organizationId, auth.userId)
+      return project.result
   })
 
 export const getReposFn = createServerFn({method: 'GET'})
-    .inputValidator((data : {organisationId: string, userId: string}) => data)
-    .handler(async ({ data }) => {
-    let repos = []
-    try {
-        const reposData :any = await fetchRepos(data.organisationId, data.userId)
-        repos = reposData.result
-      } catch (error) {
-        console.error('Error fetching repos:', error)
-        throw error
-      }
-      return repos
+    .handler(async () => {
+      const auth = await requireAuth();
+      let repos = []
+      try {
+          const reposData :any = await fetchRepos(auth.organizationId, auth.userId)
+          repos = reposData.result
+        } catch (error) {
+          console.error('Error fetching repos:', error)
+          throw error
+        }
+        return repos
   })
 
 export const getProjectFn = createServerFn({method: 'GET'})
-    .inputValidator((data : {projectId: string, organisationId: string, userId: string}) => data)
+    .inputValidator((data : {projectId: string}) => data)
     .handler(async ({ data }) => {
-    const project : any = await fetchProject(data.projectId, data.organisationId, data.userId)
-    return project
+      const auth = await requireAuth();
+      const project : any = await fetchProject(data.projectId, auth.organizationId, auth.userId)
+      return project
   })
 
 
 export const getRepoDetailsFn = createServerFn({method: 'GET'})
-    .inputValidator((data : {repoId: string, organisationId: string, userId: string}) => data)
+    .inputValidator((data : {repoId: string}) => data)
     .handler(async ({ data }) => {
-      const { repoId, organisationId, userId } = data;
+      const auth = await requireAuth();
+      const { repoId } = data;
       let allJobs: Job[] = [];
-      let repo: Repo 
+      let repo: Repo
       try {
         const response = await fetch(`${process.env.ORCHESTRATOR_BACKEND_URL}/api/repos/${repoId}/jobs`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
-            'DIGGER_ORG_ID': organisationId,
-            'DIGGER_USER_ID': userId,
+            'DIGGER_ORG_ID': auth.organizationId,
+            'DIGGER_USER_ID': auth.userId,
             'DIGGER_ORG_SOURCE': 'workos',
           },
         });
-      
+
         if (!response.ok) {
           throw new Error('Failed to fetch jobs');
         }
-      
+
         const result = await response.json();
-        
-        repo = result.repo    
+
+        repo = result.repo
         allJobs = result.jobs || []
-    
+
       } catch (error) {
         console.error('Error fetching jobs:', error);
         allJobs = [];
         throw error
       }
-  
+
       return { repo, allJobs }
     })
 
@@ -106,4 +106,3 @@ export const switchToOrganizationFn = createServerFn({method: 'POST'})
     .handler(async ({ data }) => {
       return null
     })
-

@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_authenticated/_dashboard/dashboard/repos
   pendingComponent: PageLoading,
   loader: async ({ params: {repoId}, context }) => {
     const { user, organisationId } = context;
-    const { repo, allJobs } = await getRepoDetailsFn({data: {repoId, organisationId, userId: user?.id || ''}})
+    const { repo, allJobs } = await getRepoDetailsFn({data: {repoId}})
     return { repo, allJobs }
   }
 })

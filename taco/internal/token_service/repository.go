@@ -150,6 +150,30 @@ func (r *TokenRepository) GetToken(ctx context.Context, tokenID string) (*types.
 	return &token, nil
 }
 
+// GetTokenForOrg retrieves a token by ID only if it belongs to the specified org
+func (r *TokenRepository) GetTokenForOrg(ctx context.Context, tokenID, orgID string) (*types.Token, error) {
+	var token types.Token
+	if err := r.db.WithContext(ctx).Where("id = ? AND org_id = ?", tokenID, orgID).First(&token).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New(errTokenNotFound)
+		}
+		return nil, fmt.Errorf("failed to get token: %w", err)
+	}
+	return &token, nil
+}
+
+// DeleteTokenForOrg deletes a token by ID only if it belongs to the specified org
+func (r *TokenRepository) DeleteTokenForOrg(ctx context.Context, tokenID, orgID string) error {
+	result := r.db.WithContext(ctx).Where("id = ? AND org_id = ?", tokenID, orgID).Delete(&types.Token{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete token: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return errors.New(errTokenNotFound)
+	}
+	return nil
+}
+
 // generateSecureToken generates a cryptographically secure random token
 func generateSecureToken() (string, error) {
 	b := make([]byte, 32)

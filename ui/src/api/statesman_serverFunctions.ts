@@ -1,75 +1,81 @@
 import { createServerFn } from "@tanstack/react-start"
 import { createUnit, getUnit, listUnits, getUnitVersions, unlockUnit, lockUnit, getUnitStatus, deleteUnit, downloadLatestState, forcePushState, restoreUnitStateVersion } from "./statesman_units"
+import { requireAuth } from "./helpers"
 
 export const listUnitsFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string}) => data)
-  .handler(async ({ data }) => {
-    const units : any = await listUnits(data.organisationId, data.userId, data.email);
+  .handler(async () => {
+    const auth = await requireAuth();
+    const units : any = await listUnits(auth.organizationId, auth.userId, auth.email);
     return units;
 })
 
 export const getUnitFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unit : any = await getUnit(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    const unit : any = await getUnit(auth.organizationId, auth.userId, auth.email, data.unitId)
     return unit
 })
 
 export const getUnitVersionsFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unitVersions : any = await getUnitVersions(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    const unitVersions : any = await getUnitVersions(auth.organizationId, auth.userId, auth.email, data.unitId)
     return unitVersions
 })
 
 export const lockUnitFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unit : any = await lockUnit(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    const unit : any = await lockUnit(auth.organizationId, auth.userId, auth.email, data.unitId)
     return unit
 })
 
 export const unlockUnitFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unit : any = await unlockUnit(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    const unit : any = await unlockUnit(auth.organizationId, auth.userId, auth.email, data.unitId)
     return unit
 })
 
 export const downloadLatestStateFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    const state : any = await downloadLatestState(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    const state : any = await downloadLatestState(auth.organizationId, auth.userId, auth.email, data.unitId)
     return state
 })
 
 export const forcePushStateFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string, state: string}) => data)
+  .inputValidator((data : {unitId: string, state: string}) => data)
   .handler(async ({ data }) => {
-    const state : any = await forcePushState(data.organisationId, data.userId, data.email, data.unitId, data.state)
+    const auth = await requireAuth();
+    const state : any = await forcePushState(auth.organizationId, auth.userId, auth.email, data.unitId, data.state)
     return state
 })
 
 export const restoreUnitStateVersionFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string, timestamp: string, lockId: string}) => data)
+  .inputValidator((data : {unitId: string, timestamp: string, lockId: string}) => data)
   .handler(async ({ data }) => {
-    const state : any = await restoreUnitStateVersion(data.organisationId, data.userId, data.email, data.unitId, data.timestamp, data.lockId)
+    const auth = await requireAuth();
+    const state : any = await restoreUnitStateVersion(auth.organizationId, auth.userId, auth.email, data.unitId, data.timestamp, data.lockId)
     return state
 })
 
 export const getUnitStatusFn = createServerFn({method: 'GET'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    const unitStatus : any = await getUnitStatus(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    const unitStatus : any = await getUnitStatus(auth.organizationId, auth.userId, auth.email, data.unitId)
     return unitStatus
 })
 
 export const createUnitFn = createServerFn({method: 'POST'})
   .inputValidator((data : {
-    userId: string, 
-    organisationId: string, 
-    email: string, 
-    name: string, 
+    name: string,
     requestId?: string,
     tfeAutoApply?: boolean,
     tfeExecutionMode?: string,
@@ -78,10 +84,11 @@ export const createUnitFn = createServerFn({method: 'POST'})
     tfeWorkingDirectory?: string
   }) => data)
   .handler(async ({ data }) => {
+    const auth = await requireAuth();
     const unit : any = await createUnit(
-      data.organisationId, 
-      data.userId, 
-      data.email, 
+      auth.organizationId,
+      auth.userId,
+      auth.email,
       data.name,
       data.tfeAutoApply,
       data.tfeExecutionMode,
@@ -94,9 +101,6 @@ export const createUnitFn = createServerFn({method: 'POST'})
 
 export const updateUnitFn = createServerFn({method: 'POST'})
   .inputValidator((data : {
-    userId: string, 
-    organisationId: string, 
-    email: string, 
     unitId: string,
     tfeAutoApply?: boolean,
     tfeExecutionMode?: string,
@@ -105,11 +109,12 @@ export const updateUnitFn = createServerFn({method: 'POST'})
     tfeWorkingDirectory?: string
   }) => data)
   .handler(async ({ data }) => {
+    const auth = await requireAuth();
     const { updateUnit } = await import("./statesman_units")
     const unit : any = await updateUnit(
-      data.organisationId, 
-      data.userId, 
-      data.email, 
+      auth.organizationId,
+      auth.userId,
+      auth.email,
       data.unitId,
       data.tfeAutoApply,
       data.tfeExecutionMode,
@@ -121,7 +126,8 @@ export const updateUnitFn = createServerFn({method: 'POST'})
 })
 
 export const deleteUnitFn = createServerFn({method: 'POST'})
-  .inputValidator((data : {userId: string, organisationId: string, email: string, unitId: string}) => data)
+  .inputValidator((data : {unitId: string}) => data)
   .handler(async ({ data }) => {
-    await deleteUnit(data.organisationId, data.userId, data.email, data.unitId)
+    const auth = await requireAuth();
+    await deleteUnit(auth.organizationId, auth.userId, auth.email, data.unitId)
 })

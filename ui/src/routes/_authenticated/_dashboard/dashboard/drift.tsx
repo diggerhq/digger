@@ -22,7 +22,7 @@ export const Route = createFileRoute(
   pendingComponent: PageLoading,
   loader: async ({ context }) => {
     const { user, organisationId } = context;
-    const settings = await getOrgSettingsFn({data: {userId: user?.id || '', organisationId: organisationId || ''}})
+    const settings = await getOrgSettingsFn()
     return { settings, user, organisationId }
   }
 })
@@ -43,7 +43,7 @@ function RouteComponent() {
     const handleSave = async () => {
         try {
           setSaving(true)
-          await updateOrgSettingsFn({data: {userId: user?.id || '', organisationId: organisationId || '', settings: settingsState}})
+          await updateOrgSettingsFn({data: {settings: settingsState}})
           toast({
             title: "Success",
             description: "Slack webhook settings saved successfully",

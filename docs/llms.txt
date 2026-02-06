@@ -1,0 +1,142 @@
+# OpenTaco (formerly Digger)
+
+> OpenTaco is an all-in-one, open-source Terraform toolkit providing state management, PR automation, remote runs, and drift detection. It runs in your CI (GitHub Actions) and can be self-hosted.
+
+## Documentation
+
+- [Introduction](https://docs.opentaco.dev/readme/introduction): Overview of OpenTaco's core capabilities — state management, PR automation, remote runs, and drift detection.
+- [How It Works](https://docs.opentaco.dev/readme/howitworks): Architecture overview — five components: Statesman (state/remote runs), Drift, Token, Orchestrator (CI/PR automation), and UI (gateway proxy).
+
+## Getting Started
+
+- [Quick Start with Terraform](https://docs.opentaco.dev/ce/getting-started/with-terraform): Step-by-step guide to set up PR automation with GitHub Actions — create account at otaco.app, install GitHub App, configure cloud credentials, create digger.yml and workflow file.
+- [Quick Start with OpenTofu](https://docs.opentaco.dev/ce/getting-started/with-opentofu): Same flow using OpenTofu instead of Terraform.
+- [Quick Start with Terragrunt](https://docs.opentaco.dev/ce/getting-started/with-terragrunt): Same flow using Terragrunt.
+- [State Management Setup](https://docs.opentaco.dev/ce/getting-started/state-management): Connect local Terraform/OpenTofu to OpenTaco state backend — create a unit, configure cloud block, authenticate via `terraform login otaco.app`.
+
+## Concepts
+
+- [Units](https://docs.opentaco.dev/ce/concepts/unit): A unit is the smallest deployable Terraform state plus its lock and history. Supports lifecycle management (create, ls, info, rm), state operations (pull, push), lock coordination, versioning, and restore.
+- [Roles](https://docs.opentaco.dev/ce/concepts/role): Role definitions for access control.
+
+## State Management
+
+- [Introduction](https://docs.opentaco.dev/ce/state-management/introduction): Self-hostable state management with built-in RBAC, validation, multi-account access, versioning, and rollback. Currently supports S3 backend.
+- [Architecture](https://docs.opentaco.dev/ce/state-management/architecture): Statesman service provides REST API for state operations. TFE-compatible — supports `terraform login`. Stores state in S3-compatible storage with metadata in SQLite/PostgreSQL/MySQL/MSSQL.
+- [Quickstart](https://docs.opentaco.dev/ce/state-management/quickstart): Quick setup guide for state management.
+- [AWS Fargate Quickstart](https://docs.opentaco.dev/ce/state-management/aws-fargate-ad-quickstart): Deploy state management on AWS Fargate.
+- [GCP Quickstart](https://docs.opentaco.dev/ce/state-management/gcp-quickstart): Deploy state management on GCP.
+- [Cloud Backend](https://docs.opentaco.dev/ce/state-management/cloud-backend): Cloud backend configuration.
+- [RBAC](https://docs.opentaco.dev/ce/state-management/rbac): Role-based access control for state management.
+- [SSO](https://docs.opentaco.dev/ce/state-management/sso): Single sign-on integration.
+- [Versioning](https://docs.opentaco.dev/ce/state-management/versioning): State versioning and rollback capabilities.
+- [Query Backend](https://docs.opentaco.dev/ce/state-management/query-backend): Database backend configuration (SQLite, PostgreSQL, MySQL, MSSQL).
+- [Digger Integration](https://docs.opentaco.dev/ce/state-management/digger-integration): Integrating state management with the Digger orchestrator.
+- [Analytics](https://docs.opentaco.dev/ce/state-management/analytics): State management analytics.
+- [Development](https://docs.opentaco.dev/ce/state-management/development): Development setup for state management.
+
+## PR Automation Features
+
+- [CommentOps](https://docs.opentaco.dev/ce/features/commentops): Control terraform via PR comments — `digger plan`, `digger apply`, `digger lock`, `digger unlock`. Use `-p` flag to target specific projects.
+- [PR-Level Locks](https://docs.opentaco.dev/ce/features/pr-level-locks): Prevent concurrent terraform operations on the same project.
+- [Plan Preview](https://docs.opentaco.dev/ce/features/plan-preview): Preview terraform plan output in PR comments.
+- [AI Summaries](https://docs.opentaco.dev/ce/features/ai-summaries): AI-generated summaries of terraform plan output.
+- [Concurrency](https://docs.opentaco.dev/ce/features/concurrency): Parallel execution of terraform operations.
+- [Layering](https://docs.opentaco.dev/ce/features/layering): Control execution order of dependent projects.
+- [OPA Policies](https://docs.opentaco.dev/ce/features/opa-policies): Policy-as-code with Open Policy Agent — plan policies (validate terraform plan output) and access policies (control who can run operations). Configure via management repo, orchestrator API, or inline Conftest.
+- [RBAC](https://docs.opentaco.dev/ce/features/rbac): Role-based access control at organisation, repository, and project levels. Integrates with OPA and CODEOWNERS.
+- [Remote Jobs](https://docs.opentaco.dev/ce/features/remote-jobs): Run terraform remotely via `dgctl exec` with streamed logs. Local directory is zipped and uploaded to CI. Respects OPA RBAC policies.
+- [Private Runners](https://docs.opentaco.dev/ce/features/private-runners): Use private GitHub Actions runners.
+- [Multi-GitHub](https://docs.opentaco.dev/ce/features/multi-github): Support for multiple GitHub organizations.
+- [FIPS 140](https://docs.opentaco.dev/ce/features/fips-140): FIPS 140 compliance support.
+
+## Drift Detection
+
+- [Set Up in UI](https://docs.opentaco.dev/ce/drift/set-up-in-ui): Configure drift detection schedules (hourly, daily, or custom crontab) via the UI.
+- [Slack Notifications](https://docs.opentaco.dev/ce/drift/slack-notifications): Send drift alerts to Slack via webhooks.
+- [GitHub Issues](https://docs.opentaco.dev/ce/drift/github-issues): Create GitHub issues for detected drift.
+- [Remediation](https://docs.opentaco.dev/ce/drift/remediation): Remediate detected drift.
+- [Scoping Projects](https://docs.opentaco.dev/ce/drift/scoping-projects): Scope drift detection to specific projects.
+- [Self-Host](https://docs.opentaco.dev/ce/drift/self-host): Self-host drift detection.
+- [Troubleshooting](https://docs.opentaco.dev/ce/drift/troubleshooting): Troubleshoot drift detection issues.
+
+## How-To Guides
+
+- [Apply on Merge](https://docs.opentaco.dev/ce/howto/apply-on-merge): Automatically run terraform apply when PRs are merged.
+- [Apply Requirements](https://docs.opentaco.dev/ce/howto/apply-requirements): Configure conditions before apply (approved, mergeable, undiverged).
+- [Auto Merge](https://docs.opentaco.dev/ce/howto/auto-merge): Automatically merge PRs after successful apply.
+- [Backendless Mode](https://docs.opentaco.dev/ce/howto/backendless-mode): Run without the orchestrator backend.
+- [Caching Strategies](https://docs.opentaco.dev/ce/howto/caching-strategies): Cache terraform providers and modules.
+- [CODEOWNERS](https://docs.opentaco.dev/ce/howto/codeowners): Use CODEOWNERS files for approval workflows.
+- [Commenting Strategies](https://docs.opentaco.dev/ce/howto/commenting-strategies): Configure how plan output is posted to PRs.
+- [Custom Commands](https://docs.opentaco.dev/ce/howto/custom-commands): Run custom shell commands in workflows.
+- [Destroy Manual](https://docs.opentaco.dev/ce/howto/destroy-manual): Manually destroy terraform resources.
+- [Disable Auto Checkout](https://docs.opentaco.dev/ce/howto/disable-auto-checkout): Disable automatic repository checkout.
+- [Disable Telemetry](https://docs.opentaco.dev/ce/howto/disable-telemetry): Disable anonymized usage data collection.
+- [Draft PRs](https://docs.opentaco.dev/ce/howto/draft-prs): Handle draft pull requests.
+- [Generate Projects](https://docs.opentaco.dev/ce/howto/generate-projects): Auto-discover projects using glob patterns.
+- [Ignore PR Events](https://docs.opentaco.dev/ce/howto/ignore-pull-request-events): Ignore specific pull request events.
+- [Include/Exclude Patterns](https://docs.opentaco.dev/ce/howto/include-exclude-patterns): Filter file changes that trigger operations.
+- [Masking Sensitive Values](https://docs.opentaco.dev/ce/howto/masking-sensitive-values): Mask sensitive values in plan output.
+- [Multi-Account AWS](https://docs.opentaco.dev/ce/howto/multiacc-aws): Configure multiple AWS accounts.
+- [Noise Reduction](https://docs.opentaco.dev/ce/howto/noise-reduction): Reduce noise in PR comments.
+- [Plan Artefacts](https://docs.opentaco.dev/ce/howto/plan-artefacts): Store and retrieve plan artefacts.
+- [Policy Overrides](https://docs.opentaco.dev/ce/howto/policy-overrides): Override OPA policies.
+- [Project-Level Roles](https://docs.opentaco.dev/ce/howto/project-level-roles): Configure roles per project.
+- [Segregate Cloud Accounts](https://docs.opentaco.dev/ce/howto/segregate-cloud-accounts): Separate cloud account access.
+- [Specify Terraform Version](https://docs.opentaco.dev/ce/howto/specify-terraform-version): Pin terraform version.
+- [Trigger Directly](https://docs.opentaco.dev/ce/howto/trigger-directly): Trigger operations without PR events.
+- [Using Checkov](https://docs.opentaco.dev/ce/howto/using-checkov): Integrate Checkov static analysis.
+- [Using Infracost](https://docs.opentaco.dev/ce/howto/using-infracost): Integrate Infracost cost estimation.
+- [Using OPA/Conftest](https://docs.opentaco.dev/ce/howto/using-opa-conftest): Integrate OPA via Conftest CLI.
+- [Using Terragrunt](https://docs.opentaco.dev/ce/howto/using-terragrunt): Configure Terragrunt support.
+- [Versioning](https://docs.opentaco.dev/ce/howto/versioning): Version management.
+
+## Cloud Providers
+
+- [AWS](https://docs.opentaco.dev/ce/cloud-providers/aws): AWS provider configuration.
+- [Authenticating with OIDC on AWS](https://docs.opentaco.dev/ce/cloud-providers/authenticating-with-oidc-on-aws): Use OIDC for AWS authentication instead of static credentials.
+- [Setting Up Separate Management Account](https://docs.opentaco.dev/ce/cloud-providers/setting-up-separate-mgmt-account): Configure a dedicated management account.
+- [GCP + GitHub Actions](https://docs.opentaco.dev/ce/gcp/setting-up-gcp-+-gh-actions): Set up GCP with GitHub Actions.
+- [GCP Federated OIDC](https://docs.opentaco.dev/ce/gcp/federated-oidc-access): Use federated OIDC for GCP access.
+- [GCP Bucket for Locks](https://docs.opentaco.dev/ce/gcp/using-gcp-bucket-for-locks): Use GCP bucket for state locking.
+- [Azure](https://docs.opentaco.dev/ce/azure-specific/azure): Azure provider configuration.
+- [Azure DevOps Locking](https://docs.opentaco.dev/ce/azure-specific/azure-devops-locking-connection-methods): Azure DevOps locking connection methods.
+
+## Self-Hosting
+
+- [Deploy with Docker](https://docs.opentaco.dev/ce/self-host/deploy-docker): Deploy the orchestrator backend as a Docker container. Requires PostgreSQL, GitHub App setup.
+- [Deploy with Docker Compose](https://docs.opentaco.dev/ce/self-host/deploy-docker-compose): Deploy using Docker Compose.
+- [Deploy Binary](https://docs.opentaco.dev/ce/self-host/deploy-binary): Deploy as a standalone binary.
+- [Deploy with Helm](https://docs.opentaco.dev/ce/self-host/deploy-helm): Deploy on Kubernetes with Helm.
+- [Self-Host on Azure](https://docs.opentaco.dev/ce/self-host/self-host-on-azure): Deploy on Azure.
+- [Self-Host on Railway](https://docs.opentaco.dev/ce/self-host/self-host-on-railway): Deploy on Railway platform.
+- [Auth Methods](https://docs.opentaco.dev/ce/self-host/auth-methods): Authentication methods for self-hosted deployments.
+
+## Reference
+
+- [digger.yml Configuration](https://docs.opentaco.dev/ce/reference/digger.yml): Complete configuration reference. Top-level: telemetry, pr_locks, auto_merge, traverse_to_nested_projects, comment_render_mode. Per-project: name, dir, workspace, branch, terragrunt/opentofu/pulumi, layer, apply_requirements, drift_detection, depends_on, include/exclude patterns, AWS role assumption. Workflows: on_pull_request_pushed, on_pull_request_closed, on_commit_to_default with plan/apply stages and custom run steps.
+- [Action Inputs](https://docs.opentaco.dev/ce/reference/action-inputs): GitHub Action inputs — cloud provider setup (AWS/GCP/Azure), tool versions (Terraform/Terragrunt/OpenTofu/Checkov), plan upload destinations, execution options (disable-locking, no-backend, digger-filename, mode, reporting-strategy).
+- [Environment Variables](https://docs.opentaco.dev/ce/reference/environment-variables): Complete env var reference for all services — Statesman (OPENTACO_PORT, OPENTACO_STORAGE, OPENTACO_QUERY_BACKEND, auth/OIDC/JWT config, sandbox config), Core Services (DATABASE_URL, GITHUB_APP_* vars), E2B Sandbox Sidecar, UI/WorkOS auth.
+- [Comment Args](https://docs.opentaco.dev/ce/reference/comment-args): Arguments available in PR comments.
+- [API](https://docs.opentaco.dev/ce/reference/api): Orchestrator REST API — policy retrieval and updates at project and org levels. Bearer token auth. API is not yet stable.
+- [terraform.lock](https://docs.opentaco.dev/ce/reference/terraform.lock): Handling terraform lock files.
+- [Terragrunt Parsing](https://docs.opentaco.dev/ce/reference/terragrunt-parsing): How Digger parses Terragrunt configurations.
+
+## Local Development
+
+- [Overview](https://docs.opentaco.dev/ce/local-development/overview): Local development environment overview.
+- [Backend](https://docs.opentaco.dev/ce/local-development/backend): Set up the backend locally.
+- [GitHub App](https://docs.opentaco.dev/ce/local-development/github-app): Set up a GitHub App for local development.
+- [Statesman](https://docs.opentaco.dev/ce/local-development/statesman): Set up Statesman locally.
+- [UI](https://docs.opentaco.dev/ce/local-development/ui): Set up the UI locally.
+
+## Troubleshooting
+
+- [Action Errors](https://docs.opentaco.dev/ce/troubleshooting/action-errors): Common GitHub Action errors and solutions.
+- [Comments](https://docs.opentaco.dev/ce/troubleshooting/comments): Issues with PR comments.
+- [Importing Existing Resources](https://docs.opentaco.dev/ce/troubleshooting/importing-existing-resources): Import existing infrastructure into Digger.
+
+## Contributing
+
+- [Setup Dev Environment](https://docs.opentaco.dev/ce/contributing/setup-dev-environment): Set up a development environment for contributing to OpenTaco.
