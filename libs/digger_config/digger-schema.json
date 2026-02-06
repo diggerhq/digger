@@ -1,0 +1,954 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://docs.opentaco.dev/schemas/digger.yml.json",
+    "properties": {
+        "apply_after_merge": {
+            "type": "boolean",
+            "description": "Automatically apply changes after PR is merged",
+            "default": false
+        },
+        "respect_layers": {
+            "type": "boolean",
+            "description": "Respect layer ordering when executing projects",
+            "default": false
+        },
+        "allow_draft_prs": {
+            "type": "boolean",
+            "description": "Allow Digger to run on draft pull requests",
+            "default": false
+        },
+        "dependency_configuration": {
+            "properties": {
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "hard",
+                        "soft"
+                    ],
+                    "description": "Dependency resolution mode: 'hard' executes dependencies even if unchanged, 'soft' skips unchanged dependencies",
+                    "default": "hard"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "mode"
+            ]
+        },
+        "delete_prior_comments": {
+            "type": "boolean",
+            "description": "Delete previous Digger comments when posting new ones",
+            "default": false
+        },
+        "disable_digger_apply_comment": {
+            "type": "boolean",
+            "description": "Disable the 'digger apply' comment command",
+            "default": false
+        },
+        "disable_digger_apply_status_check": {
+            "type": "boolean",
+            "description": "Disable the apply status check on PRs",
+            "default": false
+        },
+        "pr_locks": {
+            "type": "boolean",
+            "description": "Enable PR-level locking to prevent concurrent runs",
+            "default": true
+        },
+        "projects": {
+            "items": {
+                "properties": {
+                    "block_name": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "alias": {
+                        "type": "string"
+                    },
+                    "apply_requirements": {
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "approved",
+                                "mergeable",
+                                "undiverged"
+                            ]
+                        },
+                        "type": "array",
+                        "description": "Requirements that must be met before apply"
+                    },
+                    "dir": {
+                        "type": "string"
+                    },
+                    "workspace": {
+                        "type": "string"
+                    },
+                    "terragrunt": {
+                        "type": "boolean"
+                    },
+                    "branch": {
+                        "type": "string"
+                    },
+                    "opentofu": {
+                        "type": "boolean"
+                    },
+                    "pulumi": {
+                        "type": "boolean"
+                    },
+                    "workflow": {
+                        "type": "string"
+                    },
+                    "workflow_file": {
+                        "type": "string"
+                    },
+                    "include_patterns": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array"
+                    },
+                    "layer": {
+                        "type": "integer"
+                    },
+                    "exclude_patterns": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array"
+                    },
+                    "depends_on": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array"
+                    },
+                    "drift_detection": {
+                        "type": "boolean"
+                    },
+                    "aws_role_to_assume": {
+                        "properties": {
+                            "aws_role_region": {
+                                "type": "string"
+                            },
+                            "state": {
+                                "type": "string"
+                            },
+                            "command": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "aws_role_region",
+                            "state",
+                            "command"
+                        ]
+                    },
+                    "generated": {
+                        "type": "boolean"
+                    },
+                    "aws_cognito_oidc": {
+                        "properties": {
+                            "aws_account_id": {
+                                "type": "string"
+                            },
+                            "aws_region": {
+                                "type": "string"
+                            },
+                            "cognito_identity_pool_id": {
+                                "type": "string"
+                            },
+                            "session_duration": {
+                                "type": "integer"
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "aws_account_id",
+                            "cognito_identity_pool_id",
+                            "session_duration"
+                        ]
+                    },
+                    "pulumi_stack": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                    "block_name",
+                    "name",
+                    "dir",
+                    "workspace",
+                    "terragrunt",
+                    "opentofu",
+                    "pulumi",
+                    "workflow",
+                    "workflow_file",
+                    "layer",
+                    "generated",
+                    "pulumi_stack"
+                ]
+            },
+            "type": "array"
+        },
+        "auto_merge": {
+            "type": "boolean",
+            "description": "Automatically merge PRs after successful apply",
+            "default": false
+        },
+        "auto_merge_strategy": {
+            "type": "string",
+            "enum": [
+                "squash",
+                "merge",
+                "rebase"
+            ],
+            "description": "Strategy to use when auto-merging PRs",
+            "default": "squash"
+        },
+        "comment_render_mode": {
+            "type": "string",
+            "enum": [
+                "basic",
+                "group_by_module"
+            ],
+            "description": "How to render plan output in PR comments",
+            "default": "basic"
+        },
+        "workflows": {
+            "additionalProperties": {
+                "properties": {
+                    "env_vars": {
+                        "properties": {
+                            "state": {
+                                "items": {
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "value_from": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                        "name",
+                                        "value_from",
+                                        "value"
+                                    ]
+                                },
+                                "type": "array"
+                            },
+                            "commands": {
+                                "items": {
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "value_from": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                        "name",
+                                        "value_from",
+                                        "value"
+                                    ]
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "state",
+                            "commands"
+                        ]
+                    },
+                    "plan": {
+                        "properties": {
+                            "filter_regex": {
+                                "type": "string"
+                            },
+                            "steps": {
+                                "items": {
+                                    "properties": {
+                                        "Action": {
+                                            "type": "string"
+                                        },
+                                        "Value": {
+                                            "type": "string"
+                                        },
+                                        "extra_args": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "Shell": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                        "Action",
+                                        "Value",
+                                        "Shell"
+                                    ]
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "steps"
+                        ]
+                    },
+                    "apply": {
+                        "properties": {
+                            "filter_regex": {
+                                "type": "string"
+                            },
+                            "steps": {
+                                "items": {
+                                    "properties": {
+                                        "Action": {
+                                            "type": "string"
+                                        },
+                                        "Value": {
+                                            "type": "string"
+                                        },
+                                        "extra_args": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "Shell": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                        "Action",
+                                        "Value",
+                                        "Shell"
+                                    ]
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "steps"
+                        ]
+                    },
+                    "workflow_configuration": {
+                        "properties": {
+                            "on_pull_request_pushed": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "on_pull_request_closed": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "on_pull_request_to_draft": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "on_commit_to_default": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "skip_merge_check": {
+                                "type": "boolean"
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "on_pull_request_pushed",
+                            "on_pull_request_closed",
+                            "on_pull_request_to_draft",
+                            "on_commit_to_default",
+                            "skip_merge_check"
+                        ]
+                    }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                    "env_vars",
+                    "workflow_configuration"
+                ]
+            },
+            "type": "object"
+        },
+        "telemetry": {
+            "type": "boolean",
+            "description": "Enable telemetry reporting",
+            "default": true
+        },
+        "generate_projects": {
+            "properties": {
+                "include": {
+                    "type": "string"
+                },
+                "exclude": {
+                    "type": "string"
+                },
+                "terragrunt": {
+                    "type": "boolean"
+                },
+                "blocks": {
+                    "items": {
+                        "properties": {
+                            "include": {
+                                "type": "string"
+                            },
+                            "exclude": {
+                                "type": "string"
+                            },
+                            "include_patterns": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "exclude_patterns": {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "terragrunt": {
+                                "type": "boolean"
+                            },
+                            "root_dir": {
+                                "type": "string"
+                            },
+                            "terragrunt_parsing": {
+                                "properties": {
+                                    "gitRoot": {
+                                        "type": "string"
+                                    },
+                                    "autoPlan": {
+                                        "type": "boolean"
+                                    },
+                                    "autoMerge": {
+                                        "type": "boolean"
+                                    },
+                                    "ignoreParentTerragrunt": {
+                                        "type": "boolean"
+                                    },
+                                    "createParentProject": {
+                                        "type": "boolean"
+                                    },
+                                    "ignoreDependencyBlocks": {
+                                        "type": "boolean"
+                                    },
+                                    "triggerProjectsFromDirOnly": {
+                                        "type": "boolean"
+                                    },
+                                    "parallel": {
+                                        "type": "boolean"
+                                    },
+                                    "createWorkspace": {
+                                        "type": "boolean"
+                                    },
+                                    "createProjectName": {
+                                        "type": "boolean"
+                                    },
+                                    "projectAliasDelimiter": {
+                                        "type": "string"
+                                    },
+                                    "defaultTerraformVersion": {
+                                        "type": "string"
+                                    },
+                                    "defaultWorkflow": {
+                                        "type": "string"
+                                    },
+                                    "filterPaths": {
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "outputPath": {
+                                        "type": "string"
+                                    },
+                                    "preserveWorkflows": {
+                                        "type": "boolean"
+                                    },
+                                    "preserveProjects": {
+                                        "type": "boolean"
+                                    },
+                                    "cascadeDependencies": {
+                                        "type": "boolean"
+                                    },
+                                    "defaultApplyRequirements": {
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "projectHclFiles": {
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "createHclProjectChilds": {
+                                        "type": "boolean"
+                                    },
+                                    "createHclProjectExternalChilds": {
+                                        "type": "boolean"
+                                    },
+                                    "useProjectMarkers": {
+                                        "type": "boolean"
+                                    },
+                                    "executionOrderGroups": {
+                                        "type": "boolean"
+                                    },
+                                    "workflow_file": {
+                                        "type": "string"
+                                    },
+                                    "aws_role_to_assume": {
+                                        "properties": {
+                                            "aws_role_region": {
+                                                "type": "string"
+                                            },
+                                            "state": {
+                                                "type": "string"
+                                            },
+                                            "command": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "type": "object",
+                                        "required": [
+                                            "aws_role_region",
+                                            "state",
+                                            "command"
+                                        ]
+                                    },
+                                    "aws_cognito_oidc": {
+                                        "properties": {
+                                            "aws_account_id": {
+                                                "type": "string"
+                                            },
+                                            "aws_region": {
+                                                "type": "string"
+                                            },
+                                            "cognito_identity_pool_id": {
+                                                "type": "string"
+                                            },
+                                            "session_duration": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "type": "object",
+                                        "required": [
+                                            "aws_account_id",
+                                            "cognito_identity_pool_id",
+                                            "session_duration"
+                                        ]
+                                    },
+                                    "dependsOnOrdering": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                    "autoPlan",
+                                    "autoMerge",
+                                    "createParentProject",
+                                    "ignoreDependencyBlocks",
+                                    "triggerProjectsFromDirOnly",
+                                    "createWorkspace",
+                                    "createProjectName",
+                                    "projectAliasDelimiter",
+                                    "defaultTerraformVersion",
+                                    "defaultWorkflow",
+                                    "filterPaths",
+                                    "outputPath",
+                                    "preserveProjects",
+                                    "defaultApplyRequirements",
+                                    "projectHclFiles",
+                                    "createHclProjectChilds",
+                                    "useProjectMarkers",
+                                    "executionOrderGroups",
+                                    "workflow_file"
+                                ]
+                            },
+                            "opentofu": {
+                                "type": "boolean"
+                            },
+                            "workspace": {
+                                "type": "string"
+                            },
+                            "block_name": {
+                                "type": "string"
+                            },
+                            "workflow": {
+                                "type": "string"
+                            },
+                            "workflow_file": {
+                                "type": "string"
+                            },
+                            "aws_role_to_assume": {
+                                "properties": {
+                                    "aws_role_region": {
+                                        "type": "string"
+                                    },
+                                    "state": {
+                                        "type": "string"
+                                    },
+                                    "command": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                    "aws_role_region",
+                                    "state",
+                                    "command"
+                                ]
+                            },
+                            "aws_cognito_oidc": {
+                                "properties": {
+                                    "aws_account_id": {
+                                        "type": "string"
+                                    },
+                                    "aws_region": {
+                                        "type": "string"
+                                    },
+                                    "cognito_identity_pool_id": {
+                                        "type": "string"
+                                    },
+                                    "session_duration": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                    "aws_account_id",
+                                    "cognito_identity_pool_id",
+                                    "session_duration"
+                                ]
+                            }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                            "include",
+                            "exclude",
+                            "terragrunt",
+                            "root_dir",
+                            "opentofu",
+                            "workspace",
+                            "block_name",
+                            "workflow",
+                            "workflow_file"
+                        ]
+                    },
+                    "type": "array"
+                },
+                "terragrunt_parsing": {
+                    "properties": {
+                        "gitRoot": {
+                            "type": "string"
+                        },
+                        "autoPlan": {
+                            "type": "boolean"
+                        },
+                        "autoMerge": {
+                            "type": "boolean"
+                        },
+                        "ignoreParentTerragrunt": {
+                            "type": "boolean"
+                        },
+                        "createParentProject": {
+                            "type": "boolean"
+                        },
+                        "ignoreDependencyBlocks": {
+                            "type": "boolean"
+                        },
+                        "triggerProjectsFromDirOnly": {
+                            "type": "boolean"
+                        },
+                        "parallel": {
+                            "type": "boolean"
+                        },
+                        "createWorkspace": {
+                            "type": "boolean"
+                        },
+                        "createProjectName": {
+                            "type": "boolean"
+                        },
+                        "projectAliasDelimiter": {
+                            "type": "string"
+                        },
+                        "defaultTerraformVersion": {
+                            "type": "string"
+                        },
+                        "defaultWorkflow": {
+                            "type": "string"
+                        },
+                        "filterPaths": {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        "outputPath": {
+                            "type": "string"
+                        },
+                        "preserveWorkflows": {
+                            "type": "boolean"
+                        },
+                        "preserveProjects": {
+                            "type": "boolean"
+                        },
+                        "cascadeDependencies": {
+                            "type": "boolean"
+                        },
+                        "defaultApplyRequirements": {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        "projectHclFiles": {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        "createHclProjectChilds": {
+                            "type": "boolean"
+                        },
+                        "createHclProjectExternalChilds": {
+                            "type": "boolean"
+                        },
+                        "useProjectMarkers": {
+                            "type": "boolean"
+                        },
+                        "executionOrderGroups": {
+                            "type": "boolean"
+                        },
+                        "workflow_file": {
+                            "type": "string"
+                        },
+                        "aws_role_to_assume": {
+                            "properties": {
+                                "aws_role_region": {
+                                    "type": "string"
+                                },
+                                "state": {
+                                    "type": "string"
+                                },
+                                "command": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                                "aws_role_region",
+                                "state",
+                                "command"
+                            ]
+                        },
+                        "aws_cognito_oidc": {
+                            "properties": {
+                                "aws_account_id": {
+                                    "type": "string"
+                                },
+                                "aws_region": {
+                                    "type": "string"
+                                },
+                                "cognito_identity_pool_id": {
+                                    "type": "string"
+                                },
+                                "session_duration": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                                "aws_account_id",
+                                "cognito_identity_pool_id",
+                                "session_duration"
+                            ]
+                        },
+                        "dependsOnOrdering": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                        "autoPlan",
+                        "autoMerge",
+                        "createParentProject",
+                        "ignoreDependencyBlocks",
+                        "triggerProjectsFromDirOnly",
+                        "createWorkspace",
+                        "createProjectName",
+                        "projectAliasDelimiter",
+                        "defaultTerraformVersion",
+                        "defaultWorkflow",
+                        "filterPaths",
+                        "outputPath",
+                        "preserveProjects",
+                        "defaultApplyRequirements",
+                        "projectHclFiles",
+                        "createHclProjectChilds",
+                        "useProjectMarkers",
+                        "executionOrderGroups",
+                        "workflow_file"
+                    ]
+                },
+                "aws_role_to_assume": {
+                    "properties": {
+                        "aws_role_region": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string"
+                        },
+                        "command": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                        "aws_role_region",
+                        "state",
+                        "command"
+                    ]
+                },
+                "aws_cognito_oidc": {
+                    "properties": {
+                        "aws_account_id": {
+                            "type": "string"
+                        },
+                        "aws_region": {
+                            "type": "string"
+                        },
+                        "cognito_identity_pool_id": {
+                            "type": "string"
+                        },
+                        "session_duration": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                        "aws_account_id",
+                        "cognito_identity_pool_id",
+                        "session_duration"
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "include",
+                "exclude",
+                "terragrunt",
+                "blocks"
+            ]
+        },
+        "traverse_to_nested_projects": {
+            "type": "boolean",
+            "description": "When generating projects, traverse into nested directories",
+            "default": false
+        },
+        "mention_drifted_projects_in_pr": {
+            "type": "boolean",
+            "description": "Mention projects with drift in PR comments",
+            "default": false
+        },
+        "report_terraform_outputs": {
+            "type": "boolean",
+            "description": "Include Terraform outputs in PR comments",
+            "default": true
+        },
+        "reporting": {
+            "properties": {
+                "ai_summary": {
+                    "type": "boolean"
+                },
+                "comments_enabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "ai_summary",
+                "comments_enabled"
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+        "apply_after_merge",
+        "respect_layers",
+        "allow_draft_prs",
+        "dependency_configuration",
+        "delete_prior_comments",
+        "disable_digger_apply_comment",
+        "pr_locks",
+        "projects",
+        "auto_merge",
+        "auto_merge_strategy",
+        "comment_render_mode",
+        "workflows",
+        "generate_projects",
+        "traverse_to_nested_projects",
+        "mention_drifted_projects_in_pr",
+        "report_terraform_outputs",
+        "reporting"
+    ],
+    "title": "Digger Configuration",
+    "description": "Configuration schema for digger.yml - the source of truth for Digger configuration validation"
+}
