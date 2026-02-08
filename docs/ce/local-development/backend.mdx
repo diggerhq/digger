@@ -4,9 +4,40 @@ title: Backend (orchestrator) local setup
 
 The backend serves orchestration APIs, GitHub app endpoints, and internal APIs the UI relies on.
 
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- Go 1.25 or later
+- [Atlas CLI](https://atlasgo.io/getting-started#installation) (for database migrations)
+- PostgreSQL (running locally or via Docker)
+- Docker (optional, for running PostgreSQL)
+
+<Tip>
+If you don't have Atlas installed, you can install it via Homebrew: `brew install ariga/tap/atlas`
+</Tip>
+
 ## Quick start
 
-1. Create `backend/.env` with the essentials (adjust DB URL/ports):
+1. Start PostgreSQL (if using Docker):
+   ```bash
+   cd backend
+   docker-compose up postgres -d
+   ```
+
+2. Run database migrations:
+   ```bash
+   atlas migrate apply --url "postgres://postgres:23q4RSDFSDFS@127.0.0.1:5432/postgres?sslmode=disable"
+   ```
+
+   <Note>
+   If you encounter checksum or dirty state errors, add the `--allow-dirty` flag:
+   ```bash
+   atlas migrate apply --url "postgres://postgres:23q4RSDFSDFS@127.0.0.1:5432/postgres?sslmode=disable" --allow-dirty
+   ```
+   </Note>
+
+3. Create `backend/.env` with the essentials (adjust DB URL/ports):
    ```bash
    DATABASE_URL=postgres://postgres:root@localhost:5432/postgres?sslmode=disable
    DIGGER_INTERNAL_SECRET=orchestrator-secret          # must match UI ORCHESTRATOR_BACKEND_SECRET
@@ -17,7 +48,8 @@ The backend serves orchestration APIs, GitHub app endpoints, and internal APIs t
    Optional but useful:
    - `GITHUB_APP_ID`, `GITHUB_APP_PEM`, `GITHUB_APP_WEBHOOK_SECRET` if you already have an app.
    - `GITHUB_ORG` if you want `/github/setup` to target an org.
-2. Start the service (from `backend/`):
+
+4. Start the service (from `backend/`):
    ```bash
    set -a; source .env; set +a
    go run main.go              # or: make start
@@ -59,3 +91,17 @@ The backend serves orchestration APIs, GitHub app endpoints, and internal APIs t
 - **404 on /api/repos**: ensure `DIGGER_ENABLE_API_ENDPOINTS=true` and the org/user above are created.
 - **401/403**: verify `Authorization` header uses `DIGGER_INTERNAL_SECRET`.
 - **GitHub connect 404**: set `ORCHESTRATOR_GITHUB_APP_URL` as described.
+
+<Accordion title="Disabling authentication for local testing">
+<Warning>
+Only use this for local development and testing. Never use `NOOP_AUTH` in production.
+</Warning>
+
+If you need to quickly test the backend without setting up authentication, you can disable it entirely by adding to your `.env`:
+
+```bash
+NOOP_AUTH=true
+```
+
+This bypasses all authentication checks, allowing you to call any endpoint without credentials.
+</Accordion>

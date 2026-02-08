@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 	"strconv"
+	"time"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci"
@@ -200,7 +201,22 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 	const GithubCommentMaxLength = 65536
 	if len(message) > GithubCommentMaxLength {
 		slog.Warn("Comment message too long, trimming", "originalLength", len(message), "maxLength", GithubCommentMaxLength)
-		const footer = "\n\n[Message truncated due to length limits]"
+
+		var footer string
+		if len(jobs) > 0 {
+			// Generate signed URL for full output (30-day expiry)
+			path := fmt.Sprintf("/api/jobs/%s/output", jobs[0].DiggerJobID)
+			outputURL, err := SignURL(path, time.Now().Add(30*24*time.Hour))
+			if err == nil && outputURL != "" {
+				footer = fmt.Sprintf("\n\n---\n[Plan output truncated. View full plan](%s)", outputURL)
+			} else {
+				slog.Warn("Failed to generate signed URL for job output", "jobId", jobs[0].DiggerJobID, "error", err)
+				footer = "\n\n[Message truncated due to length limits]"
+			}
+		} else {
+			footer = "\n\n[Message truncated due to length limits]"
+		}
+
 		trimLength := len(message) - GithubCommentMaxLength + len(footer)
 		message = message[:len(message)-trimLength] + footer
 		slog.Debug("Trimmed comment message", "newLength", len(message))

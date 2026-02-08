@@ -1082,7 +1082,6 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 	}()
 
-
 	if batch.ReportTerraformOutputs {
 		slog.Info("Generating Terraform outputs summary", "batchId", batch.ID)
 		err = CreateTerraformOutputsSummary(d.GithubClientProvider, batch)
@@ -1759,4 +1758,30 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 	}
 
 	return nil
+}
+
+// GetJobOutput serves the full terraform output for a job via signed URL.
+// GET /api/jobs/:jobId/output?exp=...&sig=...
+func (d DiggerController) GetJobOutput(c *gin.Context) {
+	// Verify signed URL using the full request URL
+	fullURL := c.Request.URL.String()
+	if err := utils.VerifySignedURL(fullURL); err != nil {
+		slog.Warn("Invalid signed URL for job output", "error", err)
+		c.String(http.StatusUnauthorized, "Invalid or expired URL")
+		return
+	}
+
+	jobID := c.Param("jobId")
+
+	// Fetch job from database
+	job, err := models.DB.GetDiggerJob(jobID)
+	if err != nil {
+		slog.Warn("Job not found for output request", "jobId", jobID, "error", err)
+		c.String(http.StatusNotFound, "Job not found")
+		return
+	}
+
+	// Return full output as plain text
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.String(http.StatusOK, job.TerraformOutput)
 }

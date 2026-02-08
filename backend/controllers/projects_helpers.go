@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 	"unicode/utf8"
 
 	"github.com/diggerhq/digger/backend/models"
@@ -460,8 +461,19 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 
 	// Character limit check - GitHub check run text field has a 65535 character limit
 	const maxCheckRunTextLength = 65535
-	cutOffMsg := "\n[Character limit exceeded, output truncated]"
 	if utf8.RuneCountInString(job.TerraformOutput) > maxCheckRunTextLength {
+		// Generate signed URL for full output (30-day expiry)
+		path := fmt.Sprintf("/orchestrator/api/jobs/%s/output", job.DiggerJobID)
+		outputURL, urlErr := utils.SignURL(path, time.Now().Add(30*24*time.Hour))
+
+		var cutOffMsg string
+		if urlErr == nil && outputURL != "" {
+			cutOffMsg = fmt.Sprintf("\n\n[Output truncated. View full output](%s)", outputURL)
+		} else {
+			slog.Warn("Failed to generate signed URL for job output", "jobId", job.DiggerJobID, "error", urlErr)
+			cutOffMsg = "\n[Character limit exceeded, output truncated]"
+		}
+
 		runes := []rune(job.TerraformOutput)
 		truncateAt := maxCheckRunTextLength - utf8.RuneCountInString(cutOffMsg)
 		job.TerraformOutput = string(runes[:truncateAt]) + cutOffMsg
