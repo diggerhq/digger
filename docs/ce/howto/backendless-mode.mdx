@@ -55,3 +55,52 @@ create a small resource in your cloud account to store which PR locked which pro
 In case of AWS, during the first run digger will create this resource for you. However in case of GCP and azure you need to create it yourself and supply it as an argument.
 
 After the resource is created digger will continue to use it for subsequent runs in order to store information about the locks and function correctly.
+
+# Community Example: GitHub-Only State Storage
+
+For teams who want to eliminate cloud storage dependencies entirely, there's a community example that demonstrates storing OpenTofu state in GitHub Container Registry (GHCR) using OCI artifacts.
+
+<Note>
+This approach is **experimental** and not recommended for production use. It showcases what's possible with the upcoming native OCI backend support in OpenTofu.
+</Note>
+
+## What It Does
+
+The [opentaco-with-github-storage-example](https://github.com/kvokka/opentaco-with-github-storage-example) repository demonstrates a fully GitHub-contained infrastructure workflow:
+
+- **State storage**: OpenTofu state stored as encrypted OCI artifacts in GHCR
+- **CI/CD**: GitHub Actions with Digger in backendless mode (`no-backend: true`)
+- **Everything in one place**: Code, state, and CI all within GitHub's ecosystem
+
+## How It Works
+
+```
+PR opened ──> Digger ──> ghoten ──> ORAS push/pull ──> GHCR (encrypted state)
+```
+
+The setup uses [ghoten](https://github.com/vmvarela/ghoten), a bridge tool that enables OpenTofu to use ORAS (OCI Registry as Storage) for state management. State files are encrypted using PBKDF2/AES-GCM before being stored in GHCR.
+
+## Benefits
+
+- **No cloud storage setup**: No need for DynamoDB, S3, GCS, or Azure Storage Tables
+- **Single platform**: Everything stays within GitHub (repository, packages, actions)
+- **Encrypted state**: State and plan files are encrypted at rest
+- **GitOps workflow**: PRs trigger plans, comments trigger applies
+
+## Limitations
+
+| Limitation | Impact |
+|------------|--------|
+| Best-effort locking | No DynamoDB/GCS-style locking. Concurrent applies may corrupt state. |
+| Experimental | `ghoten` is archived and pinned to OpenTofu v1.11.4. |
+| No key rotation | Encryption key cannot be rotated without state migration. |
+| Unrecoverable state | Losing your encryption key means losing your state. |
+
+## When to Consider This
+
+This approach may be useful for:
+- Personal projects and experiments
+- Learning and demonstrations
+- Teams exploring what's possible before native OCI backend support arrives
+
+For production workloads, continue using the standard cloud provider backends (DynamoDB, GCS Bucket, Azure Storage Tables) as described in this guide.
