@@ -1130,6 +1130,81 @@ generate_projects:
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
+func TestDiggerGenerateProjectsWithDynamicProviders(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - include: opentofu/*
+      opentofu: true
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	// Create OpenTofu project directory with dynamic provider using for_each
+	projectDir := path.Join(tempDir, "opentofu/dynamic-provider")
+	err := os.MkdirAll(projectDir, os.ModePerm)
+	assert.NoError(t, err, "expected error to be nil")
+
+	// Create a main.tf with dynamic provider configuration (for_each in provider block)
+	// and resources that reference the dynamic provider
+	mainTfContent := `
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+variable "regions" {
+  type    = set(string)
+  default = ["us-east-1", "us-west-2"]
+}
+
+provider "aws" {
+  for_each = var.regions
+  region   = each.key
+  alias    = each.key
+}
+
+module "vpc" {
+  source = "./modules/vpc"
+}
+
+resource "aws_s3_bucket" "example" {
+  for_each = var.regions
+  provider = aws[each.key]
+  bucket   = "my-bucket-${each.key}"
+}
+`
+	defer createFile(path.Join(projectDir, "main.tf"), mainTfContent)()
+
+	// Create a local module directory
+	moduleDir := path.Join(projectDir, "modules/vpc")
+	err = os.MkdirAll(moduleDir, os.ModePerm)
+	assert.NoError(t, err, "expected error to be nil")
+
+	moduleContent := `
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+`
+	defer createFile(path.Join(moduleDir, "main.tf"), moduleContent)()
+
+	// Load config and verify it parses successfully despite the dynamic provider
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err, "expected error to be nil - dynamic providers with for_each should be parseable")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, 1, len(dg.Projects), "expected 1 project to be generated")
+	assert.Equal(t, "opentofu_dynamic-provider", dg.Projects[0].Name)
+	assert.Equal(t, true, dg.Projects[0].OpenTofu)
+	assert.Equal(t, "opentofu/dynamic-provider", dg.Projects[0].Dir)
+}
+
 // TestDiggerGenerateProjectsEmptyParameters test if missing parameters for generate_projects are handled correctly
 func TestDiggerGenerateProjectsEmptyParameters(t *testing.T) {
 	_, teardown := setUp()
