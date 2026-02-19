@@ -56,7 +56,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	orgName := os.Getenv("DIGGER_ORGANISATION")
-	var policyChecker, _ = policyCheckerProvider.Get(hostName, token, orgName)
+	policyChecker, _ := policyCheckerProvider.Get(hostName, token, orgName)
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
@@ -300,10 +300,14 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig, true)
 		} else if commentEvent, ok := ghEvent.(github.IssueCommentEvent); ok {
-			prBranchName, _, _, _, err := githubPrService.GetBranchName(*commentEvent.Issue.Number)
-
-			if err != nil {
-				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retrieving default branch from Issue: %v", err), 6)
+			var prBranchName string
+			if commentEvent.Issue.IsPullRequest() {
+				prBranchName, _, _, _, err = githubPrService.GetBranchName(*commentEvent.Issue.Number)
+				if err != nil {
+					usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while retrieving default branch from Issue: %v", err), 6)
+				}
+			} else {
+				prBranchName = *commentEvent.Repo.DefaultBranch
 			}
 			defaultBranch := *commentEvent.Repo.DefaultBranch
 			repoFullName := *commentEvent.Repo.FullName
