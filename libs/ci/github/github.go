@@ -624,6 +624,16 @@ func (svc GithubService) GetCheckRunsForCommit(commitSha string) ([]*github.Chec
 }
 
 func (svc GithubService) GetCombinedPullRequestStatus(prNumber int) (string, error) {
+	isPullRequest, err := svc.IsPullRequest(prNumber)
+	if err != nil {
+		slog.Error("error checking if PR is issue", "error", err, "prNumber", prNumber)
+		return "", fmt.Errorf("error checking if PR is issue: %v", err)
+	}
+
+	if !isPullRequest {
+		return "success", nil
+	}
+
 	pr, _, err := svc.Client.PullRequests.Get(context.Background(), svc.Owner, svc.RepoName, prNumber)
 	if err != nil {
 		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
