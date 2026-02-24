@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/diggerhq/digger/libs => ../libs
 
 require (
-	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 	github.com/stretchr/testify v1.10.0
 )
 

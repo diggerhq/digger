@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/diggerhq/digger/libs => ../libs
 
 require (
-	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 	github.com/google/go-github/v61 v61.0.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/spf13/cobra v1.9.1
@@ -77,11 +77,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.0 // indirect
 	github.com/aws/smithy-go v1.22.5 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/caarlos0/env/v11 v11.1.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -161,6 +163,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/m1gwings/treedrawer v0.3.3-beta // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
@@ -211,6 +214,7 @@ require (
 	github.com/urfave/cli/v2 v2.25.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/xanzy/go-gitlab v0.106.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect

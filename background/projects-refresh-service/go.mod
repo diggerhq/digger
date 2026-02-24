@@ -10,7 +10,7 @@ exclude google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b
 
 require (
 	github.com/diggerhq/digger/backend v0.0.0-00010101000000-000000000000
-	github.com/diggerhq/digger/libs v0.0.0-00010101000000-000000000000
+	github.com/diggerhq/digger/libs v0.0.0-20240604170430-9d61cdf01cc5
 )
 
 require (
@@ -104,6 +104,7 @@ require (
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
+	github.com/getsentry/sentry-go v0.29.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.10.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
