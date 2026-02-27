@@ -362,11 +362,15 @@ runs:
       if: ${{ inputs.setup-aws == 'true' && inputs.aws-role-to-assume != '' }}
 
     - name: Configure OIDC Azure credentials
-      uses: azure/login@6c251865b4e6290e7b78be643ea2d005bc51f69a # v2.1.1
+      uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
       with:
         client-id: ${{ inputs.azure-client-id }}
         tenant-id: ${{ inputs.azure-tenant-id }}
         subscription-id: ${{ inputs.azure-subscription-id }}
+      env:
+        # Disable post-cleanup when Azure is not being used (v2.2.0+ feature)
+        # See: https://github.com/Azure/login/pull/484
+        AZURE_LOGIN_POST_CLEANUP: ${{ inputs.setup-azure == 'true' && 'true' || 'false' }}
       if: ${{ inputs.setup-azure == 'true' && inputs.azure-client-id != '' }}
 
     # if terraform-cache-dir is set then we set it to that otherwise set it to '${{github.workspace}}/cache'
