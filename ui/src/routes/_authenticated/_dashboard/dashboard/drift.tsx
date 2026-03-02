@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle, AlertCircle, Save, TestTube, Clock, ArrowLeft, Slack } from 'lucide-react'
+import { CheckCircle, AlertCircle, Save, TestTube, Clock, ArrowLeft, SearchCheck } from 'lucide-react'
 import { OrgSettings } from '@/api/orchestrator_types'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
@@ -129,19 +129,19 @@ function RouteComponent() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Slack className="h-5 w-5" />
-              Slack Notifications
+              <SearchCheck className="h-5 w-5" />
+              Drift Detection
             </CardTitle>
             <CardDescription>
-              Get notified in Slack when drift is detected in your infrastructure
+              Enable or disable drift detection across all projects in your organization
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base font-medium">Enable Slack notifications</Label>
+                <Label className="text-base font-medium">Enable drift detection</Label>
                 <div className="text-sm text-gray-600">
-                  Receive drift reports and alerts in your Slack workspace
+                  This must be enabled for drift detection to run for any project.
                 </div>
               </div>
               <Switch
@@ -151,11 +151,32 @@ function RouteComponent() {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Alert Delivery (Slack)
+            </CardTitle>
+            <CardDescription>
+              Configure Slack delivery for drift alerts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <fieldset
+              disabled={!settingsState.drift_enabled}
+              className={`space-y-6 ${!settingsState.drift_enabled ? 'opacity-60' : ''}`}
+            >
 
             <div className="space-y-3">
               <Label htmlFor="webhook-url" className="text-base font-medium">
                 Slack Webhook URL
               </Label>
+              <div className="text-sm text-gray-600">
+                Receive drift reports and alerts in your Slack workspace
+              </div>
               <Input
                 id="webhook-url"
                 type="url"
@@ -171,7 +192,7 @@ function RouteComponent() {
               </div>
             </div>
 
-            {settingsState.drift_webhook_url && !isValidWebhookUrl(settingsState.drift_webhook_url) && (
+            {settingsState.drift_enabled && settingsState.drift_webhook_url && !isValidWebhookUrl(settingsState.drift_webhook_url) && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -180,7 +201,7 @@ function RouteComponent() {
               </Alert>
             )}
 
-            {settingsState.drift_webhook_url && isValidWebhookUrl(settingsState.drift_webhook_url) && (
+            {settingsState.drift_enabled && settingsState.drift_webhook_url && isValidWebhookUrl(settingsState.drift_webhook_url) && (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -199,6 +220,7 @@ function RouteComponent() {
                 {testing ? "Testing..." : "Test Webhook"}
               </Button>
             </div>
+            </fieldset>
           </CardContent>
         </Card>
 
@@ -212,7 +234,11 @@ function RouteComponent() {
               Configure when to check for drift and send notifications
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent>
+            <fieldset
+              disabled={!settingsState.drift_enabled}
+              className={`space-y-6 ${!settingsState.drift_enabled ? 'opacity-60' : ''}`}
+            >
             <div className="space-y-3">
               <Label className="text-base font-medium">Quick Presets</Label>
               <div className="flex flex-wrap gap-2">
@@ -248,7 +274,7 @@ function RouteComponent() {
               </div>
             </div>
 
-            {settingsState.drift_cron_tab && !isValidCrontab(settingsState.drift_cron_tab) && (
+            {settingsState.drift_enabled && settingsState.drift_cron_tab && !isValidCrontab(settingsState.drift_cron_tab) && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -257,7 +283,7 @@ function RouteComponent() {
               </Alert>
             )}
 
-            {settingsState.drift_cron_tab && isValidCrontab(settingsState.drift_cron_tab) && (
+            {settingsState.drift_enabled && settingsState.drift_cron_tab && isValidCrontab(settingsState.drift_cron_tab) && (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -265,15 +291,16 @@ function RouteComponent() {
                 </AlertDescription>
               </Alert>
             )}
-
-            <div className="flex gap-3 pt-4">
-              <Button onClick={handleSave} disabled={saving}>
-                <Save className="mr-2 h-4 w-4" />
-                {saving ? "Saving..." : "Save All Settings"}
-              </Button>
-            </div>
+            </fieldset>
           </CardContent>
         </Card>
+
+        <div className="flex gap-3">
+          <Button onClick={handleSave} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? "Saving..." : "Save all changes"}
+          </Button>
+        </div>
 
         <Card>
           <CardHeader>

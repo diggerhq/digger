@@ -1,0 +1,54 @@
+---
+title: "Drift Detection + Remediation"
+---
+
+Drift Detection + Remediation helps you continuously compare real infrastructure against your IaC definitions, detect unexpected changes, and drive remediation through the same PR-based workflow your team already uses.
+
+<Note>
+  Prerequisites:
+
+  - [Set up your OpenTaco account](/onboarding/account-setup)
+  - [Set up GitHub App](/onboarding/github-app-setup)
+  - A working PR Automation setup with a functional GitHub Actions workflow
+</Note>
+
+## Enable drift detection
+
+To activate drift detection, you must enable it at both levels:
+
+<Steps>
+  <Step title="Enable drift detection at the organization level">
+    In settings, toggle **Enable drift detection** on.
+
+    ![Enable drift detection toggle in settings](/images/onboarding/set-up-in-ui--drift-detection-toggle.png)
+  </Step>
+
+  <Step title="Enable drift for each project you want monitored">
+    In the projects page, toggle **Drift** on for each project.
+
+    ![Project-level drift toggle in projects list](/images/onboarding/set-up-in-ui--drift-project.png)
+  </Step>
+</Steps>
+
+
+## Configure notifications, schedule, and status
+
+<Steps>
+  <Step title="Configure Slack notifications">
+    Configure Slack notifications using a webhook URL.
+
+    ![Slack webhook configuration in drift settings](/images/drift-ui-slack.png)
+  </Step>
+
+  <Step title="Set the drift schedule">
+    Run drift detection on preset intervals (for example, hourly or daily), or use a custom crontab.
+
+    ![Drift detection schedule settings with presets and custom crontab](/images/drift-ui-schedule.png)
+  </Step>
+
+  <Step title="Review drift status in the app">
+    OpenTaco runs a `plan` workflow (via GitHub actions) for selected projects on your default branch. If the plan is not clean, OpenTaco sends a Slack notification and updates drift status in the app.
+
+    ![Drift status overview in OpenTaco](/images/onboarding/set-up-in-ui--drift-page.png)
+  </Step>
+</Steps>
