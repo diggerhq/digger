@@ -6,6 +6,10 @@ sidecar:
 
   replicaCount: 1
 
+  # Pod annotations for sidecar pods.
+  # These override matching keys from global.podAnnotations.
+  podAnnotations: {}
+
   service:
     type: ClusterIP
     port: 9100
@@ -51,3 +55,6 @@ sidecar:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+
+global:
+  podAnnotations: {}

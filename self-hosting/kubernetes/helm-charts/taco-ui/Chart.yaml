@@ -2,6 +2,6 @@ apiVersion: v2
 name: taco-ui
 description: Taco UI - Web-based frontend for OpenTaco infrastructure management platform
 type: application
-version: 0.1.2-public
+version: 0.1.3-public
 appVersion: "v0.1.1"
 icon: https://raw.githubusercontent.com/diggerhq/digger/main/docs/logo/digger-logo.png

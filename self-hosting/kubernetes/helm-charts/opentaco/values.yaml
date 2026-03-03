@@ -13,7 +13,11 @@
 # ============================================================================
 global:
   # Image registry for all custom images
-  imageRegistry: ghcr.io/diggerhq/digger
+  imageRegistry: ghcr.io/diggerhq
+
+  # Pod annotations applied to all subchart workloads by default.
+  # Each subchart can override these keys via its own podAnnotations map.
+  podAnnotations: {}
   
   # Image pull policy
   imagePullPolicy: IfNotPresent
@@ -45,7 +49,7 @@ taco-orchestrator:
   
   digger:
     image:
-      repository: digger-backend-ee
+      repository: digger_backend
       tag: "latest"
     
     replicaCount: 1
@@ -92,7 +96,7 @@ taco-statesman:
   
   taco:
     image:
-      repository: taco-statesman
+      repository: digger/taco-statesman
       tag: "latest"
     
     replicaCount: 1
@@ -142,7 +146,7 @@ taco-token-service:
   
   tokenService:
     image:
-      repository: taco-token-service
+      repository: digger/taco-token-service
       tag: "v0.1.0"
       pullPolicy: "IfNotPresent"
     
@@ -199,7 +203,7 @@ taco-drift:
   
   drift:
     image:
-      repository: drift
+      repository: digger/drift
       tag: "latest"
     
     replicaCount: 1
@@ -246,7 +250,7 @@ taco-ui:
   
   ui:
     image:
-      repository: taco-ui
+      repository: digger/taco-ui
       tag: "v0.1.0"
     
     replicaCount: 1
@@ -264,10 +268,12 @@ taco-ui:
       
       # Backend service URLs (for server-side API calls)
       backends:
-        orchestratorUrl: "http://taco-orchestrator:3000"
-        driftReportingUrl: "http://taco-drift:3004"
-        statesmanUrl: "http://taco-statesman:8080"
-        tokensServiceUrl: "http://taco-token-service:8081"
+        # These defaults assume release name "opentaco".
+        # If you install with a different release name, update these hostnames.
+        orchestratorUrl: "http://opentaco-taco-orchestrator-web:3000"
+        driftReportingUrl: "http://opentaco-taco-drift:3004"
+        statesmanUrl: "http://opentaco-taco-statesman:8080"
+        tokensServiceUrl: "http://opentaco-taco-token-service:8081"
     
     ingress:
       enabled: false

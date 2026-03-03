@@ -159,7 +159,7 @@ Edit each file in `.secrets/` with your actual credentials:
 kubectl create secret generic ui-secrets \
   --from-env-file=.secrets/ui.env -n opentaco
 
-kubectl create secret generic backend-secrets \
+kubectl create secret generic taco-orchestrator-secrets \
   --from-env-file=.secrets/digger-backend.env -n opentaco
 
 kubectl create secret generic statesman-secrets \
@@ -281,10 +281,10 @@ helm install opentaco . -f values-production.yaml -n opentaco
 kubectl get pods -n opentaco
 
 # Check logs
-kubectl logs -f deployment/opentaco-statesman -n opentaco -c statesman
+kubectl logs -f deployment/opentaco-taco-statesman -n opentaco -c statesman
 
 # Access UI locally
-kubectl port-forward svc/opentaco-ui 3030:3030 -n opentaco
+kubectl port-forward svc/opentaco-taco-ui 3030:3030 -n opentaco
 open http://localhost:3030
 ```
 
@@ -294,18 +294,20 @@ Services communicate via Kubernetes DNS:
 
 ```bash
 # From within the cluster:
-http://opentaco-digger-backend-web:3000
-http://opentaco-drift:3004
-http://opentaco-statesman:8080
-http://opentaco-ui:3030
+http://opentaco-taco-orchestrator-web:3000
+http://opentaco-taco-drift:3004
+http://opentaco-taco-statesman:8080
+http://opentaco-taco-ui:3030
 ```
 
 These URLs are configured in `ui.env`:
 ```bash
-ORCHESTRATOR_BACKEND_URL="http://opentaco-digger-backend-web:3000"
-DRIFT_REPORTING_BACKEND_URL="http://opentaco-drift:3004"
-STATESMAN_BACKEND_URL="http://opentaco-statesman:8080"
+ORCHESTRATOR_BACKEND_URL="http://opentaco-taco-orchestrator-web:3000"
+DRIFT_REPORTING_BACKEND_URL="http://opentaco-taco-drift:3004"
+STATESMAN_BACKEND_URL="http://opentaco-taco-statesman:8080"
 ```
+
+If you install with a release name other than `opentaco`, adjust these hostnames to match that release prefix.
 
 ## Upgrading
 
@@ -343,7 +345,7 @@ kubectl logs POD_NAME -n opentaco
 kubectl get secrets -n opentaco
 
 # Verify secret contents
-kubectl get secret backend-secrets -n opentaco -o jsonpath='{.data}' | jq 'keys'
+kubectl get secret taco-orchestrator-secrets -n opentaco -o jsonpath='{.data}' | jq 'keys'
 ```
 
 ### Cloud SQL connection issues

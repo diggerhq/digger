@@ -2,6 +2,6 @@ apiVersion: v2
 name: taco-drift
 description: Taco Drift - Automated infrastructure drift detection and reporting service
 type: application
-version: 0.1.1-public
+version: 0.1.2-public
 appVersion: "v0.1.0"
 icon: https://raw.githubusercontent.com/diggerhq/digger/main/docs/logo/digger-logo.png

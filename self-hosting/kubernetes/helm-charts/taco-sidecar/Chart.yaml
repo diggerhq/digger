@@ -2,7 +2,7 @@ apiVersion: v2
 name: taco-sidecar
 description: Sandbox sidecar service for OpenTaco remote Terraform/OpenTofu runs
 type: application
-version: 0.1.3-public
+version: 0.1.4-public
 appVersion: "0.1.0.1"
 keywords:
   - terraform

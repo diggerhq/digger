@@ -11,6 +11,11 @@ spec:
       {{- include "taco-sidecar.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- $podAnnotations := mergeOverwrite (dict) (default (dict) .Values.global.podAnnotations) (default (dict) .Values.sidecar.podAnnotations) }}
+      {{- if $podAnnotations }}
+      annotations:
+        {{- toYaml $podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "taco-sidecar.selectorLabels" . | nindent 8 }}
     spec:

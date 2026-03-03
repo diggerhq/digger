@@ -5,6 +5,7 @@
 {{- else }}
 {{- $driftSecretName = printf "%s-secret" (include "digger-drift.fullname" .) -}}
 {{- end }}
+{{- $podAnnotations := mergeOverwrite (dict) (default (dict) .Values.global.podAnnotations) (default (dict) .Values.drift.podAnnotations) -}}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -23,6 +24,10 @@ spec:
     spec:
       template:
         metadata:
+          {{- if $podAnnotations }}
+          annotations:
+            {{- toYaml $podAnnotations | nindent 12 }}
+          {{- end }}
           labels:
             app.kubernetes.io/name: {{ include "digger-drift.name" . }}
             app.kubernetes.io/instance: {{ .Release.Name }}
@@ -68,6 +73,10 @@ spec:
     spec:
       template:
         metadata:
+          {{- if $podAnnotations }}
+          annotations:
+            {{- toYaml $podAnnotations | nindent 12 }}
+          {{- end }}
           labels:
             app.kubernetes.io/name: {{ include "digger-drift.name" . }}
             app.kubernetes.io/instance: {{ .Release.Name }}

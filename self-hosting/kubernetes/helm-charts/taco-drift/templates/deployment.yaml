@@ -11,6 +11,11 @@ spec:
       {{- include "digger-drift.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- $podAnnotations := mergeOverwrite (dict) (default (dict) .Values.global.podAnnotations) (default (dict) .Values.drift.podAnnotations) }}
+      {{- if $podAnnotations }}
+      annotations:
+        {{- toYaml $podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "digger-drift.selectorLabels" . | nindent 8 }}
     spec:

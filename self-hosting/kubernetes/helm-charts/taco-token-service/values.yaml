@@ -10,6 +10,10 @@ tokenService:
   # Number of replicas
   replicaCount: 1
 
+  # Pod annotations for token-service pods.
+  # These override matching keys from global.podAnnotations.
+  podAnnotations: {}
+
   # Service configuration
   service:
     type: ClusterIP
@@ -59,3 +63,4 @@ tokenService:
 # Global configuration (optional)
 global:
   imagePullSecrets: []
+  podAnnotations: {}

@@ -19,6 +19,10 @@ drift:
   # Number of replicas
   replicaCount: 1
 
+  # Pod annotations for drift pods.
+  # These override matching keys from global.podAnnotations.
+  podAnnotations: {}
+
   # Custom environment variables
   customEnv: []
   #   - name: MY_CUSTOM_ENV
@@ -107,3 +111,4 @@ drift:
 # Global configuration (optional)
 global:
   imagePullSecrets: []
+  podAnnotations: {}

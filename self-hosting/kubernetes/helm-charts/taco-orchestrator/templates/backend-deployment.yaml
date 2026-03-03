@@ -11,6 +11,11 @@ spec:
       app: {{ include "taco-orchestrator.name" . }}-web
   template:
     metadata:
+      {{- $podAnnotations := mergeOverwrite (dict) (default (dict) .Values.global.podAnnotations) (default (dict) .Values.digger.podAnnotations) }}
+      {{- if $podAnnotations }}
+      annotations:
+        {{- toYaml $podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ include "taco-orchestrator.name" . }}-web
         {{- include "taco-orchestrator.selectorLabels" . | nindent 8 }}
@@ -42,7 +47,12 @@ spec:
       {{- end }}
       containers:
       - name: web
-        image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
+        {{- $repo := .Values.digger.image.repository }}
+        {{- if contains "/" $repo }}
+        image: "{{ $repo }}:{{ .Values.digger.image.tag }}"
+        {{- else }}
+        image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ $repo }}:{{ .Values.digger.image.tag }}"
+        {{- end }}
         imagePullPolicy: {{ .Values.digger.image.pullPolicy | default "IfNotPresent" }}
         ports:
         - name: http

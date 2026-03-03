@@ -24,6 +24,10 @@ ui:
   # Number of replicas
   replicaCount: 1
 
+  # Pod annotations for ui pods.
+  # These override matching keys from global.podAnnotations.
+  podAnnotations: {}
+
   # Service configuration
   # Creates: PORT (set automatically from port)
   service:
@@ -128,3 +132,4 @@ ui:
 # Global configuration (optional)
 global:
   imagePullSecrets: []
+  podAnnotations: {}
