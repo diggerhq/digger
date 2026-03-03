@@ -12,6 +12,12 @@
     "dark": "#8101E4"
   },
   "favicon": "/favicon.png",
+  "redirects": [
+    {
+      "source": "/readme/introduction",
+      "destination": "/introduction/introduction"
+    }
+  ],
   "navigation": {
     "anchors": [
       {
