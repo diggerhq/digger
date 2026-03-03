@@ -70,6 +70,51 @@ Run these commands from `self-hosting/kubernetes/`.
     ```bash
     cp helm-charts/opentaco/helm.platform-reference.yaml values-opentaco.yaml
     ```
+
+    Skeleton structure for `values-opentaco.yaml`:
+
+    ```yaml
+    global:
+      # Shared image settings (registry, pull policy)
+
+    taco-orchestrator:
+      digger:
+        # API service settings (replicas, service account, DB connectivity)
+        # Choose one DB path: postgres or cloudSql
+
+    taco-statesman:
+      taco:
+        # Public URL and app signing/storage settings
+        # Configure object storage (S3-compatible) and database
+
+    taco-token-service:
+      tokenService:
+        # Token service secret + database settings
+
+    taco-drift:
+      drift:
+        # Drift detection service secret + cronjob settings
+
+    taco-sidecar:
+      sidecar:
+        # Runner/sandbox integration secrets and runtime settings
+
+    taco-ui:
+      ui:
+        # UI ingress host/TLS and UI secret settings
+
+    networkPolicies:
+      # Optional cluster network policy toggle
+
+    serviceMonitor:
+      # Optional Prometheus scrape integration
+    ```
+
+    If you started from `helm.platform-reference.yaml`, expect the same service sections but pre-wired to:
+
+    - Shared in-cluster PostgreSQL endpoints
+    - MinIO object storage endpoint
+    - `cloudSql.enabled: false` for services by default
   </Step>
   <Step title="Get ingress load balancer endpoint and create DNS">
     Capture the external endpoint from your ingress or Gateway API implementation.
@@ -108,19 +153,27 @@ Run these commands from `self-hosting/kubernetes/`.
     kubectl create secret generic ui-secrets \
       --from-env-file=helm-charts/secrets-example/ui.env \
       -n opentaco --dry-run=client -o yaml | kubectl apply -f -
+    ```
 
+    ```bash
     kubectl create secret generic taco-orchestrator-secrets \
       --from-env-file=helm-charts/secrets-example/digger-backend.env \
       -n opentaco --dry-run=client -o yaml | kubectl apply -f -
+    ```
 
+    ```bash
     kubectl create secret generic statesman-secrets \
       --from-env-file=helm-charts/secrets-example/statesman.env \
       -n opentaco --dry-run=client -o yaml | kubectl apply -f -
+    ```
 
+    ```bash
     kubectl create secret generic drift-secrets \
       --from-env-file=helm-charts/secrets-example/drift.env \
       -n opentaco --dry-run=client -o yaml | kubectl apply -f -
+    ```
 
+    ```bash
     kubectl create secret generic taco-sidecar-secrets \
       --from-env-file=helm-charts/secrets-example/sidecar.env \
       -n opentaco --dry-run=client -o yaml | kubectl apply -f -
