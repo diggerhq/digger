@@ -24,7 +24,7 @@ spec:
       {{- end }}
       containers:
         - name: token-service
-          image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.tokenService.image.repository }}:{{ .Values.tokenService.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.tokenService.image.registry | default .Values.global.imageRegistry | default "ghcr.io/diggerhq" }}/{{ .Values.tokenService.image.repository }}:{{ .Values.tokenService.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.tokenService.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http

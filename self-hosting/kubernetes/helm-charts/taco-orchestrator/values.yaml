@@ -12,10 +12,12 @@ digger:
   replicaCount: 1
 
   # Image configuration
-  # Supports either a full image repository (for example ghcr.io/diggerhq/digger_backend)
-  # or a repository name combined with global.imageRegistry.
+  # Repository path is combined with digger.image.registry/global.imageRegistry.
+  # Example rendered image: ghcr.io/diggerhq/digger_backend:latest
   image:
-    repository: ghcr.io/diggerhq/digger_backend
+    # Optional per-chart registry override. Falls back to global.imageRegistry.
+    registry: ""
+    repository: digger_backend
     tag: "latest"
     pullPolicy: IfNotPresent
 

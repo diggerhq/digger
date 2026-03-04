@@ -39,3 +39,34 @@ tests:
             limits:
               cpu: "500m"
               memory: "200Mi"
+
+  - it: should combine global imageRegistry with unqualified repository
+    set:
+      global.imageRegistry: registry.example.com/acme
+      digger.image.repository: digger_backend
+      digger.image.tag: v1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/acme/digger_backend:v1.2.3
+
+  - it: should prefer digger image registry over global imageRegistry
+    set:
+      global.imageRegistry: registry.example.com/global
+      digger.image.registry: registry.example.com/service
+      digger.image.repository: digger_backend
+      digger.image.tag: v1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/service/digger_backend:v1.2.3
+
+  - it: should always combine registry and repository path
+    set:
+      global.imageRegistry: registry.example.com/acme
+      digger.image.repository: diggerhq/digger_backend
+      digger.image.tag: v1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/acme/diggerhq/digger_backend:v1.2.3

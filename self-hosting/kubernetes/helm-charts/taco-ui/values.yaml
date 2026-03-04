@@ -17,7 +17,9 @@ ui:
   # Note: Full registry path comes from global.imageRegistry
   # Public image: ghcr.io/diggerhq/digger/taco-ui
   image:
-    repository: taco-ui
+    # Optional per-chart registry override. Falls back to global.imageRegistry.
+    registry: ""
+    repository: digger/taco-ui
     tag: "latest"
     pullPolicy: "IfNotPresent"
 

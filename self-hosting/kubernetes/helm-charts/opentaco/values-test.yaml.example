@@ -5,7 +5,7 @@
 # Global Configuration
 # ============================================================================
 global:
-  imageRegistry: ghcr.io/diggerhq/digger
+  imageRegistry: ghcr.io/diggerhq
   imagePullPolicy: IfNotPresent
   # Note: imagePullSecrets not needed for public GHCR images
   # imagePullSecrets:
@@ -80,4 +80,3 @@ taco-ui:
       allowedHosts: "localhost" 
     ingress:
       enabled: false  # Using port-forward for testing
-

@@ -1,6 +1,8 @@
 sidecar:
   image:
-    repository: ghcr.io/diggerhq/sandbox-sidecar
+    # Optional per-chart registry override. Falls back to global.imageRegistry.
+    registry: ""
+    repository: sandbox-sidecar
     tag: "latest"
     pullPolicy: IfNotPresent
 
@@ -57,4 +59,5 @@ sidecar:
   affinity: {}
 
 global:
+  imageRegistry: ""
   podAnnotations: {}

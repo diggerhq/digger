@@ -47,12 +47,7 @@ spec:
       {{- end }}
       containers:
       - name: web
-        {{- $repo := .Values.digger.image.repository }}
-        {{- if contains "/" $repo }}
-        image: "{{ $repo }}:{{ .Values.digger.image.tag }}"
-        {{- else }}
-        image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ $repo }}:{{ .Values.digger.image.tag }}"
-        {{- end }}
+        image: "{{ .Values.digger.image.registry | default .Values.global.imageRegistry | default "ghcr.io/diggerhq" }}/{{ .Values.digger.image.repository }}:{{ .Values.digger.image.tag }}"
         imagePullPolicy: {{ .Values.digger.image.pullPolicy | default "IfNotPresent" }}
         ports:
         - name: http

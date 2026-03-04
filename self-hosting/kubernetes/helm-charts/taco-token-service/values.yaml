@@ -3,7 +3,9 @@
 tokenService:
   # Image configuration
   image:
-    repository: taco-token-service
+    # Optional per-chart registry override. Falls back to global.imageRegistry.
+    registry: ""
+    repository: digger/taco-token-service
     tag: "v0.1.0"
     pullPolicy: "IfNotPresent"
 

@@ -2,7 +2,7 @@
 # Copy this file and customize for your environment.
 
 global:
-  imageRegistry: ghcr.io/diggerhq/digger
+  imageRegistry: ghcr.io/diggerhq
   imagePullPolicy: IfNotPresent
 
 # ============================================================================

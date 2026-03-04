@@ -68,7 +68,7 @@ Example: `my-prod-project:us-central1:opentaco-postgres`
 
 ```yaml
 global:
-  imageRegistry: ghcr.io/diggerhq/digger  # ✅ Public registry (no auth needed)
+  imageRegistry: ghcr.io/diggerhq  # ✅ Public registry (no auth needed)
   # Or use your private registry:
   # imageRegistry: us-central1-docker.pkg.dev/YOUR-PROJECT/YOUR-REPO
 ```

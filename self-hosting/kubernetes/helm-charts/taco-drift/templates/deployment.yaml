@@ -27,7 +27,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.global.imageRegistry | default "ghcr.io/diggerhq/digger" }}/{{ .Values.drift.image.repository }}:{{ .Values.drift.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.drift.image.registry | default .Values.global.imageRegistry | default "ghcr.io/diggerhq" }}/{{ .Values.drift.image.repository }}:{{ .Values.drift.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.drift.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - name: http

@@ -12,7 +12,9 @@ taco:
   # Note: Full registry path comes from global.imageRegistry
   # Public image: ghcr.io/diggerhq/digger/taco-statesman
   image:
-    repository: taco-statesman
+    # Optional per-chart registry override. Falls back to global.imageRegistry.
+    registry: ""
+    repository: digger/taco-statesman
     tag: "latest"
     pullPolicy: "IfNotPresent"
 
