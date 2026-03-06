@@ -130,6 +130,12 @@
             ]
           },
           {
+            "group": "Security",
+            "pages": [
+              "ce/security/overview"
+            ]
+          },
+          {
             "group": "PR Automation",
             "pages": [
               "ce/features/overview",

@@ -1,0 +1,127 @@
+---
+title: "Security overview"
+description: "Security considerations for self-hosted OpenTaco deployments."
+---
+
+If you run OpenTaco on a shared server, or within a network that hosts other services, those services may be vulnerable to exploitation by proxy or other means.
+
+This is a non-exhaustive list of security considerations when running the self-hosted version of OpenTaco. For deployment options, see [Self-hosting with Docker Compose](/self-hosting/docker-compose).
+
+## Credential security
+
+Prefer short-lived credentials over static keys. Digger supports OIDC-based authentication for both AWS and GCP, which eliminates the need to store long-lived access keys as CI secrets.
+
+<Tabs>
+  <Tab title="AWS">
+    Use `aws-role-to-assume` with `id-token: write` permissions instead of `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
+
+    See [AWS: Authenticate with OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws) for setup.
+  </Tab>
+  <Tab title="GCP">
+    Use Workload Identity Federation with a service account binding instead of a service account key file.
+
+    See [GCP: Federated OIDC access](/ce/gcp/federated-oidc-access) for setup.
+  </Tab>
+</Tabs>
+
+For multi-account setups, assign per-project IAM roles so each project only has access to its own infrastructure:
+
+```yaml
+projects:
+  - name: prod
+    dir: prod
+    aws_role_to_assume:
+      state: "arn:aws:iam::ACCOUNT_ID:role/digger-state-prod"
+      command: "arn:aws:iam::ACCOUNT_ID:role/digger-apply-prod"
+      aws_role_region: us-east-1
+```
+
+See [Project-level roles](/ce/howto/project-level-roles) and [Segregate cloud accounts](/ce/howto/segregate-cloud-accounts).
+
+<Warning>
+  Terraform supports `data` blocks and external providers that can execute arbitrary code inside your CI runner. A contributor with write access to your Terraform code could use this to exfiltrate CI environment variables, including cloud credentials. Mitigate by enforcing OIDC (short-lived credentials) and restricting who can merge Terraform changes.
+</Warning>
+
+## Access control
+
+Control who can trigger applies and under what conditions.
+
+**Apply requirements** gate applies on PR state. For production projects, require both approval and an up-to-date branch:
+
+```yaml
+projects:
+  - name: prod
+    dir: prod
+    apply_requirements: [mergeable, approved, undiverged]
+```
+
+See [Apply requirements](/ce/howto/apply-requirements) for all options.
+
+**CODEOWNERS** ensures the right team reviews changes before Digger allows an apply. Since Digger checks GitHub's mergeability status before applying, CODEOWNERS enforcement requires no additional Digger configuration — only a branch protection rule on your default branch with "Require review from Code Owners" enabled.
+
+See [Codeowners integration](/ce/howto/codeowners).
+
+**Auth methods** for the self-hosted orchestrator backend — use JWT auth (via Frontegg) for production. Basic auth is convenient for testing but not recommended for production workloads.
+
+See [Auth methods](/ce/self-host/auth-methods).
+
+**RBAC** for Terraform state access is available in the state management backend when using S3 storage. Scope permissions to specific directories using resource paths like `dev/*` or `myapp/prod`.
+
+See [RBAC](/ce/state-management/rbac).
+
+## Secret handling
+
+Prevent sensitive values from appearing in Terraform plan output and PR comments using `filter_regex`:
+
+```yaml
+workflows:
+  default:
+    plan:
+      filter_regex: "((?i)secret:\\s\"?)[^\"]+"
+      steps:
+        - init
+        - plan
+```
+
+Any match is replaced with `<REDACTED>` in logs and PR comments. See [Masking sensitive values](/ce/howto/masking-sensitive-values).
+
+## Kubernetes
+
+When deploying with Helm, do not set secret values inline in your chart values file for production deployments. Pre-create Kubernetes secrets and reference them:
+
+```yaml
+# values-opentaco.yaml
+ui:
+  useExistingSecret: true
+  existingSecretName: ui-secrets
+```
+
+Create the secrets from your env files:
+
+```bash
+kubectl create secret generic ui-secrets \
+  --from-env-file=helm-charts/secrets-example/ui.env \
+  -n opentaco --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Use the [External Secrets Operator](https://external-secrets.io/) or your organization's preferred secret lifecycle tool (Vault, AWS Secrets Manager, etc.) to manage rotation.
+
+Keep the `opentaco` and `traefik` namespaces isolated. The platform reference chart is a quickstart baseline — it is not a production-hardening blueprint.
+
+<Note>
+  To run Digger jobs inside your cluster's VPC, use the [Actions Runner Controller (ARC)](https://github.com/actions/actions-runner-controller) to provision GitHub Actions self-hosted runners directly in Kubernetes. See [Private runners](/ce/features/private-runners).
+</Note>
+
+## Related
+
+- [AWS: Authenticate with OIDC](/ce/cloud-providers/authenticating-with-oidc-on-aws)
+- [GCP: Federated OIDC access](/ce/gcp/federated-oidc-access)
+- [Project-level roles](/ce/howto/project-level-roles)
+- [Segregate cloud accounts](/ce/howto/segregate-cloud-accounts)
+- [Apply requirements](/ce/howto/apply-requirements)
+- [Codeowners integration](/ce/howto/codeowners)
+- [Auth methods](/ce/self-host/auth-methods)
+- [RBAC](/ce/state-management/rbac)
+- [Masking sensitive values](/ce/howto/masking-sensitive-values)
+- [Private runners](/ce/features/private-runners)
+- [Self-hosting on Kubernetes](/self-hosting/kubernetes)
