@@ -10,6 +10,7 @@ import (
 
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/ci/generic"
+	"github.com/diggerhq/digger/libs/comment_utils"
 	"github.com/diggerhq/digger/libs/scheduler"
 
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -349,11 +350,13 @@ func (svc GithubService) SetStatus(prNumber int, status string, statusContext st
 	// 422 Validation Failed [{Resource:Status Field:description Code:custom Message:description is too long (maximum is 140 characters)}]
 	// since description isn't shown in ui setting to blank for now
 	description := ""
+	targetURl := comment_utils.GetWorkflowUrl()
 
 	_, _, err = svc.Client.Repositories.CreateStatus(context.Background(), svc.Owner, svc.RepoName, *pr.Head.SHA, &github.RepoStatus{
 		State:       &status,
 		Context:     &statusContext,
 		Description: &description,
+		TargetURL:   &targetURl,
 	})
 	return err
 }
