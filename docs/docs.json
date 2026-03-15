@@ -279,5 +279,8 @@
       "slack": "https://diggertalk.slack.com/join/shared_invite/zt-1tocl4w0x-E3RkpPiK7zQkehl8O78g8Q#/shared-invite/email",
       "linkedin": "https://www.linkedin.com/company/diggerhq/"
     }
+  },
+  "modeToggle": {
+    "default": "light"
   }
 }
