@@ -64,7 +64,7 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 			job.ResourcesDeleted)
 	}
 
-	message = message + "\n" + formatExampleCommands()
+	message = message + "\n" + formatExampleCommands(scheduler.DiggerCommand(jobType))
 
 	const GithubCommentMaxLength = 65536
 	if len(message) > GithubCommentMaxLength {
@@ -95,18 +95,24 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 	return nil
 }
 
-// formatExampleCommands creates a collapsible markdown section with example commands
-func formatExampleCommands() string {
-	return `
-<details>
-  <summary>Instructions</summary>
-
+// formatExampleCommands creates a collapsible markdown section with example commands.
+// When the command is "apply", the apply instructions are omitted since they are redundant.
+func formatExampleCommands(commandType scheduler.DiggerCommand) string {
+	applyInstructions := ""
+	if commandType != scheduler.DiggerCommandApply {
+		applyInstructions = `
 ⏩ To apply these changes, run the following command:
 
 ` + "```" + `bash
 digger apply
 ` + "```" + `
+`
+	}
 
+	return `
+<details>
+  <summary>Instructions</summary>
+` + applyInstructions + `
 🚮 To unlock the projects in this PR run the following command:
 ` + "```" + `bash
 digger unlock
