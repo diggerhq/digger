@@ -261,7 +261,7 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 	}
 
 	var summary = ""
-	if batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed {
+	if config.Reporting.AiSummary && (batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed) {
 		summary, err = GenerateChecksSummaryForBatch(batch)
 		if err != nil {
 			slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
