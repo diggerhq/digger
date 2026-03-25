@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 func GenerateTerraformCode(appCode string, generationEndpoint string, apiToken string) (string, error) {
@@ -38,7 +39,7 @@ func GenerateTerraformCode(appCode string, generationEndpoint string, apiToken s
 	req.Header.Set("Authorization", "Bearer "+apiToken)
 
 	// Make the request
-	client := &http.Client{}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		slog.Error("Error making request to code generation API", "endpoint", generationEndpoint, "error", err)
@@ -118,7 +119,7 @@ func GetAiSummaryFromTerraformPlans(plans string, summaryEndpoint string, apiTok
 	req.Header.Set("Authorization", "Bearer "+apiToken)
 
 	// Make the request
-	client := &http.Client{}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		slog.Error("Error making request to summary API", "endpoint", summaryEndpoint, "error", err)
