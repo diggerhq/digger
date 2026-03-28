@@ -213,6 +213,10 @@ inputs:
     description: "project name for digger to run in case of manual mode"
     required: false
     default: ""
+  drift-detection-github-action-output:
+    description: "Export drift notification data as a GitHub Workflow output instead of Slack or GitHub issues."
+    required: false
+    default: "false"
   drift-detection-slack-notification-url:
     description: "drift-detection slack drift url"
     required: false
@@ -575,6 +579,7 @@ runs:
         INPUT_DIGGER_PROJECT: ${{ inputs.project }}
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
+        INPUT_DRIFT_DETECTION_GITHUB_ACTION_OUTPUT: ${{ inputs.drift-detection-github-action-output }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
