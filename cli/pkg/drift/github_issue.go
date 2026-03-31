@@ -5,6 +5,7 @@ import (
     orchestrator "github.com/diggerhq/digger/libs/ci"
     "github.com/samber/lo"
     "log"
+    "strings"
 )
 
 type GithubIssueNotification struct {
@@ -14,8 +15,8 @@ type GithubIssueNotification struct {
 
 func (ghi *GithubIssueNotification) SendNotificationForProject(projectName string, repoFullName string, plan string) error {
     log.Printf("Info: Sending drift notification regarding project: %v", projectName)
-    title := fmt.Sprintf("Drift detected in project: %v", projectName)
-    message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
+    title := fmt.Sprintf("Drift detected in project: %s", strings.ReplaceAll(projectName, "%", "%%"))
+    message := ":bangbang: Drift detected in digger project " + projectName + " details below: \n\n```\n" + plan + "\n```"
     existingIssues, err := (*ghi.GithubService).ListIssues()
     if err != nil {
         log.Printf("failed to retrieve issues: %v", err)

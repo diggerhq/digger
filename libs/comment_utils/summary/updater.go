@@ -3,6 +3,7 @@ package comment_updater
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/scheduler"
@@ -52,13 +53,13 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
+		message = message + fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
-			scheduler.GetProjectAlias(job),
-			workflowUrl,
-			job.Status.ToString(),
-			prCommentUrl,
-			jobTypeTitle,
+			strings.ReplaceAll(scheduler.GetProjectAlias(job), "%", "%%"),
+			strings.ReplaceAll(workflowUrl, "%", "%%"),
+			strings.ReplaceAll(job.Status.ToString(), "%", "%%"),
+			strings.ReplaceAll(prCommentUrl, "%", "%%"),
+			strings.ReplaceAll(jobTypeTitle, "%", "%%"),
 			job.ResourcesCreated,
 			job.ResourcesUpdated,
 			job.ResourcesDeleted)

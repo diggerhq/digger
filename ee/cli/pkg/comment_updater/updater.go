@@ -44,9 +44,15 @@ func (a AdvancedCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, pr
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %v -->\n", job.ProjectName)
-		message = message + fmt.Sprintf("%v **%v** <a href='%v'>%v</a>%v %v\n", job.Status.ToEmoji(), jobSpec.ProjectName, workflowUrl, job.Status.ToString(), job.ResourcesSummaryString(isPlan), DriftSummaryString(job.ProjectName, issuesMap))
-		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %v -->\n", job.ProjectName)
+		message = message + fmt.Sprintf("<!-- PROJECTHOLDER %s -->\n", strings.ReplaceAll(job.ProjectName, "%", "%%"))
+		message = message + fmt.Sprintf("%s **%s** <a href='%s'>%s</a>%s %s\n",
+			job.Status.ToEmoji(),
+			strings.ReplaceAll(jobSpec.ProjectName, "%", "%%"),
+			strings.ReplaceAll(workflowUrl, "%", "%%"),
+			strings.ReplaceAll(job.Status.ToString(), "%", "%%"),
+			strings.ReplaceAll(job.ResourcesSummaryString(isPlan), "%", "%%"),
+			strings.ReplaceAll(DriftSummaryString(job.ProjectName, issuesMap), "%", "%%"))
+		message = message + fmt.Sprintf("<!-- PROJECTHOLDEREND %s -->\n", strings.ReplaceAll(job.ProjectName, "%", "%%"))
 	}
 
 	prService.EditComment(prNumber, prCommentId, message)

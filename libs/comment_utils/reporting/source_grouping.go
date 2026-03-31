@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/diggerhq/digger/libs/ci"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -77,7 +78,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 	}
 
 	message := ""
-	message = message + fmt.Sprintf("# Group: %v (similar: %v)\n", location, allSimilarInGroup)
+	message = message + fmt.Sprintf("# Group: %s (similar: %v)\n", strings.ReplaceAll(location, "%", "%%"), allSimilarInGroup)
 
 	slog.Info("generating comment for source location",
 		"location", location,
@@ -95,7 +96,7 @@ func (r SourceGroupingReporter) UpdateComment(sourceDetails []SourceDetails, loc
 		expanded := i == 0 || !allSimilarInGroup
 		// Use alias for display with fallback to project name
 		displayName := scheduler.GetProjectAlias(job)
-		commenter := GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan for %v", displayName), expanded)
+		commenter := GetTerraformOutputAsCollapsibleComment("Plan for "+displayName, expanded)
 		message = message + commenter(terraformOutputs[project]) + "\n"
 	}
 

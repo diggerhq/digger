@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 	"strconv"
+	"strings"
 
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci"
@@ -183,11 +184,11 @@ func GenerateRealtimeCommentMessage(jobs []models.DiggerJob, batchType orchestra
 		// Match exact CLI format: |emoji **project** |<a href='workflow'>status</a> | <a href='comment'>jobType</a> | + | ~ | - |
 		message += fmt.Sprintf("|%s **%s** |<a href='%s'>%s</a> | <a href='%s'>%s</a> | %d | %d | %d|\n",
 			job.Status.ToEmoji(),
-			projectDisplayName,
-			workflowRunUrl,
-			job.Status.ToString(),
-			checkRunUrl,
-			jobTypeTitle,
+			strings.ReplaceAll(projectDisplayName, "%", "%%"),
+			strings.ReplaceAll(workflowRunUrl, "%", "%%"),
+			strings.ReplaceAll(job.Status.ToString(), "%", "%%"),
+			strings.ReplaceAll(checkRunUrl, "%", "%%"),
+			strings.ReplaceAll(jobTypeTitle, "%", "%%"),
 			resourcesCreated,
 			resourcesUpdated,
 			resourcesDeleted)
