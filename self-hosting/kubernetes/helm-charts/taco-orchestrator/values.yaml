@@ -15,7 +15,7 @@ digger:
   # Note: Full registry path comes from global.imageRegistry
   # Public image: ghcr.io/diggerhq/digger/digger-backend-ee
   image:
-    repository: digger-backend-ee
+    repository: digger_backend
     tag: "latest"
     pullPolicy: IfNotPresent
 
@@ -176,4 +176,5 @@ digger:
 
 # Global configuration (optional)
 global:
+  imageRegistry: ghcr.io/diggerhq
   imagePullSecrets: []

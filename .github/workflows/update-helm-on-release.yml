@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows: 
       - "Backend EE Docker Release"
+      - "Backend Publish docker image"
       - "Drift Docker Release"
       - "UI Docker Release"
       - "taco-release"
@@ -58,6 +59,10 @@ jobs:
             SERVICE="sandbox-sidecar"
             VERSION="${TAG_NAME##sandbox-sidecar/}"
             YAML_PATH=".taco-sidecar.sidecar.image.tag"
+          elif [[ $TAG_NAME == v* ]]; then
+            SERVICE="backend-ce"
+            VERSION="${TAG_NAME}"
+            YAML_PATH=".taco-orchestrator.digger.image.tag"
           else
             echo "Not a recognized release tag, skipping"
             exit 0
