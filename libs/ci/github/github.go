@@ -185,7 +185,33 @@ func (svc GithubService) UpdateIssue(ID int64, title string, body string) (int64
 	return *githubissue.ID, err
 }
 
+// maxCommentLength is the maximum body size for a single GitHub issue comment.
+// GitHub API enforces a 65535 character limit on comment bodies.
+const maxCommentLength = 65000
+
 func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
+	if len(comment) <= maxCommentLength {
+		return svc.publishSingleComment(prNumber, comment)
+	}
+
+	// Split into multiple comments when exceeding the GitHub comment size limit
+	parts := splitComment(comment, maxCommentLength)
+	var lastComment *ci.Comment
+
+	for i, part := range parts {
+		header := fmt.Sprintf("**Part %d/%d**\n\n", i+1, len(parts))
+		c, err := svc.publishSingleComment(prNumber, header+part)
+		if err != nil {
+			return nil, fmt.Errorf("could not publish comment part %d/%d to PR %v: %v", i+1, len(parts), prNumber, err)
+		}
+
+		lastComment = c
+	}
+
+	return lastComment, nil
+}
+
+func (svc GithubService) publishSingleComment(prNumber int, comment string) (*ci.Comment, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	if err != nil {
 		return nil, fmt.Errorf("could not publish comment to PR %v, %v", prNumber, err)
@@ -195,6 +221,37 @@ func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comme
 		Body: githubComment.Body,
 		Url:  *githubComment.HTMLURL,
 	}, err
+}
+
+// splitComment splits a long comment into chunks that fit within maxLen.
+// It tries to split at newline boundaries to preserve readability.
+func splitComment(comment string, maxLen int) []string {
+	if len(comment) <= maxLen {
+		return []string{comment}
+	}
+
+	var parts []string
+	remaining := comment
+
+	for len(remaining) > 0 {
+		if len(remaining) <= maxLen {
+			parts = append(parts, remaining)
+			break
+		}
+
+		// Try to find a newline to split at within the limit
+		chunk := remaining[:maxLen]
+		splitIdx := strings.LastIndex(chunk, "\n")
+		if splitIdx < maxLen/2 {
+			// No good newline found in second half; just split at maxLen
+			splitIdx = maxLen
+		}
+
+		parts = append(parts, remaining[:splitIdx])
+		remaining = remaining[splitIdx:]
+	}
+
+	return parts
 }
 
 func (svc GithubService) GetComments(prNumber int) ([]ci.Comment, error) {
@@ -1206,7 +1263,7 @@ func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_conf
 func issueCommentEventContainsComment(event interface{}, comment string) bool {
 	switch event := event.(type) {
 	case github.IssueCommentEvent:
-		if strings.Contains(*event.Comment.Body, comment) {
+		if strings.Contains(strings.ToLower(*event.Comment.Body), strings.ToLower(comment)) {
 			slog.Debug("comment matches pattern",
 				"pattern", comment,
 				"commentId", *event.Comment.ID)

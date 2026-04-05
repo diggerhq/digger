@@ -2,6 +2,7 @@ package github
 
 import (
 	"github.com/diggerhq/digger/libs/ci/generic"
+	"strings"
 	"testing"
 
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -120,4 +121,39 @@ func TestFindAllChangedFilesOfPR(t *testing.T) {
 	files, _ := githubPrService.GetChangedFiles(98)
 	// 45 changed files including 1 renamed file so the previous filename is included
 	assert.Equal(t, 46, len(files))
+}
+
+func TestSplitComment_ShortComment(t *testing.T) {
+	parts := splitComment("short comment", 100)
+	assert.Equal(t, 1, len(parts))
+	assert.Equal(t, "short comment", parts[0])
+}
+
+func TestSplitComment_LongComment(t *testing.T) {
+	// Create a comment that exceeds maxLen, with newlines
+	line := "This is a line of text for testing.\n"
+	comment := ""
+	for i := 0; i < 100; i++ {
+		comment += line
+	}
+	maxLen := 500
+	parts := splitComment(comment, maxLen)
+
+	assert.Greater(t, len(parts), 1)
+	for _, part := range parts {
+		assert.LessOrEqual(t, len(part), maxLen)
+	}
+	// Verify no content is lost
+	joined := ""
+	for _, part := range parts {
+		joined += part
+	}
+	assert.Equal(t, comment, joined)
+}
+
+func TestSplitComment_ExactLimit(t *testing.T) {
+	comment := strings.Repeat("a", 100)
+	parts := splitComment(comment, 100)
+	assert.Equal(t, 1, len(parts))
+	assert.Equal(t, comment, parts[0])
 }
