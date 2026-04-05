@@ -1,6 +1,8 @@
 package execution
 
 import (
+	"github.com/diggerhq/digger/libs/iac_utils"
+	"github.com/diggerhq/digger/libs/locking"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -259,4 +261,103 @@ Changes to Outputs:
 	res := cleanupTerraformPlan(stdout)
 	index := strings.Index(stdout, "OpenTofu will perform the following actions:")
 	assert.Equal(t, stdout[index:], res)
+}
+
+// mockProjectLock implements locking.ProjectLock for tests
+type mockProjectLock struct {
+	locked bool
+	err    error
+}
+
+func (m *mockProjectLock) Lock() (bool, error)  { return m.locked, m.err }
+func (m *mockProjectLock) Unlock() (bool, error) { return true, nil }
+func (m *mockProjectLock) ForceUnlock() error    { return nil }
+func (m *mockProjectLock) LockId() string        { return "test-lock" }
+
+// Compile-time check
+var _ locking.ProjectLock = &mockProjectLock{}
+
+// mockExecutor implements Executor for tests
+type mockExecutor struct {
+	planCalled    bool
+	applyCalled   bool
+	destroyCalled bool
+}
+
+func (m *mockExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, string, error) {
+	m.planCalled = true
+	return &iac_utils.IacSummary{}, true, true, "plan output", "", nil
+}
+
+func (m *mockExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
+	m.applyCalled = true
+	return &iac_utils.IacSummary{}, true, "apply output", nil
+}
+
+func (m *mockExecutor) Destroy() (bool, error) {
+	m.destroyCalled = true
+	return true, nil
+}
+
+func TestLockFailurePlanReturnsError(t *testing.T) {
+	exec := &mockExecutor{}
+	wrapper := LockingExecutorWrapper{
+		ProjectLock: &mockProjectLock{locked: false, err: nil},
+		Executor:    exec,
+	}
+
+	_, _, _, _, _, err := wrapper.Plan()
+	assert.Error(t, err, "Plan should return error when lock acquisition fails")
+	assert.Contains(t, err.Error(), "failed to acquire lock")
+	assert.False(t, exec.planCalled, "Executor.Plan should not be called when lock fails")
+}
+
+func TestLockFailureApplyReturnsError(t *testing.T) {
+	exec := &mockExecutor{}
+	wrapper := LockingExecutorWrapper{
+		ProjectLock: &mockProjectLock{locked: false, err: nil},
+		Executor:    exec,
+	}
+
+	_, _, msg, err := wrapper.Apply()
+	assert.Error(t, err, "Apply should return error when lock acquisition fails")
+	assert.Contains(t, err.Error(), "failed to acquire lock")
+	assert.Contains(t, msg, "failed to acquire lock")
+	assert.False(t, exec.applyCalled, "Executor.Apply should not be called when lock fails")
+}
+
+func TestLockFailureDestroyReturnsError(t *testing.T) {
+	exec := &mockExecutor{}
+	wrapper := LockingExecutorWrapper{
+		ProjectLock: &mockProjectLock{locked: false, err: nil},
+		Executor:    exec,
+	}
+
+	_, err := wrapper.Destroy()
+	assert.Error(t, err, "Destroy should return error when lock acquisition fails")
+	assert.Contains(t, err.Error(), "failed to acquire lock")
+	assert.False(t, exec.destroyCalled, "Executor.Destroy should not be called when lock fails")
+}
+
+func TestLockSuccessDelegatesToExecutor(t *testing.T) {
+	exec := &mockExecutor{}
+	wrapper := LockingExecutorWrapper{
+		ProjectLock: &mockProjectLock{locked: true, err: nil},
+		Executor:    exec,
+	}
+
+	_, planPerformed, _, _, _, err := wrapper.Plan()
+	assert.NoError(t, err)
+	assert.True(t, planPerformed)
+	assert.True(t, exec.planCalled, "Executor.Plan should be called when lock succeeds")
+
+	_, applyPerformed, _, err := wrapper.Apply()
+	assert.NoError(t, err)
+	assert.True(t, applyPerformed)
+	assert.True(t, exec.applyCalled, "Executor.Apply should be called when lock succeeds")
+
+	success, err := wrapper.Destroy()
+	assert.NoError(t, err)
+	assert.True(t, success)
+	assert.True(t, exec.destroyCalled, "Executor.Destroy should be called when lock succeeds")
 }
