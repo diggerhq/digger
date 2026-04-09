@@ -128,8 +128,8 @@ func GenerateChecksSummaryForJob(job *models.DiggerJob) (string, error) {
 	batch := job.Batch
 	summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
 	if summaryEndpoint == "" {
-		slog.Error("AI summary endpoint not configured", "batch", batch.ID, "jobId", job.ID, "DiggerJobId", job.DiggerJobID)
-		return "", fmt.Errorf("could not generate AI summary, ai summary endpoint missing")
+		slog.Info("AI summary endpoint not configured, skipping", "batch", batch.ID, "jobId", job.ID, "DiggerJobId", job.DiggerJobID)
+		return "", nil
 	}
 	apiToken := os.Getenv("DIGGER_AI_SUMMARY_API_TOKEN")
 
@@ -161,7 +161,7 @@ func GenerateChecksSummaryForJob(job *models.DiggerJob) (string, error) {
 	return summary, nil
 }
 
-func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerBatch) error {
+func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerBatch, aiSummaryEnabled bool) error {
 	slog.Info("Updating PR status for batch",
 		"batchId", batch.ID,
 		"prNumber", batch.PrNumber,
@@ -261,7 +261,7 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 	}
 
 	var summary = ""
-	if config.Reporting.AiSummary && (batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed) {
+	if aiSummaryEnabled && (batch.Status == orchestrator_scheduler.BatchJobSucceeded || batch.Status == orchestrator_scheduler.BatchJobFailed) {
 		summary, err = GenerateChecksSummaryForBatch(batch)
 		if err != nil {
 			slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
@@ -304,8 +304,8 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 			allJobsHaveZeroChanges := true
 			for _, job := range jobs {
 				if job.DiggerJobSummary.ResourcesCreated > 0 ||
-				   job.DiggerJobSummary.ResourcesUpdated > 0 ||
-				   job.DiggerJobSummary.ResourcesDeleted > 0 {
+					job.DiggerJobSummary.ResourcesUpdated > 0 ||
+					job.DiggerJobSummary.ResourcesDeleted > 0 {
 					allJobsHaveZeroChanges = false
 					break
 				}
@@ -401,7 +401,7 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 }
 
 // more modern check runs on github have their own page
-func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) error {
+func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob, aiSummaryEnabled bool) error {
 	batch := job.Batch
 	slog.Info("Updating PR Check run for job",
 		"jobId", job.DiggerJobID,
@@ -524,10 +524,10 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob) 
 		"```\n"
 
 	var summary = ""
-	if job.Status == orchestrator_scheduler.DiggerJobSucceeded || job.Status == orchestrator_scheduler.DiggerJobFailed {
+	if aiSummaryEnabled && (job.Status == orchestrator_scheduler.DiggerJobSucceeded || job.Status == orchestrator_scheduler.DiggerJobFailed) {
 		summary, err = GenerateChecksSummaryForJob(job)
 		if err != nil {
-			slog.Warn("Error generating checks summary for batch", "batchId", batch.ID, "error", err)
+			slog.Warn("Error generating checks summary for job", "jobId", job.DiggerJobID, "batchId", batch.ID, "error", err)
 		}
 	}
 

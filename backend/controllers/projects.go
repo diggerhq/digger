@@ -1031,6 +1031,13 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 	// if so, perform merge of PR (if configured to do so)
 	batch := job.Batch
 
+	aiSummaryEnabled := false
+	if diggerConfigYml, err := digger_config.LoadDiggerConfigYamlFromString(batch.DiggerConfig); err != nil {
+		slog.Warn("Could not load digger config to check AI summary setting, defaulting to disabled", "batchId", batch.ID, "error", err)
+	} else {
+		aiSummaryEnabled = diggerConfigYml.Reporting != nil && diggerConfigYml.Reporting.AiSummary
+	}
+
 	slog.Info("Updating batch status after job update",
 		"batchId", batch.ID,
 		"jobId", jobId,
@@ -1067,7 +1074,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	// performing this in a goroutine to avoid huge latencies (added by ai summary gen)
 	go func() {
-		err = UpdateCheckRunForBatch(d.GithubClientProvider, refreshedBatch)
+		err = UpdateCheckRunForBatch(d.GithubClientProvider, refreshedBatch, aiSummaryEnabled)
 		if err != nil {
 			slog.Warn("DIAGNOSTIC #7: Failed to update GitHub Check Run for batch (non-fatal)",
 				"batchId", batch.ID,
@@ -1100,7 +1107,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 
 	// performing this in a goroutine to avoid huge latencies (added by ai summary gen)
 	go func() {
-		err = UpdateCheckRunForJob(d.GithubClientProvider, refreshedJob)
+		err = UpdateCheckRunForJob(d.GithubClientProvider, refreshedJob, aiSummaryEnabled)
 		if err != nil {
 			slog.Warn("DIAGNOSTIC #9: Failed to update GitHub Check Run for job (non-fatal)",
 				"jobId", jobId,
