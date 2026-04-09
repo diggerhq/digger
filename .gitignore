@@ -1,6 +1,5 @@
 .idea/
 .vscode/
-**/.env
 **/.env*
 .DS_Store
 venv/
@@ -53,3 +52,5 @@ self-hosting/docker-compose/*.env
 
 # Atlas migration checksums (auto-generated)
 **/migrations/**/atlas.sum
+config.bat
+node_modules

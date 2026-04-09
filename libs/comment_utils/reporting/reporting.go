@@ -129,6 +129,17 @@ func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, Pr
 	return commentId, commentUrl, err
 }
 
+const maxCommentLength = 65536
+const truncationMsg = "\n\n> ⚠️ Output truncated: plan exceeds GitHub's 65536 character comment limit. See job logs for full output."
+
+func truncateComment(comment string) string {
+	if len(comment) <= maxCommentLength {
+		return comment
+	}
+	cutoff := maxCommentLength - len(truncationMsg)
+	return comment[:cutoff] + truncationMsg
+}
+
 func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, supportsCollapsible bool) (string, string, error) {
 	report = reportFormatter(report)
 	commentIdForThisRun := ""
@@ -150,7 +161,7 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 		} else {
 			commentMessage = AsCollapsibleComment(reportTitle, false)(report)
 		}
-		comment, err := ciService.PublishComment(PrNumber, commentMessage)
+		comment, err := ciService.PublishComment(PrNumber, truncateComment(commentMessage))
 		if err != nil {
 			slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
 			return "", "", fmt.Errorf("error publishing comment: %v", err)
@@ -172,7 +183,7 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 		completeComment = AsCollapsibleComment(reportTitle, false)(commentBody)
 	}
 
-	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
+	err := ciService.EditComment(PrNumber, commentIdForThisRun, truncateComment(completeComment))
 
 	if err != nil {
 		slog.Error("error editing comment", "error", err, "commentId", commentIdForThisRun, "prNumber", PrNumber)
@@ -200,7 +211,7 @@ func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService,
 type MultipleCommentsStrategy struct{}
 
 func (strategy MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comment, err := ciService.PublishComment(PrNumber, reportFormatter(report))
+	comment, err := ciService.PublishComment(PrNumber, truncateComment(reportFormatter(report)))
 	if err != nil {
 		slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
 		return "", "", err
