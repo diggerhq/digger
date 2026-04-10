@@ -156,6 +156,67 @@ terraform {
 	assert.ErrorIs(t, statErr, os.ErrNotExist)
 }
 
+func TestInferProjectWhenModifiedPatternsDoesNotExecuteRunCmdViaReadTerragruntConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	markerPath := filepath.Join(tempDir, "nested-run-cmd-executed")
+
+	rootTerragruntContents := `
+locals {
+  shared = read_terragrunt_config("shared.hcl")
+}
+
+terraform {
+  source = local.shared.locals.source
+}
+`
+	sharedTerragruntContents := fmt.Sprintf(`
+locals {
+  touched = run_cmd("sh", "-c", "touch %s")
+  source  = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+`, markerPath)
+
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "terragrunt.hcl"), []byte(rootTerragruntContents), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "shared.hcl"), []byte(sharedTerragruntContents), 0o644))
+
+	patterns, err := InferProjectWhenModifiedPatterns(tempDir, ".", false, false, true, false)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, patterns)
+	_, statErr := os.Stat(markerPath)
+	assert.ErrorIs(t, statErr, os.ErrNotExist)
+}
+
+func TestInferProjectWhenModifiedPatternsDoesNotResolveAWSIdentity(t *testing.T) {
+	tempDir := t.TempDir()
+
+	t.Setenv("AWS_PROFILE", "codex-nonexistent-profile")
+	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+	t.Setenv("AWS_CONFIG_FILE", filepath.Join(tempDir, "missing-aws-config"))
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(tempDir, "missing-aws-credentials"))
+	t.Setenv("AWS_CONTAINER_CREDENTIALS_FULL_URI", "")
+	t.Setenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI", "")
+	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "")
+
+	terragruntContents := `
+locals {
+  account_id = get_aws_account_id()
+}
+
+terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+`
+
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "terragrunt.hcl"), []byte(terragruntContents), 0o644))
+
+	patterns, err := InferProjectWhenModifiedPatterns(tempDir, ".", false, false, true, false)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, patterns)
+}
+
 func TestInferProjectWhenModifiedPatternsDoesNotReuseParentSkipAcrossCalls(t *testing.T) {
 	tempDir := t.TempDir()
 

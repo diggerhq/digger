@@ -17,6 +17,10 @@ func CreateTerragruntEvalContext(extensions config.EvalContextExtensions, filena
 	ctx.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, extensions.TrackInclude, terragruntOptions)
 	ctx.Functions[config.FuncNameGetEnv] = wrapStringSliceToStringAsFuncImpl(NoopGetEnv, extensions.TrackInclude, terragruntOptions)
 	ctx.Functions[config.FuncNameRunCmd] = wrapStringSliceToStringAsFuncImpl(NoopRunCmd, extensions.TrackInclude, terragruntOptions)
+	ctx.Functions[config.FuncNameReadTerragruntConfig] = readTerragruntConfigAsFuncImpl(terragruntOptions)
+	ctx.Functions[config.FuncNameGetAWSAccountID] = wrapVoidToStringAsFuncImpl(NoopAWSIdentity, extensions.TrackInclude, terragruntOptions)
+	ctx.Functions[config.FuncNameGetAWSCallerIdentityArn] = wrapVoidToStringAsFuncImpl(NoopAWSIdentity, extensions.TrackInclude, terragruntOptions)
+	ctx.Functions[config.FuncNameGetAWSCallerIdentityUserID] = wrapVoidToStringAsFuncImpl(NoopAWSIdentity, extensions.TrackInclude, terragruntOptions)
 
 	return ctx, nil
 }
