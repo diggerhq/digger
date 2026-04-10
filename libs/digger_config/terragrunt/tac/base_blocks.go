@@ -186,6 +186,7 @@ func attemptEvaluateLocals(
 
 	evalCtx.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, contextExtensions.TrackInclude, terragruntOptions)
 	evalCtx.Functions[config.FuncNameGetEnv] = wrapStringSliceToStringAsFuncImpl(NoopGetEnv, contextExtensions.TrackInclude, terragruntOptions)
+	evalCtx.Functions[config.FuncNameRunCmd] = wrapStringSliceToStringAsFuncImpl(NoopRunCmd, contextExtensions.TrackInclude, terragruntOptions)
 
 	// Track the locals that were evaluated for logging purposes
 	newlyEvaluatedLocalNames := []string{}

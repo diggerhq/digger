@@ -50,3 +50,8 @@ func NoopGetEnv(params []string, trackInclude *config.TrackInclude, terragruntOp
 	terragruntOptions.Logger.Debugf("get_env function has been replaced with a no-op version. This is to ensure that generation of projects is successful.")
 	return "", nil
 }
+
+func NoopRunCmd(params []string, trackInclude *config.TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error) {
+	terragruntOptions.Logger.Debugf("run_cmd function has been replaced with a no-op version. This is to ensure that generation of projects is successful.")
+	return "", nil
+}

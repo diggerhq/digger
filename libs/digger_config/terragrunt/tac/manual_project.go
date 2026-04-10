@@ -15,7 +15,8 @@ func InferProjectWhenModifiedPatterns(gitRoot string, projectDir string, ignoreP
 		return nil, err
 	}
 
-	project, _, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, "default", []string{}, true, "", false, false, sourcePath, triggerProjectsFromDirOnly, "_")
+	state := newDependencyDiscoveryState()
+	project, _, err := createProject(state, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, "default", []string{}, true, "", false, false, sourcePath, triggerProjectsFromDirOnly, "_")
 	if err != nil {
 		return nil, err
 	}

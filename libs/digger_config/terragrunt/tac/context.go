@@ -15,7 +15,8 @@ func CreateTerragruntEvalContext(extensions config.EvalContextExtensions, filena
 
 	// override sops_decrypt_file function
 	ctx.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopSopsDecryptFile, extensions.TrackInclude, terragruntOptions)
-	ctx.Functions[config.FuncNameSopsDecryptFile] = wrapStringSliceToStringAsFuncImpl(NoopGetEnv, extensions.TrackInclude, terragruntOptions)
+	ctx.Functions[config.FuncNameGetEnv] = wrapStringSliceToStringAsFuncImpl(NoopGetEnv, extensions.TrackInclude, terragruntOptions)
+	ctx.Functions[config.FuncNameRunCmd] = wrapStringSliceToStringAsFuncImpl(NoopRunCmd, extensions.TrackInclude, terragruntOptions)
 
 	return ctx, nil
 }

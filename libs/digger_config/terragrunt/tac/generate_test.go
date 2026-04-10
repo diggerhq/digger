@@ -1,11 +1,12 @@
 package tac
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/sync/singleflight"
 	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -20,10 +21,6 @@ func init() {
 }
 
 func resetForRun() error {
-
-	// reset caches
-	getDependenciesCache = newGetDependenciesCache()
-	requestGroup = singleflight.Group{}
 	return nil
 }
 
@@ -134,4 +131,74 @@ func TestModulesWithNoTerraformSourceDefinitions(t *testing.T) {
 
 func TestInfrastructureMutliAccountsVPCRoute53TGWCascading(t *testing.T) {
 	runTest(t, "golden/multi_accounts_vpc_route53_tgw.yaml", "test_examples/multi_accounts_vpc_route53_tgw", false, "", false, true, true, false, true, "_")
+}
+
+func TestInferProjectWhenModifiedPatternsDoesNotExecuteRunCmd(t *testing.T) {
+	tempDir := t.TempDir()
+	markerPath := filepath.Join(tempDir, "run-cmd-executed")
+
+	terragruntContents := fmt.Sprintf(`
+locals {
+  touched = run_cmd("sh", "-c", "touch %s")
+}
+
+terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+`, markerPath)
+
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "terragrunt.hcl"), []byte(terragruntContents), 0o644))
+
+	patterns, err := InferProjectWhenModifiedPatterns(tempDir, ".", false, false, true, false)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, patterns)
+	_, statErr := os.Stat(markerPath)
+	assert.ErrorIs(t, statErr, os.ErrNotExist)
+}
+
+func TestInferProjectWhenModifiedPatternsDoesNotReuseParentSkipAcrossCalls(t *testing.T) {
+	tempDir := t.TempDir()
+
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "terragrunt.hcl"), []byte(`
+locals {
+  ahhhhhh = "pst"
+}
+`), 0o644))
+
+	patterns, err := InferProjectWhenModifiedPatterns(tempDir, ".", true, false, true, false)
+	assert.NoError(t, err)
+	assert.Nil(t, patterns)
+
+	patterns, err = InferProjectWhenModifiedPatterns(tempDir, ".", false, false, true, false)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, patterns)
+}
+
+func TestInferProjectWhenModifiedPatternsDoesNotSkipIncludedParentAfterChild(t *testing.T) {
+	tempDir := t.TempDir()
+	childDir := filepath.Join(tempDir, "child")
+
+	assert.NoError(t, os.MkdirAll(childDir, 0o755))
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "terragrunt.hcl"), []byte(`
+locals {
+  parent = "root"
+}
+`), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(childDir, "terragrunt.hcl"), []byte(`
+include {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+`), 0o644))
+
+	childPatterns, err := InferProjectWhenModifiedPatterns(tempDir, "child", false, false, true, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, childPatterns)
+
+	parentPatterns, err := InferProjectWhenModifiedPatterns(tempDir, ".", false, false, true, false)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, parentPatterns)
 }

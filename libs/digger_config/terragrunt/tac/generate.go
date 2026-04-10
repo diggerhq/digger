@@ -45,9 +45,6 @@ func makePathAbsolute(gitRoot string, path string, parentPath string) string {
 	return filepath.Join(parentDir, path)
 }
 
-var requestGroup singleflight.Group
-
-// Set up a cache for the getDependencies function
 type getDependenciesOutput struct {
 	dependencies []string
 	err          error
@@ -58,8 +55,17 @@ type GetDependenciesCache struct {
 	data map[string]getDependenciesOutput
 }
 
+type dependencyDiscoveryState struct {
+	requestGroup singleflight.Group
+	cache        *GetDependenciesCache
+}
+
 func newGetDependenciesCache() *GetDependenciesCache {
 	return &GetDependenciesCache{data: map[string]getDependenciesOutput{}}
+}
+
+func newDependencyDiscoveryState() *dependencyDiscoveryState {
+	return &dependencyDiscoveryState{cache: newGetDependenciesCache()}
 }
 
 func (m *GetDependenciesCache) set(k string, v getDependenciesOutput) {
@@ -118,10 +124,10 @@ func sliceUnion(a, b []string) []string {
 }
 
 // Parses the terragrunt digger_config at `path` to find all modules it depends on
-func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, error) {
-	res, err, _ := requestGroup.Do(path, func() (interface{}, error) {
+func getDependencies(state *dependencyDiscoveryState, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, path string, terragruntOptions *options.TerragruntOptions) ([]string, error) {
+	res, err, _ := state.requestGroup.Do(path, func() (interface{}, error) {
 		// Check if this path has already been computed
-		cachedResult, ok := getDependenciesCache.get(path)
+		cachedResult, ok := state.cache.get(path)
 		if ok {
 			return cachedResult.dependencies, cachedResult.err
 		}
@@ -131,19 +137,18 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		isParent, includes, err := parseModule(path, terragruntOptions)
 		if err != nil {
 			slog.Debug("failed to parse module", "path", path, "error", err)
-			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
+			state.cache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
 
 		if isParent && ignoreParentTerragrunt {
-			getDependenciesCache.set(path, getDependenciesOutput{nil, nil})
+			state.cache.set(path, getDependenciesOutput{nil, nil})
 			return nil, nil
 		}
 
 		dependencies := []string{}
 		if len(includes) > 0 {
 			for _, includeDep := range includes {
-				getDependenciesCache.set(includeDep.Path, getDependenciesOutput{nil, err})
 				dependencies = append(dependencies, includeDep.Path)
 			}
 		}
@@ -156,7 +161,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		}
 		parsedConfig, err := PartialParseConfigFile(path, terragruntOptions, nil, decodeTypes)
 		if err != nil {
-			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
+			state.cache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
 
@@ -164,7 +169,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 		locals, err := parseLocals(path, terragruntOptions, nil)
 		if err != nil {
 			slog.Error("Error parsing locals", "path", path, "error", err)
-			getDependenciesCache.set(path, getDependenciesOutput{nil, err})
+			state.cache.set(path, getDependenciesOutput{nil, err})
 			return nil, err
 		}
 		//locals := ResolvedLocals{}
@@ -260,7 +265,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			depPath := dep
 			terrOpts, _ := options.NewTerragruntOptionsWithConfigPath(depPath)
 			terrOpts.OriginalTerragruntConfigPath = terragruntOptions.OriginalTerragruntConfigPath
-			childDeps, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, depPath, terrOpts)
+			childDeps, err := getDependencies(state, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, depPath, terrOpts)
 			if err != nil {
 				continue
 			}
@@ -273,7 +278,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 				if !filepath.IsAbs(childDep) {
 					childDepAbsPath, err = filepath.Abs(filepath.Join(depPath, "..", childDep))
 					if err != nil {
-						getDependenciesCache.set(path, getDependenciesOutput{nil, err})
+						state.cache.set(path, getDependenciesOutput{nil, err})
 						return nil, err
 					}
 				}
@@ -305,7 +310,7 @@ func getDependencies(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, g
 			cascadedDeps = append(cascadedDeps, ls...)
 		}
 
-		getDependenciesCache.set(path, getDependenciesOutput{cascadedDeps, err})
+		state.cache.set(path, getDependenciesOutput{cascadedDeps, err})
 		return cascadedDeps, nil
 	})
 
@@ -343,7 +348,7 @@ func createBaseProject(dir string, workflow string, terraformVersion string, app
 }
 
 // Creates an AtlantisProject for a directory
-func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool, aliasDelimiter string) (*AtlantisProject, []string, error) {
+func createProject(state *dependencyDiscoveryState, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, defaultWorkflow string, defaultApplyRequirements []string, autoPlan bool, defaultTerraformVersion string, createProjectName bool, createWorkspace bool, sourcePath string, triggerProjectsFromDirOnly bool, aliasDelimiter string) (*AtlantisProject, []string, error) {
 	options, err := options.NewTerragruntOptionsWithConfigPath(sourcePath)
 
 	var potentialProjectDependencies []string
@@ -378,7 +383,7 @@ func createProject(ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, git
 		return project, potentialProjectDependencies, nil
 	}
 
-	dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
+	dependencies, err := getDependencies(state, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 	if err != nil {
 		slog.Debug("error getting dependencies", "error", err)
 		return nil, potentialProjectDependencies, err
@@ -466,7 +471,7 @@ func SanitizeDirName(projectDir string, delimiter string) string {
 	return projectName
 }
 
-func createHclProject(defaultWorkflow string, defaultApplyRequirements []string, autoplan bool, useProjectMarkers bool, defaultTerraformVersion string, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, createProjectName bool, createWorkspace bool, sourcePaths []string, workingDir string, projectHcl string, aliasDelimiter string) (*AtlantisProject, error) {
+func createHclProject(state *dependencyDiscoveryState, defaultWorkflow string, defaultApplyRequirements []string, autoplan bool, useProjectMarkers bool, defaultTerraformVersion string, ignoreParentTerragrunt bool, ignoreDependencyBlocks bool, gitRoot string, cascadeDependencies bool, createProjectName bool, createWorkspace bool, sourcePaths []string, workingDir string, projectHcl string, aliasDelimiter string) (*AtlantisProject, error) {
 	var projectHclDependencies []string
 	var childDependencies []string
 	workflow := defaultWorkflow
@@ -539,7 +544,7 @@ func createHclProject(defaultWorkflow string, defaultApplyRequirements []string,
 		options.RunTerragrunt = terraform.Run
 		options.Env = getEnvs()
 
-		dependencies, err := getDependencies(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
+		dependencies, err := getDependencies(state, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, sourcePath, options)
 		if err != nil {
 			return nil, err
 		}
@@ -734,6 +739,8 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 		atlantisConfig.Projects = oldConfig.Projects
 	}
 
+	state := newDependencyDiscoveryState()
+
 	lock := sync.Mutex{}
 	ctx := context.Background()
 	errGroup, _ := errgroup.WithContext(ctx)
@@ -770,7 +777,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 				errGroup.Go(func() error {
 					defer sem.Release(1)
-					project, projDeps, err := createProject(ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath, triggerProjectsFromDirOnly, projectAliasDelimiter)
+					project, projDeps, err := createProject(state, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, defaultWorkflow, defaultApplyRequirements, autoPlan, defaultTerraformVersion, createProjectName, createWorkspace, terragruntPath, triggerProjectsFromDirOnly, projectAliasDelimiter)
 					if err != nil {
 						return err
 					}
@@ -829,7 +836,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 
 			errGroup.Go(func() error {
 				defer sem.Release(1)
-				project, err := createHclProject(defaultWorkflow, defaultApplyRequirements, autoPlan, useProjectMarkers, defaultTerraformVersion, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, createProjectName, createWorkspace, terragruntFiles, workingDir, projectHcl, projectAliasDelimiter)
+				project, err := createHclProject(state, defaultWorkflow, defaultApplyRequirements, autoPlan, useProjectMarkers, defaultTerraformVersion, ignoreParentTerragrunt, ignoreDependencyBlocks, gitRoot, cascadeDependencies, createProjectName, createWorkspace, terragruntFiles, workingDir, projectHcl, projectAliasDelimiter)
 				if err != nil {
 					return err
 				}
