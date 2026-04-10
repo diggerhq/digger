@@ -30,6 +30,19 @@ func setUp() (string, func()) {
 	}
 }
 
+func getProjectByDir(t *testing.T, dg *DiggerConfig, dir string) Project {
+	t.Helper()
+
+	for _, project := range dg.Projects {
+		if project.Dir == dir {
+			return project
+		}
+	}
+
+	t.Fatalf("project with dir %q not found", dir)
+	return Project{}
+}
+
 func TestDiggerConfigWhenMultipleConfigExist(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
@@ -1696,14 +1709,18 @@ projects:
 	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "platform"), 0o755))
 
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
-	defer createFile(path.Join(tempDir, "core", "terragrunt.hcl"), `
-inputs = {
-  name = "core"
-}
-`)()
+	defer createFile(path.Join(tempDir, "core", "terragrunt.hcl"), hclFile)()
 	defer createFile(path.Join(tempDir, "platform", "terragrunt.hcl"), `
+terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+
 dependency "core" {
   config_path = "../core"
+}
+
+inputs = {
+  foo = dependency.core.outputs.some_output
 }
 `)()
 
@@ -1822,6 +1839,167 @@ resource "null_resource" "shared" {}
 	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/shared/main.tf"})
 	assert.Equal(t, 1, len(impactedProjects))
 	assert.Equal(t, "env_dev", impactedProjects[0].Name)
+}
+
+func TestLoadDiggerConfigPropagatesDependencyFileTriggersForGeneratedTerragruntProjects(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  dependency_file_triggers: true
+  terragrunt_parsing:
+    createProjectName: true
+    defaultWorkflow: default
+`
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), hclFile)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+	if assert.Len(t, dg.Projects, 1) {
+		assert.True(t, dg.Projects[0].Terragrunt)
+		assert.True(t, dg.Projects[0].Generated)
+		assert.True(t, dg.Projects[0].DependencyFileTriggers)
+	}
+}
+
+func TestLoadDiggerConfigInfersProjectDependenciesForGeneratedTerragruntBlockProjectsWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: env
+      terragrunt: true
+      root_dir: stack
+      dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "stack", "core"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "stack", "platform"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "stack", "core", "terragrunt.hcl"), hclFile)()
+	defer createFile(path.Join(tempDir, "stack", "platform", "terragrunt.hcl"), `
+terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+
+dependency "core" {
+  config_path = "../core"
+}
+
+inputs = {
+  foo = dependency.core.outputs.some_output
+}
+`)()
+
+	dg, _, dependencyGraph, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	coreProject := getProjectByDir(t, dg, "stack/core")
+	platformProject := getProjectByDir(t, dg, "stack/platform")
+
+	assert.True(t, coreProject.DependencyFileTriggers)
+	assert.True(t, platformProject.DependencyFileTriggers)
+	assert.Equal(t, []string{coreProject.Name}, platformProject.DependencyProjects)
+
+	adjacencyMap, err := dependencyGraph.AdjacencyMap()
+	assert.NoError(t, err)
+	_, hasCoreToPlatformEdge := adjacencyMap[coreProject.Name][platformProject.Name]
+	assert.True(t, hasCoreToPlatformEdge)
+}
+
+func TestLoadDiggerConfigInfersProjectDependenciesForRootProjectsWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: root
+  dir: .
+  dependency_file_triggers: true
+- name: shared
+  dir: modules/shared
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "main.tf"), `
+module "shared" {
+  source = "./modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+
+	dg, _, dependencyGraph, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	rootProject := dg.GetProject("root")
+	if assert.NotNil(t, rootProject) {
+		assert.Equal(t, []string{"shared"}, rootProject.DependencyProjects)
+	}
+
+	adjacencyMap, err := dependencyGraph.AdjacencyMap()
+	assert.NoError(t, err)
+	_, hasSharedToRootEdge := adjacencyMap["shared"]["root"]
+	assert.True(t, hasSharedToRootEdge)
+}
+
+func TestLoadDiggerConfigDoesNotInferAmbiguousWorkspaceDependenciesWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: env
+  workspace: dev
+  dependency_file_triggers: true
+- name: prod
+  dir: env
+  workspace: prod
+  dependency_file_triggers: true
+- name: consumer
+  dir: consumer
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "consumer"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "env", "main.tf"), `
+resource "null_resource" "env" {}
+`)()
+	defer createFile(path.Join(tempDir, "consumer", "main.tf"), `
+module "env" {
+  source = "../env"
+}
+`)()
+
+	dg, _, dependencyGraph, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	consumerProject := dg.GetProject("consumer")
+	if assert.NotNil(t, consumerProject) {
+		assert.Empty(t, consumerProject.DependencyProjects)
+	}
+
+	adjacencyMap, err := dependencyGraph.AdjacencyMap()
+	assert.NoError(t, err)
+	_, hasDevToConsumerEdge := adjacencyMap["dev"]["consumer"]
+	assert.False(t, hasDevToConsumerEdge)
+	_, hasProdToConsumerEdge := adjacencyMap["prod"]["consumer"]
+	assert.False(t, hasProdToConsumerEdge)
 }
 
 func TestLoadDiggerConfigDependencyFileTriggersRespectExcludePatterns(t *testing.T) {

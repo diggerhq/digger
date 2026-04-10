@@ -354,7 +354,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			config.GenerateProjectsConfig.TerragruntParsingConfig.FilterPaths = absoluteDirOfChangedFiles
 		}
 
-		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir, "", taConfig)
+		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir, "", taConfig, config.GenerateProjectsConfig.DependencyFileTriggers)
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
 			return nil, err
@@ -375,7 +375,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			parsingConfig.FilterPaths = GetDirNamesFromPaths(absoluteDirOfChangedFiles)
 		}
 
-		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, parsingConfig, terraformDir, "", taConfig)
+		newConfig, err := hydrateDiggerConfigYamlWithTerragrunt(config, parsingConfig, terraformDir, "", taConfig, config.GenerateProjectsConfig.DependencyFileTriggers)
 		if err != nil {
 			slog.Error("failed to hydrate config with terragrunt", "error", err)
 			return nil, err
@@ -458,7 +458,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
 						tgParsingConfig.AwsCognitoOidcConfig = b.AwsCognitoOidcConfig
 
-						_, err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName, nil)
+						_, err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName, nil, b.DependencyFileTriggers)
 						if err != nil {
 							slog.Error("failed to hydrate config with terragrunt",
 								"error", err,
@@ -808,7 +808,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string, cachedConfig *tac.AtlantisConfig) (*tac.AtlantisConfig, error) {
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string, blockName string, cachedConfig *tac.AtlantisConfig, dependencyFileTriggers bool) (*tac.AtlantisConfig, error) {
 	slog.Info("hydrating config with terragrunt projects",
 		"workingDir", workingDir,
 		"filterPaths", parsingConfig.FilterPaths)
@@ -939,19 +939,20 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		executionOrderGroup := uint(atlantisProject.ExecutionOrderGroup)
 
 		diggerProject := &ProjectYaml{
-			BlockName:            blockName,
-			Name:                 atlantisProject.Name,
-			Alias:                atlantisProject.Alias,
-			Dir:                  projectDir,
-			Layer:                &executionOrderGroup,
-			Workspace:            atlantisProject.Workspace,
-			Terragrunt:           true,
-			Workflow:             atlantisProject.Workflow,
-			WorkflowFile:         workflowFile,
-			IncludePatterns:      atlantisProject.Autoplan.WhenModified,
-			Generated:            true,
-			AwsRoleToAssume:      parsingConfig.AwsRoleToAssume,
-			AwsCognitoOidcConfig: parsingConfig.AwsCognitoOidcConfig,
+			BlockName:              blockName,
+			Name:                   atlantisProject.Name,
+			Alias:                  atlantisProject.Alias,
+			Dir:                    projectDir,
+			Layer:                  &executionOrderGroup,
+			Workspace:              atlantisProject.Workspace,
+			Terragrunt:             true,
+			Workflow:               atlantisProject.Workflow,
+			WorkflowFile:           workflowFile,
+			IncludePatterns:        atlantisProject.Autoplan.WhenModified,
+			DependencyFileTriggers: dependencyFileTriggers,
+			Generated:              true,
+			AwsRoleToAssume:        parsingConfig.AwsRoleToAssume,
+			AwsCognitoOidcConfig:   parsingConfig.AwsCognitoOidcConfig,
 		}
 
 		if parsingConfig.DependsOnOrdering != nil && *parsingConfig.DependsOnOrdering {

@@ -193,7 +193,7 @@ func isOutsideRepo(dir string) bool {
 
 func isPathInsideProject(projectDir string, candidateDir string) bool {
 	if projectDir == "." {
-		return true
+		return candidateDir == "."
 	}
 	return candidateDir == projectDir || strings.HasPrefix(candidateDir, projectDir+"/")
 }
@@ -268,6 +268,12 @@ func findMostSpecificProjectNamesForDir(projects []Project, currentProjectName s
 		case specificity == maxSpecificity:
 			projectNames = append(projectNames, candidate.Name)
 		}
+	}
+
+	// Multiple projects can intentionally share a directory via workspaces, so
+	// only infer a dependency when the upstream project is unambiguous.
+	if len(projectNames) > 1 {
+		return nil
 	}
 
 	sort.Strings(projectNames)
