@@ -20,6 +20,8 @@ modules/
 
 If you wanted to trigger plans for all `modules/` folder in both dev and prod projects you would include them in the `include_patterns` key. Similarly you put anything which you want to ignore in the `exclude_patterns` key ( exclude takes precedence over includes).
 
+If you want a narrower, dependency-graph-based trigger instead of a broad `modules/**` glob, you can enable `dependency_file_triggers: true`. For Terraform/OpenTofu this follows local `module` imports and tracks imported module `*.tf*` files recursively. For manual Terragrunt projects it follows the parsed Terragrunt dependency graph. If those imported files belong to another Digger project, Digger also infers the matching project dependency edge so you do not need to duplicate `depends_on` as often.
+
 Example using patterns relative to project directory:
 
 ```yml

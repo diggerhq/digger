@@ -231,6 +231,14 @@ func LoadDiggerConfig(workingDir string, generateProjects bool, changedFiles []s
 		return nil, nil, nil, nil, err
 	}
 
+	enrichProjectsWithDependencyFileTriggers(config, workingDir)
+
+	projectDependencyGraph, err = CreateProjectDependencyGraph(config.Projects)
+	if err != nil {
+		slog.Error("failed to create project dependency graph after dependency file trigger enrichment", "error", err)
+		return nil, configYaml, nil, newAtlantisConfig, err
+	}
+
 	err = ValidateDiggerConfig(config)
 	if err != nil {
 		slog.Warn("digger config validation failed", "error", err)
@@ -269,6 +277,14 @@ func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*Digger
 	if err != nil {
 		slog.Error("failed to convert YAML to config", "error", err)
 		return nil, nil, nil, err
+	}
+
+	enrichProjectsWithDependencyFileTriggers(config, terraformDir)
+
+	projectDependencyGraph, err = CreateProjectDependencyGraph(config.Projects)
+	if err != nil {
+		slog.Error("failed to create project dependency graph after dependency file trigger enrichment", "error", err)
+		return nil, configYaml, nil, err
 	}
 
 	err = ValidateDiggerConfig(config)
@@ -394,13 +410,14 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						"projectName", projectName)
 
 					project := ProjectYaml{
-						Name:                 projectName,
-						Dir:                  dir,
-						Workflow:             defaultWorkflowName,
-						Workspace:            "default",
-						AwsRoleToAssume:      config.GenerateProjectsConfig.AwsRoleToAssume,
-						Generated:            true,
-						AwsCognitoOidcConfig: config.GenerateProjectsConfig.AwsCognitoOidcConfig,
+						Name:                   projectName,
+						Dir:                    dir,
+						Workflow:               defaultWorkflowName,
+						Workspace:              "default",
+						DependencyFileTriggers: config.GenerateProjectsConfig.DependencyFileTriggers,
+						AwsRoleToAssume:        config.GenerateProjectsConfig.AwsRoleToAssume,
+						Generated:              true,
+						AwsCognitoOidcConfig:   config.GenerateProjectsConfig.AwsCognitoOidcConfig,
 					}
 					config.Projects = append(config.Projects, &project)
 				}
@@ -499,17 +516,18 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								"projectName", projectName)
 
 							project := ProjectYaml{
-								Name:                 projectName,
-								Dir:                  dir,
-								Workflow:             workflow,
-								Workspace:            workspace,
-								OpenTofu:             b.OpenTofu,
-								AwsRoleToAssume:      b.AwsRoleToAssume,
-								Generated:            true,
-								AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
-								WorkflowFile:         b.WorkflowFile,
-								IncludePatterns:      b.IncludePatterns,
-								ExcludePatterns:      b.ExcludePatterns,
+								Name:                   projectName,
+								Dir:                    dir,
+								Workflow:               workflow,
+								Workspace:              workspace,
+								OpenTofu:               b.OpenTofu,
+								DependencyFileTriggers: b.DependencyFileTriggers,
+								AwsRoleToAssume:        b.AwsRoleToAssume,
+								Generated:              true,
+								AwsCognitoOidcConfig:   b.AwsCognitoOidcConfig,
+								WorkflowFile:           b.WorkflowFile,
+								IncludePatterns:        b.IncludePatterns,
+								ExcludePatterns:        b.ExcludePatterns,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
@@ -670,6 +688,14 @@ func validatePulumiProject(project *Project) error {
 	return nil
 }
 
+func validateDependencyFileTriggers(project *Project) error {
+	if project.DependencyFileTriggers && project.Pulumi {
+		slog.Error("dependency_file_triggers is not supported for pulumi projects", "projectName", project.Name)
+		return fmt.Errorf("dependency_file_triggers is not supported for pulumi project %v", project.Name)
+	}
+	return nil
+}
+
 func ValidateProjects(config *DiggerConfig) error {
 	slog.Debug("validating projects configuration", "projectCount", len(config.Projects))
 
@@ -681,6 +707,11 @@ func ValidateProjects(config *DiggerConfig) error {
 		}
 
 		err = validatePulumiProject(&project)
+		if err != nil {
+			return err
+		}
+
+		err = validateDependencyFileTriggers(&project)
 		if err != nil {
 			return err
 		}
