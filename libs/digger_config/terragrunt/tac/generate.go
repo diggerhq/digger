@@ -81,8 +81,6 @@ func (m *GetDependenciesCache) get(k string) (getDependenciesOutput, bool) {
 	return v, ok
 }
 
-var getDependenciesCache = newGetDependenciesCache()
-
 func uniqueStrings(str []string) []string {
 	keys := make(map[string]bool)
 	list := []string{}
