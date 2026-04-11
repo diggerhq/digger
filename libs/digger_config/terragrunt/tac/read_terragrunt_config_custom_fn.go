@@ -18,6 +18,7 @@ var safeReadTerragruntConfigDecodeList = []config.PartialDecodeSectionType{
 	config.TerragruntFlags,
 	config.TerragruntVersionConstraints,
 	config.RemoteStateBlock,
+	partialDecodeInputs,
 }
 
 func wrapVoidToStringAsFuncImpl(

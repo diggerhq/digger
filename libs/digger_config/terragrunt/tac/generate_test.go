@@ -217,6 +217,32 @@ terraform {
 	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, patterns)
 }
 
+func TestInferProjectWhenModifiedPatternsSupportsInputsViaReadTerragruntConfig(t *testing.T) {
+	tempDir := t.TempDir()
+
+	rootTerragruntContents := `
+locals {
+  shared = read_terragrunt_config("shared.hcl")
+}
+
+terraform {
+  source = local.shared.inputs.source
+}
+`
+	sharedTerragruntContents := `
+inputs = {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+`
+
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "terragrunt.hcl"), []byte(rootTerragruntContents), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(tempDir, "shared.hcl"), []byte(sharedTerragruntContents), 0o644))
+
+	patterns, err := InferProjectWhenModifiedPatterns(tempDir, ".", false, false, true, false)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"*.hcl", "*.tf*"}, patterns)
+}
+
 func TestInferProjectWhenModifiedPatternsDoesNotReuseParentSkipAcrossCalls(t *testing.T) {
 	tempDir := t.TempDir()
 

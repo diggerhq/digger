@@ -185,6 +185,13 @@ type terragruntRemoteState struct {
 	Remain      hcl.Body               `hcl:",remain"`
 }
 
+type terragruntInputs struct {
+	Inputs *cty.Value `hcl:"inputs,attr"`
+	Remain hcl.Body   `hcl:",remain"`
+}
+
+const partialDecodeInputs config.PartialDecodeSectionType = 1000
+
 type InvalidPartialBlockName struct {
 	sectionCode config.PartialDecodeSectionType
 }
@@ -252,8 +259,7 @@ func parseCtyValueToMap(value cty.Value) (map[string]interface{}, error) {
 // Note that the following blocks are always decoded:
 // - locals
 // - include
-// Note also that the following blocks are never decoded in a partial parse:
-// - inputs
+// Note also that inputs are only decoded for the internal read_terragrunt_config hardening path.
 func PartialParseConfigString(
 	configString string,
 	terragruntOptions *options.TerragruntOptions,
@@ -388,6 +394,20 @@ func PartialParseConfigString(
 					return nil, err
 				}
 				output.RemoteState = remoteState
+			}
+
+		case partialDecodeInputs:
+			decoded := terragruntInputs{}
+			err := decodeHcl(file, filename, &decoded, evalContext)
+			if err != nil {
+				return nil, err
+			}
+			if decoded.Inputs != nil {
+				inputs, err := parseCtyValueToMap(*decoded.Inputs)
+				if err != nil {
+					return nil, err
+				}
+				output.Inputs = inputs
 			}
 
 		default:
