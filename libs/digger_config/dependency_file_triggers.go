@@ -30,10 +30,6 @@ func enrichProjectsWithDependencyFileTriggers(config *DiggerConfig, repoRoot str
 		if !project.DependencyFileTriggers {
 			continue
 		}
-		existingDependencyProjects := make(map[string]struct{}, len(project.DependencyProjects))
-		for _, dependencyProject := range project.DependencyProjects {
-			existingDependencyProjects[dependencyProject] = struct{}{}
-		}
 
 		patterns, err := getDependencyFileTriggerPatterns(absoluteRepoRoot, *project)
 		if err != nil {
@@ -48,9 +44,6 @@ func enrichProjectsWithDependencyFileTriggers(config *DiggerConfig, repoRoot str
 		inferredDependencyPatterns := inferDependencyProjectsFromPatterns(config.Projects, *project, patterns)
 		for dependencyProjectName, dependencyPatterns := range inferredDependencyPatterns {
 			project.DependencyProjects = appendUniqueStrings(project.DependencyProjects, dependencyProjectName)
-			if _, hasManualDependency := existingDependencyProjects[dependencyProjectName]; hasManualDependency {
-				continue
-			}
 			if project.InferredDependencyPatternsByProject == nil {
 				project.InferredDependencyPatternsByProject = make(map[string][]string)
 			}
