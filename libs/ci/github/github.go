@@ -1154,7 +1154,7 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 		slog.Debug("using hard dependency mode, finding all dependent projects", "prNumber", prNumber)
 		originalCount := len(impactedProjects)
 
-		targetBranchDependencyGraph, err := createTargetBranchDependencyGraph(diggerConfig.Projects, defaultBranch, targetBranch)
+		targetBranchDependencyGraph, err := generic.CreateTargetBranchDependencyGraph(diggerConfig.Projects, defaultBranch, targetBranch)
 		if err != nil {
 			slog.Error("failed to create target branch dependency graph",
 				"error", err,
@@ -1178,40 +1178,6 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 	}
 
 	return impactedProjects, impactedProjectsSourceLocations, prNumber, nil
-}
-
-func createTargetBranchDependencyGraph(projects []digger_config.Project, defaultBranch string, targetBranch string) (graph.Graph[string, digger_config.Project], error) {
-	filteredProjects := generic.FilterTargetBranchForImpactedProjects(projects, defaultBranch, targetBranch)
-	allowedProjects := make(map[string]struct{}, len(filteredProjects))
-	for _, project := range filteredProjects {
-		allowedProjects[project.Name] = struct{}{}
-	}
-
-	for i := range filteredProjects {
-		project := &filteredProjects[i]
-
-		filteredDependencies := make([]string, 0, len(project.DependencyProjects))
-		for _, dependencyProject := range project.DependencyProjects {
-			if _, ok := allowedProjects[dependencyProject]; ok {
-				filteredDependencies = append(filteredDependencies, dependencyProject)
-			}
-		}
-		project.DependencyProjects = filteredDependencies
-
-		if len(project.InferredDependencyPatternsByProject) == 0 {
-			continue
-		}
-
-		filteredPatternsByProject := make(map[string][]string)
-		for dependencyProject, patterns := range project.InferredDependencyPatternsByProject {
-			if _, ok := allowedProjects[dependencyProject]; ok {
-				filteredPatternsByProject[dependencyProject] = patterns
-			}
-		}
-		project.InferredDependencyPatternsByProject = filteredPatternsByProject
-	}
-
-	return digger_config.CreateProjectDependencyGraph(filteredProjects)
 }
 
 func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {

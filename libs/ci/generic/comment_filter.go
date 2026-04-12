@@ -3,6 +3,7 @@ package generic
 import (
 	"fmt"
 	"github.com/diggerhq/digger/libs/digger_config"
+	"github.com/dominikbraun/graph"
 	"github.com/samber/lo"
 )
 
@@ -19,6 +20,40 @@ func FilterTargetBranchForImpactedProjects(impactedProjects []digger_config.Proj
 		return projectTargetBranch == targetBranch
 	})
 	return impactedProjects
+}
+
+func CreateTargetBranchDependencyGraph(projects []digger_config.Project, defaultBranch string, targetBranch string) (graph.Graph[string, digger_config.Project], error) {
+	filteredProjects := FilterTargetBranchForImpactedProjects(projects, defaultBranch, targetBranch)
+	allowedProjects := make(map[string]struct{}, len(filteredProjects))
+	for _, project := range filteredProjects {
+		allowedProjects[project.Name] = struct{}{}
+	}
+
+	for i := range filteredProjects {
+		project := &filteredProjects[i]
+
+		filteredDependencies := make([]string, 0, len(project.DependencyProjects))
+		for _, dependencyProject := range project.DependencyProjects {
+			if _, ok := allowedProjects[dependencyProject]; ok {
+				filteredDependencies = append(filteredDependencies, dependencyProject)
+			}
+		}
+		project.DependencyProjects = filteredDependencies
+
+		if len(project.InferredDependencyPatternsByProject) == 0 {
+			continue
+		}
+
+		filteredPatternsByProject := make(map[string][]string)
+		for dependencyProject, patterns := range project.InferredDependencyPatternsByProject {
+			if _, ok := allowedProjects[dependencyProject]; ok {
+				filteredPatternsByProject[dependencyProject] = patterns
+			}
+		}
+		project.InferredDependencyPatternsByProject = filteredPatternsByProject
+	}
+
+	return digger_config.CreateProjectDependencyGraph(filteredProjects)
 }
 
 func FilterOutProjectsFromComment(impactedProjects []digger_config.Project, comment string) ([]digger_config.Project, error) {

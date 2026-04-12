@@ -14,15 +14,23 @@ func ProcessGitlabPullRequestEvent(payload *gitlab.MergeEvent, diggerConfig *dig
 	var impactedProjects []digger_config.Project
 	var prNumber int
 	prNumber = payload.ObjectAttributes.IID
+	defaultBranch := payload.Project.DefaultBranch
+	targetBranch := payload.ObjectAttributes.TargetBranch
 	changedFiles, err := ciService.GetChangedFiles(prNumber)
 
 	if err != nil {
 		return nil, nil, prNumber, fmt.Errorf("could not get changed files")
 	}
 	impactedProjects, impactedProjectsSourceLocations := diggerConfig.GetModifiedProjects(changedFiles)
+	impactedProjects = generic.FilterTargetBranchForImpactedProjects(impactedProjects, defaultBranch, targetBranch)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
-		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, changedFiles)
+		targetBranchDependencyGraph, err := generic.CreateTargetBranchDependencyGraph(diggerConfig.Projects, defaultBranch, targetBranch)
+		if err != nil {
+			return nil, nil, prNumber, fmt.Errorf("failed to create target branch dependency graph")
+		}
+
+		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, targetBranchDependencyGraph, changedFiles)
 		if err != nil {
 			return nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
