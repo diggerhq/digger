@@ -31,7 +31,7 @@ type DiggerConfigYaml struct {
 }
 
 type ReportingConfigYaml struct {
-	AiSummary bool `yaml:"ai_summary"`
+	AiSummary       bool `yaml:"ai_summary"`
 	CommentsEnabled bool `yaml:"comments_enabled"`
 }
 
@@ -44,27 +44,28 @@ const ApplyRequirementsMergeable = "mergeable"
 const ApplyRequirementsUndiverged = "undiverged"
 
 type ProjectYaml struct {
-	BlockName            string                      `yaml:"block_name"`
-	Name                 string                      `yaml:"name"`
-	Alias                string                      `yaml:"alias,omitempty"`
-	ApplyRequirements    []string                    `yaml:"apply_requirements,omitempty"`
-	Dir                  string                      `yaml:"dir"`
-	Workspace            string                      `yaml:"workspace"`
-	Terragrunt           bool                        `yaml:"terragrunt"`
-	Branch               *string                     `yaml:"branch,omitempty"`
-	OpenTofu             bool                        `yaml:"opentofu"`
-	Pulumi               bool                        `yaml:"pulumi"`
-	Workflow             string                      `yaml:"workflow"`
-	WorkflowFile         string                      `yaml:"workflow_file"`
-	IncludePatterns      []string                    `yaml:"include_patterns,omitempty"`
-	Layer                *uint                       `yaml:"layer"`
-	ExcludePatterns      []string                    `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects   []string                    `yaml:"depends_on,omitempty"`
-	DriftDetection       *bool                       `yaml:"drift_detection,omitempty"`
-	AwsRoleToAssume      *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	Generated            bool                        `yaml:"generated"`
-	AwsCognitoOidcConfig *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
-	PulumiStack          string                      `yaml:"pulumi_stack"`
+	BlockName              string                      `yaml:"block_name"`
+	Name                   string                      `yaml:"name"`
+	Alias                  string                      `yaml:"alias,omitempty"`
+	ApplyRequirements      []string                    `yaml:"apply_requirements,omitempty"`
+	Dir                    string                      `yaml:"dir"`
+	Workspace              string                      `yaml:"workspace"`
+	Terragrunt             bool                        `yaml:"terragrunt"`
+	Branch                 *string                     `yaml:"branch,omitempty"`
+	OpenTofu               bool                        `yaml:"opentofu"`
+	Pulumi                 bool                        `yaml:"pulumi"`
+	Workflow               string                      `yaml:"workflow"`
+	WorkflowFile           string                      `yaml:"workflow_file"`
+	IncludePatterns        []string                    `yaml:"include_patterns,omitempty"`
+	Layer                  *uint                       `yaml:"layer"`
+	ExcludePatterns        []string                    `yaml:"exclude_patterns,omitempty"`
+	DependencyFileTriggers bool                        `yaml:"dependency_file_triggers,omitempty"`
+	DependencyProjects     []string                    `yaml:"depends_on,omitempty"`
+	DriftDetection         *bool                       `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume        *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	Generated              bool                        `yaml:"generated"`
+	AwsCognitoOidcConfig   *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	PulumiStack            string                      `yaml:"pulumi_stack"`
 }
 
 type WorkflowYaml struct {
@@ -116,10 +117,11 @@ type EnvVarYaml struct {
 
 type BlockYaml struct {
 	// these flags are only for terraform and opentofu
-	Include         string   `yaml:"include"`
-	Exclude         string   `yaml:"exclude"`
-	IncludePatterns []string `yaml:"include_patterns,omitempty"`
-	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
+	Include                string   `yaml:"include"`
+	Exclude                string   `yaml:"exclude"`
+	IncludePatterns        []string `yaml:"include_patterns,omitempty"`
+	ExcludePatterns        []string `yaml:"exclude_patterns,omitempty"`
+	DependencyFileTriggers bool     `yaml:"dependency_file_triggers,omitempty"`
 
 	// these flags are only for terragrunt
 	Terragrunt              bool                     `yaml:"terragrunt"`
@@ -154,6 +156,7 @@ type AwsCognitoOidcConfig struct {
 type GenerateProjectsConfigYaml struct {
 	Include                 string                      `yaml:"include"`
 	Exclude                 string                      `yaml:"exclude"`
+	DependencyFileTriggers  bool                        `yaml:"dependency_file_triggers,omitempty"`
 	Terragrunt              bool                        `yaml:"terragrunt"`
 	Blocks                  []BlockYaml                 `yaml:"blocks"`
 	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`

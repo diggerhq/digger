@@ -231,6 +231,8 @@ func LoadDiggerConfig(workingDir string, generateProjects bool, changedFiles []s
 		return nil, nil, nil, nil, err
 	}
 
+	enrichProjectsWithDependencyFileTriggers(config, workingDir)
+
 	err = ValidateDiggerConfig(config)
 	if err != nil {
 		slog.Warn("digger config validation failed", "error", err)
@@ -271,6 +273,8 @@ func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*Digger
 		return nil, nil, nil, err
 	}
 
+	enrichProjectsWithDependencyFileTriggers(config, terraformDir)
+
 	err = ValidateDiggerConfig(config)
 	if err != nil {
 		slog.Warn("digger config validation failed", "error", err)
@@ -300,6 +304,10 @@ func validateBlockYaml(blocks []BlockYaml) error {
 			if b.RootDir == nil {
 				slog.Error("terragrunt block missing root_dir", "blockName", b.BlockName)
 				return fmt.Errorf("block %v is a terragrunt block but does not have root_dir specified", b.BlockName)
+			}
+			if b.DependencyFileTriggers {
+				slog.Error("dependency_file_triggers is not supported for terragrunt generation blocks", "blockName", b.BlockName)
+				return fmt.Errorf("dependency_file_triggers is not supported for terragrunt block %v", b.BlockName)
 			}
 		}
 	}
@@ -394,13 +402,14 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 						"projectName", projectName)
 
 					project := ProjectYaml{
-						Name:                 projectName,
-						Dir:                  dir,
-						Workflow:             defaultWorkflowName,
-						Workspace:            "default",
-						AwsRoleToAssume:      config.GenerateProjectsConfig.AwsRoleToAssume,
-						Generated:            true,
-						AwsCognitoOidcConfig: config.GenerateProjectsConfig.AwsCognitoOidcConfig,
+						Name:                   projectName,
+						Dir:                    dir,
+						Workflow:               defaultWorkflowName,
+						Workspace:              "default",
+						DependencyFileTriggers: config.GenerateProjectsConfig.DependencyFileTriggers,
+						AwsRoleToAssume:        config.GenerateProjectsConfig.AwsRoleToAssume,
+						Generated:              true,
+						AwsCognitoOidcConfig:   config.GenerateProjectsConfig.AwsCognitoOidcConfig,
 					}
 					config.Projects = append(config.Projects, &project)
 				}
@@ -499,17 +508,18 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								"projectName", projectName)
 
 							project := ProjectYaml{
-								Name:                 projectName,
-								Dir:                  dir,
-								Workflow:             workflow,
-								Workspace:            workspace,
-								OpenTofu:             b.OpenTofu,
-								AwsRoleToAssume:      b.AwsRoleToAssume,
-								Generated:            true,
-								AwsCognitoOidcConfig: b.AwsCognitoOidcConfig,
-								WorkflowFile:         b.WorkflowFile,
-								IncludePatterns:      b.IncludePatterns,
-								ExcludePatterns:      b.ExcludePatterns,
+								Name:                   projectName,
+								Dir:                    dir,
+								Workflow:               workflow,
+								Workspace:              workspace,
+								OpenTofu:               b.OpenTofu,
+								DependencyFileTriggers: b.DependencyFileTriggers,
+								AwsRoleToAssume:        b.AwsRoleToAssume,
+								Generated:              true,
+								AwsCognitoOidcConfig:   b.AwsCognitoOidcConfig,
+								WorkflowFile:           b.WorkflowFile,
+								IncludePatterns:        b.IncludePatterns,
+								ExcludePatterns:        b.ExcludePatterns,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
@@ -622,6 +632,16 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 		}
 	}
 	if configYaml.GenerateProjectsConfig != nil {
+		if err := validateBlockYaml(configYaml.GenerateProjectsConfig.Blocks); err != nil {
+			return err
+		}
+
+		if (configYaml.GenerateProjectsConfig.Terragrunt || configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil) &&
+			configYaml.GenerateProjectsConfig.DependencyFileTriggers {
+			slog.Error("dependency_file_triggers is not supported for top-level terragrunt project generation")
+			return fmt.Errorf("dependency_file_triggers is not supported for terragrunt generate_projects")
+		}
+
 		if configYaml.GenerateProjectsConfig.Include != "" &&
 			configYaml.GenerateProjectsConfig.Exclude != "" &&
 			len(configYaml.GenerateProjectsConfig.Blocks) != 0 {
@@ -670,6 +690,18 @@ func validatePulumiProject(project *Project) error {
 	return nil
 }
 
+func validateDependencyFileTriggers(project *Project) error {
+	if project.DependencyFileTriggers && project.Pulumi {
+		slog.Error("dependency_file_triggers is not supported for pulumi projects", "projectName", project.Name)
+		return fmt.Errorf("dependency_file_triggers is not supported for pulumi project %v", project.Name)
+	}
+	if project.DependencyFileTriggers && project.Terragrunt {
+		slog.Error("dependency_file_triggers is not supported for terragrunt projects", "projectName", project.Name)
+		return fmt.Errorf("dependency_file_triggers is not supported for terragrunt project %v", project.Name)
+	}
+	return nil
+}
+
 func ValidateProjects(config *DiggerConfig) error {
 	slog.Debug("validating projects configuration", "projectCount", len(config.Projects))
 
@@ -681,6 +713,11 @@ func ValidateProjects(config *DiggerConfig) error {
 		}
 
 		err = validatePulumiProject(&project)
+		if err != nil {
+			return err
+		}
+
+		err = validateDependencyFileTriggers(&project)
 		if err != nil {
 			return err
 		}
