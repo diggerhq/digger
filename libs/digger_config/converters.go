@@ -98,6 +98,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			workflowFile,
 			p.IncludePatterns,
 			p.ExcludePatterns,
+			p.DependencyFileTriggers,
 			p.DependencyProjects,
 			driftDetection,
 			roleToAssume,

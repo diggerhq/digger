@@ -1468,6 +1468,422 @@ func TestGetModifiedProjectsReturnsCorrectSourceMappingWithRelativePaths(t *test
 	assert.Equal(t, expectedImpactingLocations["prod"].ImpactingLocations, projectSourceMapping["prod"].ImpactingLocations)
 }
 
+func TestLoadDiggerConfigDoesNotTrackImportedTerraformModulesByDefault(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: dev
+- name: prod
+  dir: prod
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "prod"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "network"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "dev", "main.tf"), `
+module "shared" {
+  source = "../modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "prod", "main.tf"), `
+module "network" {
+  source = "../modules/network"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "network", "main.tf"), `
+resource "null_resource" "network" {}
+`)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Equal(t, 0, len(impactedProjects))
+}
+
+func TestLoadDiggerConfigTracksImportedTerraformModulesWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: dev
+  dependency_file_triggers: true
+- name: prod
+  dir: prod
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "prod"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "network"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "dev", "main.tf"), `
+module "shared" {
+  source = "../modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "prod", "main.tf"), `
+module "network" {
+  source = "../modules/network"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "network", "main.tf"), `
+resource "null_resource" "network" {}
+`)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Equal(t, 1, len(impactedProjects))
+	assert.Equal(t, "dev", impactedProjects[0].Name)
+}
+
+func TestLoadDiggerConfigTracksNestedImportedTerraformModulesRecursively(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: dev
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "nested"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "dev", "main.tf"), `
+module "shared" {
+  source = "../modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+module "nested" {
+  source = "../nested"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "nested", "main.tf"), `
+resource "null_resource" "nested" {}
+`)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/nested/main.tf"})
+	assert.Equal(t, 1, len(impactedProjects))
+	assert.Equal(t, "dev", impactedProjects[0].Name)
+}
+
+func TestLoadDiggerConfigInfersProjectDependenciesFromImportedTerraformProjectsWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: core
+  dir: core
+  dependency_file_triggers: true
+- name: platform
+  dir: platform
+  dependency_file_triggers: true
+- name: services
+  dir: services
+  depends_on: ["platform"]
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "core"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "platform"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "services"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "core", "main.tf"), `
+resource "null_resource" "core" {}
+`)()
+	defer createFile(path.Join(tempDir, "platform", "main.tf"), `
+module "core" {
+  source = "../core"
+}
+`)()
+	defer createFile(path.Join(tempDir, "services", "main.tf"), `
+resource "null_resource" "services" {}
+`)()
+
+	dg, _, dependencyGraph, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	platformProject := dg.GetProject("platform")
+	if assert.NotNil(t, platformProject) {
+		assert.Equal(t, []string{"core"}, platformProject.DependencyProjects)
+	}
+
+	adjacencyMap, err := dependencyGraph.AdjacencyMap()
+	assert.NoError(t, err)
+	_, hasCoreToPlatformEdge := adjacencyMap["core"]["platform"]
+	assert.True(t, hasCoreToPlatformEdge)
+	_, hasPlatformToServicesEdge := adjacencyMap["platform"]["services"]
+	assert.True(t, hasPlatformToServicesEdge)
+}
+
+func TestLoadDiggerConfigTracksImportedTerraformModulesForGeneratedProjectsWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  include: "env/**"
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "env", "dev", "main.tf"), `
+module "shared" {
+  source = "../../modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Equal(t, 1, len(impactedProjects))
+	assert.Equal(t, "env_dev", impactedProjects[0].Name)
+}
+
+func TestLoadDiggerConfigTracksImportedTerraformModulesForGeneratedBlockProjectsWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: env
+      include: "env/**"
+      dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "env", "dev", "main.tf"), `
+module "shared" {
+  source = "../../modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Equal(t, 1, len(impactedProjects))
+	assert.Equal(t, "env_dev", impactedProjects[0].Name)
+}
+
+func TestLoadDiggerConfigInfersProjectDependenciesForRootProjectsWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: root
+  dir: .
+  dependency_file_triggers: true
+- name: shared
+  dir: modules/shared
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "main.tf"), `
+module "shared" {
+  source = "./modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+
+	dg, _, dependencyGraph, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	rootProject := dg.GetProject("root")
+	if assert.NotNil(t, rootProject) {
+		assert.Equal(t, []string{"shared"}, rootProject.DependencyProjects)
+	}
+
+	adjacencyMap, err := dependencyGraph.AdjacencyMap()
+	assert.NoError(t, err)
+	_, hasSharedToRootEdge := adjacencyMap["shared"]["root"]
+	assert.True(t, hasSharedToRootEdge)
+}
+
+func TestLoadDiggerConfigDoesNotInferAmbiguousWorkspaceDependenciesWhenDependencyFileTriggersEnabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: env
+  workspace: dev
+  dependency_file_triggers: true
+- name: prod
+  dir: env
+  workspace: prod
+  dependency_file_triggers: true
+- name: consumer
+  dir: consumer
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "consumer"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "env", "main.tf"), `
+resource "null_resource" "env" {}
+`)()
+	defer createFile(path.Join(tempDir, "consumer", "main.tf"), `
+module "env" {
+  source = "../env"
+}
+`)()
+
+	dg, _, dependencyGraph, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	consumerProject := dg.GetProject("consumer")
+	if assert.NotNil(t, consumerProject) {
+		assert.Empty(t, consumerProject.DependencyProjects)
+	}
+
+	adjacencyMap, err := dependencyGraph.AdjacencyMap()
+	assert.NoError(t, err)
+	_, hasDevToConsumerEdge := adjacencyMap["dev"]["consumer"]
+	assert.False(t, hasDevToConsumerEdge)
+	_, hasProdToConsumerEdge := adjacencyMap["prod"]["consumer"]
+	assert.False(t, hasProdToConsumerEdge)
+}
+
+func TestLoadDiggerConfigDependencyFileTriggersRespectExcludePatterns(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: dev
+  dependency_file_triggers: true
+  exclude_patterns:
+    - modules/shared/**
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "dev", "main.tf"), `
+module "shared" {
+  source = "../modules/shared"
+}
+`)()
+	defer createFile(path.Join(tempDir, "modules", "shared", "main.tf"), `
+resource "null_resource" "shared" {}
+`)()
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := dg.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Equal(t, 0, len(impactedProjects))
+}
+
+func TestLoadDiggerConfigRejectsDependencyFileTriggersForPulumiProjects(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: pulumi
+  dir: .
+  pulumi: true
+  pulumi_stack: dev
+  dependency_file_triggers: true
+`
+
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency_file_triggers is not supported for pulumi project pulumi")
+}
+
+func TestLoadDiggerConfigRejectsDependencyFileTriggersForTerragruntProjects(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: tg
+  dir: .
+  terragrunt: true
+  dependency_file_triggers: true
+`
+
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency_file_triggers is not supported for terragrunt project tg")
+}
+
+func TestLoadDiggerConfigRejectsDependencyFileTriggersForTerragruntGenerateProjects(t *testing.T) {
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  dependency_file_triggers: true
+`
+
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency_file_triggers is not supported for terragrunt generate_projects")
+}
+
+func TestLoadDiggerConfigRejectsDependencyFileTriggersForTerragruntBlocks(t *testing.T) {
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: tg
+      terragrunt: true
+      root_dir: stack
+      dependency_file_triggers: true
+`
+
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency_file_triggers is not supported for terragrunt block tg")
+}
+
 func TestCognitoTokenSetFromMinConfig(t *testing.T) {
 	diggerCfg := `
 projects:
