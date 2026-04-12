@@ -99,6 +99,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			p.IncludePatterns,
 			p.ExcludePatterns,
 			p.DependencyFileTriggers,
+			nil,
 			p.DependencyProjects,
 			driftDetection,
 			roleToAssume,

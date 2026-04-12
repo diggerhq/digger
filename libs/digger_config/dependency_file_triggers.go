@@ -30,6 +30,10 @@ func enrichProjectsWithDependencyFileTriggers(config *DiggerConfig, repoRoot str
 		if !project.DependencyFileTriggers {
 			continue
 		}
+		existingDependencyProjects := make(map[string]struct{}, len(project.DependencyProjects))
+		for _, dependencyProject := range project.DependencyProjects {
+			existingDependencyProjects[dependencyProject] = struct{}{}
+		}
 
 		patterns, err := getDependencyFileTriggerPatterns(absoluteRepoRoot, *project)
 		if err != nil {
@@ -41,10 +45,20 @@ func enrichProjectsWithDependencyFileTriggers(config *DiggerConfig, repoRoot str
 		}
 
 		project.IncludePatterns = appendUniqueStrings(project.IncludePatterns, patterns...)
-		project.DependencyProjects = appendUniqueStrings(
-			project.DependencyProjects,
-			inferDependencyProjectsFromPatterns(config.Projects, *project, filterDependencyPatternsForProject(*project, patterns))...,
-		)
+		inferredDependencyPatterns := inferDependencyProjectsFromPatterns(config.Projects, *project, patterns)
+		for dependencyProjectName, dependencyPatterns := range inferredDependencyPatterns {
+			project.DependencyProjects = appendUniqueStrings(project.DependencyProjects, dependencyProjectName)
+			if _, hasManualDependency := existingDependencyProjects[dependencyProjectName]; hasManualDependency {
+				continue
+			}
+			if project.InferredDependencyPatternsByProject == nil {
+				project.InferredDependencyPatternsByProject = make(map[string][]string)
+			}
+			project.InferredDependencyPatternsByProject[dependencyProjectName] = appendUniqueStrings(
+				project.InferredDependencyPatternsByProject[dependencyProjectName],
+				dependencyPatterns...,
+			)
+		}
 	}
 }
 
@@ -203,9 +217,9 @@ func appendUniqueStrings(existing []string, values ...string) []string {
 	return result
 }
 
-func inferDependencyProjectsFromPatterns(projects []Project, currentProject Project, patterns []string) []string {
+func inferDependencyProjectsFromPatterns(projects []Project, currentProject Project, patterns []string) map[string][]string {
 	currentProjectDir := normalizeRelativePath(currentProject.Dir)
-	dependencyProjects := make([]string, 0)
+	dependencyProjectPatterns := make(map[string][]string)
 
 	for _, pattern := range patterns {
 		patternDir := normalizeRelativePath(filepath.Dir(pattern))
@@ -221,29 +235,12 @@ func inferDependencyProjectsFromPatterns(projects []Project, currentProject Proj
 			continue
 		}
 
-		dependencyProjects = appendUniqueStrings(dependencyProjects, mostSpecificProjectNames...)
-	}
-
-	sort.Strings(dependencyProjects)
-	return dependencyProjects
-}
-
-func filterDependencyPatternsForProject(project Project, patterns []string) []string {
-	excludePatterns := ResolvePatternsRelativeToProject(project.Dir, project.ExcludePatterns)
-	if len(excludePatterns) == 0 {
-		return patterns
-	}
-
-	filteredPatterns := make([]string, 0, len(patterns))
-	for _, pattern := range patterns {
-		probeFile := filepath.ToSlash(filepath.Join(filepath.Dir(pattern), "main.tf"))
-		if MatchExcludePatternsToFile(probeFile, excludePatterns) {
-			continue
+		for _, dependencyProject := range mostSpecificProjectNames {
+			dependencyProjectPatterns[dependencyProject] = appendUniqueStrings(dependencyProjectPatterns[dependencyProject], pattern)
 		}
-		filteredPatterns = append(filteredPatterns, pattern)
 	}
 
-	return filteredPatterns
+	return dependencyProjectPatterns
 }
 
 func findMostSpecificProjectNamesForDir(projects []Project, currentProjectName string, dependencyDir string) []string {

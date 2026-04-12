@@ -38,7 +38,7 @@ func ProcessIssueCommentEvent(prNumber int, diggerConfig *digger_config.DiggerCo
 	impactedProjects, impactedProjectsSourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
-		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+		impactedProjects, err = FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, changedFiles)
 		if err != nil {
 			return &ProcessIssueCommentEventResult{}, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}
@@ -52,7 +52,7 @@ func ProcessIssueCommentEvent(prNumber int, diggerConfig *digger_config.DiggerCo
 
 }
 
-func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project]) ([]digger_config.Project, error) {
+func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config.Project, dependencyGraph graph.Graph[string, digger_config.Project], changedFiles []string) ([]digger_config.Project, error) {
 	impactedProjectsMap := make(map[string]digger_config.Project)
 	for _, project := range impactedProjects {
 		impactedProjectsMap[project.Name] = project
@@ -82,7 +82,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 				} else {
 					// if a project was not impacted, check if it has a parent that was impacted and add it to the map of impacted projects
 					for parent := range predecessorMap[node] {
-						if _, ok := impactedProjectsMap[parent]; ok {
+						if _, ok := impactedProjectsMap[parent]; ok && shouldPropagateDependencyImpact(currentProject, parent, changedFiles) {
 							impactedProjectsWithDependantProjects = append(impactedProjectsWithDependantProjects, currentProject)
 							impactedProjectsMap[node] = currentProject
 							visited[node] = true
@@ -98,6 +98,26 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 		}
 	}
 	return impactedProjectsWithDependantProjects, nil
+}
+
+func shouldPropagateDependencyImpact(project digger_config.Project, dependencyProjectName string, changedFiles []string) bool {
+	patterns, ok := project.InferredDependencyPatternsByProject[dependencyProjectName]
+	if !ok {
+		return true
+	}
+
+	excludePatterns := digger_config.ResolvePatternsRelativeToProject(project.Dir, project.ExcludePatterns)
+	for _, changedFile := range changedFiles {
+		if digger_config.MatchIncludeExcludePatternsToFile(
+			changedFile,
+			append([]string(nil), patterns...),
+			append([]string(nil), excludePatterns...),
+		) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prNumber int, commentBody string, impactedProjectsForComment []digger_config.Project, allImpactedProjects []digger_config.Project, workflows map[string]digger_config.Workflow, prBranchName string, defaultBranch string, performEnvVarInterpolation bool) ([]scheduler.Job, bool, error) {

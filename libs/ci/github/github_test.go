@@ -91,7 +91,7 @@ func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 		},
 	}
 
-	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, nil)
 	if err != nil {
 		return
 	}
@@ -130,26 +130,71 @@ projects:
   dir: env/dev
   dependency_file_triggers: true
   exclude_patterns:
-    - modules/shared/**
+    - modules/shared/outputs.tf
 `
 
 	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
 	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "dev"), 0o755))
 	assert.NoError(t, os.WriteFile(path.Join(tempDir, "digger.yml"), []byte(diggerCfg), 0o644))
 	assert.NoError(t, os.WriteFile(path.Join(tempDir, "modules", "shared", "main.tf"), []byte(`resource "null_resource" "shared" {}`), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "modules", "shared", "outputs.tf"), []byte(`output "shared" { value = "x" }`), 0o644))
 	assert.NoError(t, os.WriteFile(path.Join(tempDir, "env", "dev", "main.tf"), []byte(`module "shared" { source = "../../modules/shared" }`), 0o644))
 
 	config, _, dependencyGraph, _, err := digger_config.LoadDiggerConfig(tempDir, true, nil, nil)
 	assert.NoError(t, err)
 
-	impactedProjects, _ := config.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	impactedProjects, _ := config.GetModifiedProjects([]string{"modules/shared/outputs.tf"})
 	assert.Len(t, impactedProjects, 1)
 	assert.Equal(t, "shared", impactedProjects[0].Name)
 
-	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, []string{"modules/shared/outputs.tf"})
 	assert.NoError(t, err)
 	assert.Len(t, impactedProjectsWithDependants, 1)
 	assert.Equal(t, "shared", impactedProjectsWithDependants[0].Name)
+}
+
+func TestFindAllProjectsDependantOnImpactedProjectsOnlyPropagatesMatchingImportedFiles(t *testing.T) {
+	tempDir := t.TempDir()
+
+	diggerCfg := `
+dependency_configuration:
+  mode: hard
+projects:
+- name: shared
+  dir: modules/shared
+- name: consumer
+  dir: env/dev
+  dependency_file_triggers: true
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "dev"), 0o755))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "digger.yml"), []byte(diggerCfg), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "modules", "shared", "main.tf"), []byte(`resource "null_resource" "shared" {}`), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "modules", "shared", "README.md"), []byte(`shared docs`), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "env", "dev", "main.tf"), []byte(`module "shared" { source = "../../modules/shared" }`), 0o644))
+
+	config, _, dependencyGraph, _, err := digger_config.LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := config.GetModifiedProjects([]string{"modules/shared/README.md"})
+	assert.Len(t, impactedProjects, 1)
+	assert.Equal(t, "shared", impactedProjects[0].Name)
+
+	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, []string{"modules/shared/README.md"})
+	assert.NoError(t, err)
+	assert.Len(t, impactedProjectsWithDependants, 1)
+	assert.Equal(t, "shared", impactedProjectsWithDependants[0].Name)
+
+	impactedProjects, _ = config.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Len(t, impactedProjects, 2)
+
+	impactedProjectsWithDependants, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, []string{"modules/shared/main.tf"})
+	assert.NoError(t, err)
+	assert.Len(t, impactedProjectsWithDependants, 2)
+	projectNames := []string{impactedProjectsWithDependants[0].Name, impactedProjectsWithDependants[1].Name}
+	assert.Contains(t, projectNames, "shared")
+	assert.Contains(t, projectNames, "consumer")
 }
 
 func TestFindAllChangedFilesOfPR(t *testing.T) {

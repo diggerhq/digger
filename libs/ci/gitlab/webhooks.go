@@ -22,7 +22,7 @@ func ProcessGitlabPullRequestEvent(payload *gitlab.MergeEvent, diggerConfig *dig
 	impactedProjects, impactedProjectsSourceLocations := diggerConfig.GetModifiedProjects(changedFiles)
 
 	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
-		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, changedFiles)
 		if err != nil {
 			return nil, nil, prNumber, fmt.Errorf("failed to find all projects dependant on impacted projects")
 		}

@@ -1154,7 +1154,7 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 		slog.Debug("using hard dependency mode, finding all dependent projects", "prNumber", prNumber)
 		originalCount := len(impactedProjects)
 
-		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph, changedFiles)
 		if err != nil {
 			slog.Error("failed to find all projects dependant on impacted projects",
 				"error", err,

@@ -49,28 +49,29 @@ type AssumeRoleForProject struct {
 }
 
 type Project struct {
-	BlockName              string // the block name if this is a generated project
-	Name                   string
-	Branch                 string
-	Alias                  string
-	ApplyRequirements      []string
-	Dir                    string
-	Workspace              string
-	Terragrunt             bool
-	Layer                  uint
-	OpenTofu               bool
-	Pulumi                 bool
-	Workflow               string
-	WorkflowFile           string
-	IncludePatterns        []string
-	ExcludePatterns        []string
-	DependencyFileTriggers bool
-	DependencyProjects     []string
-	DriftDetection         bool
-	AwsRoleToAssume        *AssumeRoleForProject
-	AwsCognitoOidcConfig   *AwsCognitoOidcConfig
-	Generated              bool
-	PulumiStack            string
+	BlockName                           string // the block name if this is a generated project
+	Name                                string
+	Branch                              string
+	Alias                               string
+	ApplyRequirements                   []string
+	Dir                                 string
+	Workspace                           string
+	Terragrunt                          bool
+	Layer                               uint
+	OpenTofu                            bool
+	Pulumi                              bool
+	Workflow                            string
+	WorkflowFile                        string
+	IncludePatterns                     []string
+	ExcludePatterns                     []string
+	DependencyFileTriggers              bool
+	InferredDependencyPatternsByProject map[string][]string
+	DependencyProjects                  []string
+	DriftDetection                      bool
+	AwsRoleToAssume                     *AssumeRoleForProject
+	AwsCognitoOidcConfig                *AwsCognitoOidcConfig
+	Generated                           bool
+	PulumiStack                         string
 }
 
 type Workflow struct {
