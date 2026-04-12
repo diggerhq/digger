@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/diggerhq/digger/libs/digger_config"
+	ghapi "github.com/google/go-github/v61/github"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -241,6 +242,62 @@ projects:
 	projectNames := []string{impactedProjectsWithDependants[0].Name, impactedProjectsWithDependants[1].Name}
 	assert.Contains(t, projectNames, "shared")
 	assert.Contains(t, projectNames, "consumer")
+}
+
+func TestProcessGitHubPullRequestEventDoesNotTraverseAcrossTargetBranchBoundaries(t *testing.T) {
+	tempDir := t.TempDir()
+
+	diggerCfg := `
+dependency_configuration:
+  mode: hard
+projects:
+- name: consumer
+  dir: env/dev
+- name: release_only_downstream
+  dir: env/release
+  branch: release
+  depends_on:
+    - consumer
+- name: main_only_after_release
+  dir: env/final
+  depends_on:
+    - release_only_downstream
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "dev"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "release"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "final"), 0o755))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "digger.yml"), []byte(diggerCfg), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "env", "dev", "main.tf"), []byte(`resource "null_resource" "consumer" {}`), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "env", "release", "main.tf"), []byte(`resource "null_resource" "release" {}`), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "env", "final", "main.tf"), []byte(`resource "null_resource" "final" {}`), 0o644))
+
+	config, _, dependencyGraph, _, err := digger_config.LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	payload := &ghapi.PullRequestEvent{
+		Action: ghapi.String("opened"),
+		Repo: &ghapi.Repository{
+			DefaultBranch: ghapi.String("main"),
+		},
+		PullRequest: &ghapi.PullRequest{
+			Number: ghapi.Int(1),
+			Base: &ghapi.PullRequestBranch{
+				Ref: ghapi.String("main"),
+			},
+		},
+	}
+
+	ciService := MockCiService{
+		ChangedFilesPerPr: map[int][]string{
+			1: {"env/dev/main.tf"},
+		},
+	}
+
+	impactedProjects, _, _, err := ProcessGitHubPullRequestEvent(payload, config, dependencyGraph, ciService)
+	assert.NoError(t, err)
+	assert.Len(t, impactedProjects, 1)
+	assert.Equal(t, "consumer", impactedProjects[0].Name)
 }
 
 func TestFindAllChangedFilesOfPR(t *testing.T) {

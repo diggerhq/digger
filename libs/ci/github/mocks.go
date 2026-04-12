@@ -7,7 +7,8 @@ import (
 )
 
 type MockCiService struct {
-	CommentsPerPr map[int][]*ci.Comment
+	CommentsPerPr     map[int][]*ci.Comment
+	ChangedFilesPerPr map[int][]string
 }
 
 func (t MockCiService) GetUserTeams(organisation string, user string) ([]string, error) {
@@ -19,7 +20,7 @@ func (t MockCiService) GetApprovals(prNumber int) ([]string, error) {
 }
 
 func (t MockCiService) GetChangedFiles(prNumber int) ([]string, error) {
-	return nil, nil
+	return t.ChangedFilesPerPr[prNumber], nil
 }
 func (t MockCiService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 
