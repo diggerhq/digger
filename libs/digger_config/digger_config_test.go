@@ -1828,6 +1828,26 @@ resource "null_resource" "shared" {}
 	assert.Equal(t, 0, len(impactedProjects))
 }
 
+func TestLoadDiggerConfigRejectsDependencyFileTriggersForTerragruntBlocksWhenGenerationDisabled(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: tg
+      terragrunt: true
+      root_dir: stack
+      dependency_file_triggers: true
+`
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+
+	_, _, _, _, err := LoadDiggerConfig(tempDir, false, nil, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency_file_triggers is not supported for terragrunt block tg")
+}
+
 func TestLoadDiggerConfigRejectsDependencyFileTriggersForPulumiProjects(t *testing.T) {
 	diggerCfg := `
 projects:

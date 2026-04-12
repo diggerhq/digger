@@ -644,6 +644,10 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 		}
 	}
 	if configYaml.GenerateProjectsConfig != nil {
+		if err := validateBlockYaml(configYaml.GenerateProjectsConfig.Blocks); err != nil {
+			return err
+		}
+
 		if (configYaml.GenerateProjectsConfig.Terragrunt || configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil) &&
 			configYaml.GenerateProjectsConfig.DependencyFileTriggers {
 			slog.Error("dependency_file_triggers is not supported for top-level terragrunt project generation")

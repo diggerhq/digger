@@ -2,6 +2,8 @@ package github
 
 import (
 	"github.com/diggerhq/digger/libs/ci/generic"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -113,6 +115,41 @@ func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 	assert.Contains(t, projectNames, "m")
 	assert.NotContains(t, projectNames, "k")
 	assert.NotContains(t, projectNames, "b")
+}
+
+func TestFindAllProjectsDependantOnImpactedProjectsRespectsExcludedDependencyFileTriggers(t *testing.T) {
+	tempDir := t.TempDir()
+
+	diggerCfg := `
+dependency_configuration:
+  mode: hard
+projects:
+- name: shared
+  dir: modules/shared
+- name: consumer
+  dir: env/dev
+  dependency_file_triggers: true
+  exclude_patterns:
+    - modules/shared/**
+`
+
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "modules", "shared"), 0o755))
+	assert.NoError(t, os.MkdirAll(path.Join(tempDir, "env", "dev"), 0o755))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "digger.yml"), []byte(diggerCfg), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "modules", "shared", "main.tf"), []byte(`resource "null_resource" "shared" {}`), 0o644))
+	assert.NoError(t, os.WriteFile(path.Join(tempDir, "env", "dev", "main.tf"), []byte(`module "shared" { source = "../../modules/shared" }`), 0o644))
+
+	config, _, dependencyGraph, _, err := digger_config.LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+
+	impactedProjects, _ := config.GetModifiedProjects([]string{"modules/shared/main.tf"})
+	assert.Len(t, impactedProjects, 1)
+	assert.Equal(t, "shared", impactedProjects[0].Name)
+
+	impactedProjectsWithDependants, err := generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+	assert.NoError(t, err)
+	assert.Len(t, impactedProjectsWithDependants, 1)
+	assert.Equal(t, "shared", impactedProjectsWithDependants[0].Name)
 }
 
 func TestFindAllChangedFilesOfPR(t *testing.T) {

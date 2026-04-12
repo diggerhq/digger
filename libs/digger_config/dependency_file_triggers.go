@@ -41,7 +41,10 @@ func enrichProjectsWithDependencyFileTriggers(config *DiggerConfig, repoRoot str
 		}
 
 		project.IncludePatterns = appendUniqueStrings(project.IncludePatterns, patterns...)
-		project.DependencyProjects = appendUniqueStrings(project.DependencyProjects, inferDependencyProjectsFromPatterns(config.Projects, *project, patterns)...)
+		project.DependencyProjects = appendUniqueStrings(
+			project.DependencyProjects,
+			inferDependencyProjectsFromPatterns(config.Projects, *project, filterDependencyPatternsForProject(*project, patterns))...,
+		)
 	}
 }
 
@@ -223,6 +226,24 @@ func inferDependencyProjectsFromPatterns(projects []Project, currentProject Proj
 
 	sort.Strings(dependencyProjects)
 	return dependencyProjects
+}
+
+func filterDependencyPatternsForProject(project Project, patterns []string) []string {
+	excludePatterns := ResolvePatternsRelativeToProject(project.Dir, project.ExcludePatterns)
+	if len(excludePatterns) == 0 {
+		return patterns
+	}
+
+	filteredPatterns := make([]string, 0, len(patterns))
+	for _, pattern := range patterns {
+		probeFile := filepath.ToSlash(filepath.Join(filepath.Dir(pattern), "main.tf"))
+		if MatchExcludePatternsToFile(probeFile, excludePatterns) {
+			continue
+		}
+		filteredPatterns = append(filteredPatterns, pattern)
+	}
+
+	return filteredPatterns
 }
 
 func findMostSpecificProjectNamesForDir(projects []Project, currentProjectName string, dependencyDir string) []string {
