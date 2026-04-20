@@ -4,7 +4,7 @@ Welcome to the contributing guide for Digger! We appreciate your interest in con
 
 **FEEDBACK:** The best way to contribute to Digger today is by using
 it within your organisation and providing feedback. If you are considering
-using Digger please [drop us a line](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA),
+using Digger please [drop us a line](https://diggertalk.slack.com/join/shared_invite/zt-2p8l9npwx-VABojXOtSCeM7EWkgKB1Mw#/shared-invite/email),
 and we would be happy to set you up.
 
 ## Table of Contents
@@ -68,7 +68,7 @@ Please be respectful to maintainers and disclose AI assistance.
 ## How to contribute
 
 **If you are considering using digger within your organisation
-please [reach out to us](https://join.slack.com/t/diggertalk/shared_invite/zt-1q6npg7ib-9dwRbJp8sQpSr2fvWzt9aA)
+please [reach out to us](https://diggertalk.slack.com/join/shared_invite/zt-2p8l9npwx-VABojXOtSCeM7EWkgKB1Mw#/shared-invite/email)
 we would be happy to help onboard you to use it**.
 There are many ways to contribute to Digger, including:
 
