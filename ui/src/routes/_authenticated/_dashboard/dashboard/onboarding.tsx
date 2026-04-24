@@ -17,7 +17,7 @@ export const Route = createFileRoute(
   loader: async ({ context }) => {
     const { user, organisationId, publicServerConfig } = context
     const publicHostname = publicServerConfig?.PUBLIC_HOSTNAME || ''
-    const githubAppUrl = '/orchestrator/github/setup'
+    const githubAppUrl = publicServerConfig?.ORCHESTRATOR_GITHUB_APP_URL || ''
     return { user, organisationId, publicHostname, githubAppUrl  }
   },
 })

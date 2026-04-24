@@ -7,9 +7,25 @@
     "dismissible": true
   },
   "colors": {
-    "primary": "#8101E4",
-    "light": "#AF48FF",
-    "dark": "#8101E4"
+    "primary": "#131311",
+    "light": "#dfdfdf",
+    "dark": "#131311"
+  },
+  "background": {
+    "color": {
+      "light": "#f8f6f1",
+      "dark": "#0f0f0f"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Newsreader",
+      "weight": 400
+    },
+    "body": {
+      "family": "Inter",
+      "weight": 400
+    }
   },
   "favicon": "/favicon.png",
   "redirects": [
@@ -273,5 +289,7 @@
       "mcp",
       "cursor"
     ]
+  "appearance": {
+    "default": "light"
   }
 }
