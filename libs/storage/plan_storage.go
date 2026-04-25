@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +19,34 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 )
+
+func extractArtifactBackendIDs(runtimeToken string) (workflowRunBackendID, workflowJobRunBackendID string, err error) {
+	parts := strings.Split(runtimeToken, ".")
+	if len(parts) != 3 {
+		return "", "", fmt.Errorf("invalid ACTIONS_RUNTIME_TOKEN: expected 3 JWT parts, got %d", len(parts))
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", fmt.Errorf("failed to base64-decode JWT payload: %w", err)
+	}
+	var claims struct {
+		Scp string `json:"scp"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return "", "", fmt.Errorf("failed to parse JWT claims: %w", err)
+	}
+	for _, scope := range strings.Split(claims.Scp, " ") {
+		const prefix = "Actions.Results:"
+		if !strings.HasPrefix(scope, prefix) {
+			continue
+		}
+		ids := strings.SplitN(strings.TrimPrefix(scope, prefix), ":", 2)
+		if len(ids) == 2 && ids[0] != "" && ids[1] != "" {
+			return ids[0], ids[1], nil
+		}
+	}
+	return "", "", fmt.Errorf("ACTIONS_RUNTIME_TOKEN has no Actions.Results scope")
+}
 
 type GithubPlanStorage struct {
 	Client            *github.Client
@@ -37,11 +66,17 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 
 	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
 	actionsResultsURL := os.Getenv("ACTIONS_RESULTS_URL")
-	githubRunID := os.Getenv("GITHUB_RUN_ID")
-	githubRunAttempt := os.Getenv("GITHUB_RUN_ATTEMPT")
 
 	if actionsResultsURL == "" {
 		return fmt.Errorf("ACTIONS_RESULTS_URL is not set; GitHub Actions Artifacts v4 requires this environment variable")
+	}
+	if actionsRuntimeToken == "" {
+		return fmt.Errorf("ACTIONS_RUNTIME_TOKEN is not set; GitHub Actions Artifacts v4 requires this environment variable")
+	}
+
+	workflowRunBackendID, workflowJobRunBackendID, err := extractArtifactBackendIDs(actionsRuntimeToken)
+	if err != nil {
+		return fmt.Errorf("could not extract artifact backend IDs from ACTIONS_RUNTIME_TOKEN: %w", err)
 	}
 
 	twirpBase := strings.TrimRight(actionsResultsURL, "/") + "/twirp/github.actions.results.api.v1.ArtifactService"
@@ -53,8 +88,8 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 
 	// Step 1: CreateArtifact
 	createReqBody, _ := json.Marshal(map[string]interface{}{
-		"workflow_run_backend_id":     githubRunID,
-		"workflow_job_run_backend_id": githubRunAttempt,
+		"workflow_run_backend_id":     workflowRunBackendID,
+		"workflow_job_run_backend_id": workflowJobRunBackendID,
 		"name":                        artifactName,
 		"version":                     4,
 	})
@@ -94,8 +129,8 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 
 	// Step 3: FinalizeArtifact
 	finalizeReqBody, _ := json.Marshal(map[string]interface{}{
-		"workflow_run_backend_id":     githubRunID,
-		"workflow_job_run_backend_id": githubRunAttempt,
+		"workflow_run_backend_id":     workflowRunBackendID,
+		"workflow_job_run_backend_id": workflowJobRunBackendID,
 		"name":                        artifactName,
 		"size":                        fmt.Sprintf("%d", dataLen),
 	})
