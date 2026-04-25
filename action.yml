@@ -489,6 +489,7 @@ runs:
           core.exportVariable('ACTIONS_CACHE_URL', process.env['ACTIONS_CACHE_URL'])
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
           core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
+          core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL'])
 
     - name: create cache dir
       run: |
