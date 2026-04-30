@@ -82,6 +82,16 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not find project %v in digger.yml", theProject)})
 		return
 	}
+
+	// Apply drift include/exclude patterns from generate_projects config
+	if len(config.DriftIncludePatterns) > 0 || len(config.DriftExcludePatterns) > 0 {
+		if !dg_configuration.MatchIncludeExcludePatternsToFile(theProject.Dir, config.DriftIncludePatterns, config.DriftExcludePatterns) {
+			log.Printf("Project %v dir %v excluded by drift patterns, skipping", project.Name, theProject.Dir)
+			c.String(http.StatusOK, "project excluded by drift patterns")
+			return
+		}
+	}
+
 	projects := []dg_configuration.Project{*theProject}
 
 	jobsForImpactedProjects, err := generic.CreateJobsForProjects(projects, command, "drift", repoFullName, "digger", config.Workflows, &issueNumber, nil, branch, branch, false)

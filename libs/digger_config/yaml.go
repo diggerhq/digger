@@ -159,6 +159,8 @@ type GenerateProjectsConfigYaml struct {
 	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
 	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
 	AwsCognitoOidcConfig    *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	DriftExcludePatterns    []string                    `yaml:"drift_exclude_patterns,omitempty"`
+	DriftIncludePatterns    []string                    `yaml:"drift_include_patterns,omitempty"`
 }
 
 type TerragruntParsingConfig struct {

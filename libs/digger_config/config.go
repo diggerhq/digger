@@ -31,6 +31,8 @@ type DiggerConfig struct {
 	TraverseToNestedProjects      bool
 	Reporting                     ReporterConfig
 	ReportTerraformOutputs        bool
+	DriftExcludePatterns          []string
+	DriftIncludePatterns          []string
 }
 
 type ReporterConfig struct {

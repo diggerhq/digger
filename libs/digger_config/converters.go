@@ -292,6 +292,11 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.MentionDriftedProjectsInPR = false
 	}
 
+	if diggerYaml.GenerateProjectsConfig != nil {
+		diggerConfig.DriftExcludePatterns = diggerYaml.GenerateProjectsConfig.DriftExcludePatterns
+		diggerConfig.DriftIncludePatterns = diggerYaml.GenerateProjectsConfig.DriftIncludePatterns
+	}
+
 	if diggerYaml.PrLocks != nil {
 		diggerConfig.PrLocks = *diggerYaml.PrLocks
 	} else {
