@@ -16,6 +16,11 @@ func (ghi *GithubIssueNotification) SendNotificationForProject(projectName strin
     log.Printf("Info: Sending drift notification regarding project: %v", projectName)
     title := fmt.Sprintf("Drift detected in project: %v", projectName)
     message := fmt.Sprintf(":bangbang: Drift detected in digger project %v details below: \n\n```\n%v\n```", projectName, plan)
+    const maxLen = 65536
+    const truncMsg = "\n\n> ⚠️ Output truncated: plan exceeds GitHub's 65536 character limit. See job logs for full output."
+    if len(message) > maxLen {
+        message = message[:maxLen-len(truncMsg)] + truncMsg
+    }
     existingIssues, err := (*ghi.GithubService).ListIssues()
     if err != nil {
         log.Printf("failed to retrieve issues: %v", err)
