@@ -1,6 +1,6 @@
 ---
 title: "Backendless: Scope Drift to Specific Projects"
-description: "Scope backendless drift checks to selected projects using dedicated config files"
+description: "Scope backendless drift checks to selected projects using dedicated config file or patterns"
 ---
 
 
@@ -80,7 +80,7 @@ generate_projects:
     - "infra/_global/**"
 ```
 
-Only projects whose `dir` matches an include pattern — and does not match an exclude pattern — will run drift detection. Exclude patterns are evaluated after include patterns.
+Only projects whose `dir` matches an include pattern and does not match an exclude pattern  will run drift detection. Exclude patterns are evaluated after include patterns.
 
 ## Notes
 
