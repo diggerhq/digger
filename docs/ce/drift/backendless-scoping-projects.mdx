@@ -3,9 +3,14 @@ title: "Backendless: Scope Drift to Specific Projects"
 description: "Scope backendless drift checks to selected projects using dedicated config files"
 ---
 
-In Backendless mode, scope drift by pointing your scheduled workflow at a dedicated config file.
 
-## Approach
+
+
+In Backendless mode, digger provides two means scoping drift detection. 
+
+
+
+## Using dedicated config 
 
 - Create a dedicated `digger.yml` that lists only the projects or blocks you want scanned.
 - Point your drift workflow to that file using the `digger-filename` input.
@@ -57,7 +62,31 @@ jobs:
           digger-filename: digger-drift-dev.yml
 ```
 
+## Using drift patterns
+
+Add `drift_include_patterns` and `drift_exclude_patterns` under `generate_projects` in your main `digger.yml`:
+
+```yaml
+generate_projects:
+  blocks:
+    - block_name: infra
+      root_dir: "infra/"
+      workflow: default
+      include: "**"
+  drift_include_patterns:
+    - "infra/prod/**"
+    - "infra/staging/**"
+  drift_exclude_patterns:
+    - "infra/_global/**"
+```
+
+Only projects whose `dir` matches an include pattern — and does not match an exclude pattern — will run drift detection. Exclude patterns are evaluated after include patterns.
+
 ## Notes
 
-- There is no per-project drift filter in the action; scoping via a dedicated config file is the recommended approach.
-- You can also mark projects with `drift_detection: false` in your main config to disable drift checks for them.
+- Patterns use [doublestar](https://github.com/bmatcuk/doublestar) glob matching against the project directory path.
+- Both fields default to `[]`. If `drift_include_patterns` is empty, all projects are included.
+
+## Related
+
+- [Backendless Drift via GitHub Actions](/ce/drift/backendless-github-actions)

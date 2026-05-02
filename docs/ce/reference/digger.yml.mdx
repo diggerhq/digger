@@ -227,29 +227,17 @@ workflows:
   Workflows and configurations to run on events. See [Workflow Configuration](#workflow-configuration).
 </ParamField>
 
-<AccordionGroup>
-  <Accordion title="Reporting Configuration">
-    Configure reporting options using the `reporting` key.
+<ParamField path="reporting.ai_summary" type="boolean" default="false">
+  Enable AI-generated summaries of plan output. See [AI Summaries](/ce/features/ai-summaries).
+</ParamField>
 
-    <ParamField path="reporting.ai_summary" type="boolean" default="false">
-      Enable AI-generated summaries of plan output. See [AI Summaries](/ce/features/ai-summaries).
-    </ParamField>
+<ParamField path="reporting.comments_enabled" type="boolean" default="true">
+  Enable posting plan/apply results as PR comments.
+</ParamField>
 
-    <ParamField path="reporting.comments_enabled" type="boolean" default="true">
-      Enable posting plan/apply results as PR comments.
-    </ParamField>
-  </Accordion>
-
-  <Accordion title="Dependency Configuration">
-    Configure dependency handling using the `dependency_configuration` key.
-
-    <ParamField path="dependency_configuration.mode" type="string" default="hard">
-      Dependency execution mode:
-      - `hard` - Execute dependency projects even if they weren't changed
-      - `soft` - Skip dependency projects if they weren't changed
-    </ParamField>
-  </Accordion>
-</AccordionGroup>
+<ParamField path="dependency_configuration.mode" type="string" default="hard">
+  Dependency execution mode: `hard` executes dependency projects even if unchanged, `soft` skips them if unchanged.
+</ParamField>
 
 ---
 
@@ -389,6 +377,14 @@ Automatically generate projects from directory structure using the `generate_pro
   Terragrunt-specific parsing configuration. See [Terragrunt Parsing](/ce/reference/terragrunt-parsing) for all options.
 </ParamField>
 
+<ParamField path="drift_include_patterns" type="array" default="[]">
+  Glob patterns matched against each project's `dir`. Only matching projects run drift detection. If empty, all projects are included. See [Backendless: Scope Drift to Specific Projects](/ce/drift/backendless-scoping-projects).
+</ParamField>
+
+<ParamField path="drift_exclude_patterns" type="array" default="[]">
+  Glob patterns matched against each project's `dir`. Matching projects are skipped during drift detection. Evaluated after `drift_include_patterns`.
+</ParamField>
+
 <ParamField path="aws_role_to_assume" type="object">
   Default AWS role configuration for all generated projects. See [AWS Role Configuration](#aws-role-configuration).
 </ParamField>
@@ -512,7 +508,7 @@ Define custom workflows using the `workflows` map. Each workflow can have its ow
     Configure plan and apply stages.
 
     <ParamField path="filter_regex" type="string">
-      Regular expression to filter which files trigger this stage.
+      Regular expression to mask sensitive values from plan output and PR comments. Matches are replaced with `<REDACTED>`. See [Masking sensitive values](/ce/howto/masking-sensitive-values).
     </ParamField>
 
     <ParamField path="steps" type="array" default="[]">
