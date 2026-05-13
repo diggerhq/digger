@@ -18,7 +18,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.16.0
 	github.com/buildkite/go-buildkite/v3 v3.11.0
 	github.com/dchest/uniuri v1.2.0
-	github.com/diggerhq/digger/backend v0.0.0-20241111113338-9a40639ab83c
+	github.com/diggerhq/digger/backend v0.0.0-20260513054057-865b7802e1eb
 	github.com/diggerhq/digger/libs v0.4.15
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/go-github/v61 v61.0.0
@@ -246,6 +246,7 @@ require (
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/segmentio/analytics-go/v3 v3.3.0 // indirect
 	github.com/segmentio/backo-go v1.0.0 // indirect
+	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/sourcegraph/go-lsp v0.0.0-20200429204803-219e11d77f5d // indirect
