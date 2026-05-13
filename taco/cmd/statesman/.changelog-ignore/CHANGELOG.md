@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.10...taco/statesman/v0.1.11) (2026-05-13)
+
+
+### Features
+
+* enable orchestrator gha setup via UI, feat: full docker compose, fix: handle drift job status processing in orchestrator ([#2569](https://github.com/diggerhq/digger/issues/2569)) ([752c626](https://github.com/diggerhq/digger/commit/752c62656bacf1e83ac9b9a3adfd3b7f0fb67fc6))
+
 ## [0.1.10](https://github.com/diggerhq/digger/compare/taco/statesman/v0.1.9...taco/statesman/v0.1.10) (2025-10-01)
 
 
