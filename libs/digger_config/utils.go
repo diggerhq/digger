@@ -46,7 +46,8 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 		excludePatterns[i] = NormalizeFileName(excludePatterns[i])
 	}
 
-	matching := false
+	// An empty include list means "match everything"; only the exclude list filters.
+	matching := len(includePatterns) == 0
 	for _, ipattern := range includePatterns {
 		isMatched, err := doublestar.PathMatch(ipattern, fileToMatch)
 		if err != nil {
