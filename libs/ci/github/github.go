@@ -1157,7 +1157,16 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 		slog.Debug("using hard dependency mode, finding all dependent projects", "prNumber", prNumber)
 		originalCount := len(impactedProjects)
 
-		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+		targetBranchDependencyGraph, err := generic.CreateTargetBranchDependencyGraph(diggerConfig.Projects, defaultBranch, targetBranch)
+		if err != nil {
+			slog.Error("failed to create target branch dependency graph",
+				"error", err,
+				"prNumber", prNumber,
+				"targetBranch", targetBranch)
+			return nil, nil, prNumber, fmt.Errorf("failed to create target branch dependency graph")
+		}
+
+		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, targetBranchDependencyGraph, changedFiles)
 		if err != nil {
 			slog.Error("failed to find all projects dependant on impacted projects",
 				"error", err,

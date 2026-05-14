@@ -60,6 +60,7 @@ projects:
     layer: 0
     include_patterns: ["../modules/**"]
     exclude_patterns: []
+    dependency_file_triggers: false
     depends_on: []
     aws_role_to_assume:
       aws_role_region: us-east-1
@@ -76,9 +77,11 @@ projects:
     workflow: staging
     include_patterns: ["../modules/**"]
     exclude_patterns: []
+    dependency_file_triggers: false
 generate_projects:
   include: "../projects/**"
   exclude: "../.terraform/**"
+  dependency_file_triggers: false
   terragrunt: false
   blocks:
     - block_name: dev-block
@@ -90,6 +93,7 @@ generate_projects:
       terragrunt: false
       include_patterns: []
       exclude_patterns: []
+      dependency_file_triggers: false
       aws_role_to_assume:
         aws_role_region: us-east-1
         state: arn:aws:iam::123456789012:role/state-role
@@ -309,6 +313,10 @@ Define individual projects using the `projects` array.
   List of directory glob patterns to exclude, e.g., `[".terraform/**"]`. See [Include / Exclude Patterns](/ce/howto/include-exclude-patterns).
 </ParamField>
 
+<ParamField path="dependency_file_triggers" type="boolean" default="false">
+  Automatically derive additional trigger paths from the project dependency graph for Terraform/OpenTofu projects. This follows local `module` sources and watches imported module `*.tf*` files recursively. When imported files belong to another Digger project, this also infers a project dependency edge, reducing the need to duplicate `depends_on`. This augments `include_patterns`; it does not replace them. Currently not supported for Terragrunt or Pulumi projects.
+</ParamField>
+
 <ParamField path="depends_on" type="array" default="[]">
   List of project names that must complete before this project. Does not force terraform run, but affects the order of commands for projects modified in the current PR.
 </ParamField>
@@ -365,6 +373,10 @@ Automatically generate projects from directory structure using the `generate_pro
   Glob pattern to exclude directories from project generation.
 </ParamField>
 
+<ParamField path="dependency_file_triggers" type="boolean" default="false">
+  Enable automatic dependency-based trigger discovery for generated Terraform/OpenTofu projects. If imported files belong to another generated or declared Digger project, Digger also infers the corresponding project dependency edge. This augments any `include_patterns` set on the generated projects. Currently not supported for Terragrunt generation.
+</ParamField>
+
 <ParamField path="terragrunt" type="boolean" default="false">
   Whether to use Terragrunt for generated projects.
 </ParamField>
@@ -415,6 +427,10 @@ Automatically generate projects from directory structure using the `generate_pro
 
     <ParamField path="exclude_patterns" type="array" default="[]">
       List of directory glob patterns to exclude from generated projects.
+    </ParamField>
+
+    <ParamField path="dependency_file_triggers" type="boolean" default="false">
+      Enable automatic dependency-based trigger discovery for Terraform/OpenTofu projects generated from this block. If imported files belong to another Digger project, Digger also infers the corresponding project dependency edge. Currently not supported for Terragrunt blocks.
     </ParamField>
 
     <ParamField path="workflow" type="string" default="default">
