@@ -419,57 +419,55 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
 				if b.Terragrunt == true {
-					if checkBlockInChangedFiles(*b.RootDir, changedFiles) {
-						slog.Info("generating terragrunt projects for block",
-							"blockName", b.BlockName,
-							"rootDir", *b.RootDir)
+					slog.Info("generating terragrunt projects for block",
+						"blockName", b.BlockName,
+						"rootDir", *b.RootDir)
 
-						workflow := "default"
-						if b.Workflow != "" {
-							workflow = b.Workflow
-						}
+					workflow := "default"
+					if b.Workflow != "" {
+						workflow = b.Workflow
+					}
 
-						// load the parsing config and override the block values
-						tgParsingConfig := b.TerragruntParsingConfig
-						if tgParsingConfig == nil {
-							tgParsingConfig = &TerragruntParsingConfig{}
-						}
-						tgParsingConfig.CreateProjectName = true
-						tgParsingConfig.DefaultWorkflow = workflow
-						tgParsingConfig.WorkflowFile = b.WorkflowFile
-						tgParsingConfig.FilterPaths = []string{path.Join(terraformDir, *b.RootDir)}
-						tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
-						tgParsingConfig.AwsCognitoOidcConfig = b.AwsCognitoOidcConfig
+					// load the parsing config and override the block values
+					tgParsingConfig := b.TerragruntParsingConfig
+					if tgParsingConfig == nil {
+						tgParsingConfig = &TerragruntParsingConfig{}
+					}
+					tgParsingConfig.CreateProjectName = true
+					tgParsingConfig.DefaultWorkflow = workflow
+					tgParsingConfig.WorkflowFile = b.WorkflowFile
+					tgParsingConfig.FilterPaths = []string{path.Join(terraformDir, *b.RootDir)}
+					tgParsingConfig.AwsRoleToAssume = b.AwsRoleToAssume
+					tgParsingConfig.AwsCognitoOidcConfig = b.AwsCognitoOidcConfig
 
-						_, err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName, nil)
-						if err != nil {
-							slog.Error("failed to hydrate config with terragrunt",
-								"error", err,
-								"blockName", b.BlockName)
-							return nil, err
-						}
-						if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 {
-							for _, project := range config.Projects {
-								if project.BlockName == b.BlockName && project.Terragrunt {
-									if len(b.IncludePatterns) > 0 {
-										project.IncludePatterns = append(project.IncludePatterns, b.IncludePatterns...)
-										slog.Debug("merged include_patterns for terragrunt project",
-											"projectName", project.Name,
-											"blockName", b.BlockName,
-											"includePatterns", project.IncludePatterns)
-									}
-									if len(b.ExcludePatterns) > 0 {
-										project.ExcludePatterns = append(project.ExcludePatterns, b.ExcludePatterns...)
-										slog.Debug("merged exclude_patterns for terragrunt project",
-											"projectName", project.Name,
-											"blockName", b.BlockName,
-											"excludePatterns", project.ExcludePatterns)
-									}
+					_, err := hydrateDiggerConfigYamlWithTerragrunt(config, *tgParsingConfig, terraformDir, b.BlockName, nil)
+					if err != nil {
+						slog.Error("failed to hydrate config with terragrunt",
+							"error", err,
+							"blockName", b.BlockName)
+						return nil, err
+					}
+					// Always merge include_patterns and exclude_patterns, regardless of direct changes
+					// This ensures patterns are evaluated even when only files matching include_patterns change
+					if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 {
+						for _, project := range config.Projects {
+							if project.BlockName == b.BlockName && project.Terragrunt {
+								if len(b.IncludePatterns) > 0 {
+									project.IncludePatterns = append(project.IncludePatterns, b.IncludePatterns...)
+									slog.Debug("merged include_patterns for terragrunt project",
+										"projectName", project.Name,
+										"blockName", b.BlockName,
+										"includePatterns", project.IncludePatterns)
+								}
+								if len(b.ExcludePatterns) > 0 {
+									project.ExcludePatterns = append(project.ExcludePatterns, b.ExcludePatterns...)
+									slog.Debug("merged exclude_patterns for terragrunt project",
+										"projectName", project.Name,
+										"blockName", b.BlockName,
+										"excludePatterns", project.ExcludePatterns)
 								}
 							}
 						}
-					} else {
-						slog.Debug("skipping block due to no changed files", "blockName", b.BlockName)
 					}
 				} else {
 					includePatterns = []string{b.Include}
