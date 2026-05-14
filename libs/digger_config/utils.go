@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
 )
@@ -37,13 +38,45 @@ func GetDirNamesFromPaths(filePaths []string) []string {
 	return res
 }
 
+func ResolvePatternsRelativeToProject(projectDir string, patterns []string) []string {
+	resolvedPatterns := make([]string, 0, len(patterns))
+	for _, pattern := range patterns {
+		if strings.HasPrefix(pattern, ".") {
+			resolvedPatterns = append(resolvedPatterns, filepath.Join(projectDir, pattern))
+		} else {
+			resolvedPatterns = append(resolvedPatterns, pattern)
+		}
+	}
+	return resolvedPatterns
+}
+
+func MatchExcludePatternsToFile(fileToMatch string, excludePatterns []string) bool {
+	fileToMatch = NormalizeFileName(fileToMatch)
+	for i := range excludePatterns {
+		excludePatterns[i] = NormalizeFileName(excludePatterns[i])
+	}
+
+	for _, epattern := range excludePatterns {
+		excluded, err := doublestar.PathMatch(epattern, fileToMatch)
+		if err != nil {
+			slog.Error("failed to match modified files with exclude pattern",
+				"file", fileToMatch,
+				"pattern", epattern,
+				"error", err)
+			panic(err)
+		}
+		if excluded {
+			return true
+		}
+	}
+
+	return false
+}
+
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
 	for i := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
-	}
-	for i := range excludePatterns {
-		excludePatterns[i] = NormalizeFileName(excludePatterns[i])
 	}
 
 	// An empty include list means "match everything"; only the exclude list filters.
@@ -63,19 +96,8 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 		}
 	}
 
-	for _, epattern := range excludePatterns {
-		excluded, err := doublestar.PathMatch(epattern, fileToMatch)
-		if err != nil {
-			slog.Error("failed to match modified files with exclude pattern",
-				"file", fileToMatch,
-				"pattern", epattern,
-				"error", err)
-			panic(err)
-		}
-		if excluded {
-			matching = false
-			break
-		}
+	if MatchExcludePatternsToFile(fileToMatch, excludePatterns) {
+		matching = false
 	}
 
 	return matching

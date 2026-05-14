@@ -20,6 +20,8 @@ modules/
 
 If you wanted to trigger plans for all `modules/` folder in both dev and prod projects you would include them in the `include_patterns` key. Similarly you put anything which you want to ignore in the `exclude_patterns` key ( exclude takes precedence over includes).
 
+If you want a narrower, dependency-file-based trigger instead of a broad `modules/**` glob, you can enable `dependency_file_triggers: true`. For Terraform/OpenTofu this follows local `module` imports and tracks imported module `*.tf*` files recursively. This augments `include_patterns`; it does not replace them. This setting is currently intended for Terraform/OpenTofu projects.
+
 Example using patterns relative to project directory:
 
 ```yml
