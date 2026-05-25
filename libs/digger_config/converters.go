@@ -404,7 +404,12 @@ func CreateProjectDependencyGraph(projects []Project) (graph.Graph[string, Proje
 				return nil, err
 			}
 		}
+		seen := make(map[string]bool)
 		for _, dependency := range project.DependencyProjects {
+			if seen[dependency] {
+				continue
+			}
+			seen[dependency] = true
 			_, err := g.Vertex(dependency)
 
 			if errors.Is(err, graph.ErrVertexNotFound) {
