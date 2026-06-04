@@ -215,17 +215,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 					continue
 				}
 			}
-			if projectConfig.BlockName != "" && (len(diggerConfig.DriftIncludeBlocks) > 0 || len(diggerConfig.DriftExcludeBlocks) > 0) {
-				includeOk := len(diggerConfig.DriftIncludeBlocks) == 0 || lo.Contains(diggerConfig.DriftIncludeBlocks, projectConfig.BlockName)
-				excluded := lo.Contains(diggerConfig.DriftExcludeBlocks, projectConfig.BlockName)
-				if !includeOk || excluded {
-					slog.Info("Project excluded by drift block filters, skipping", "project", projectConfig.Name, "block", projectConfig.BlockName)
-					continue
-				}
-			}
 			if len(diggerConfig.DriftIncludePatterns) > 0 || len(diggerConfig.DriftExcludePatterns) > 0 {
 				if !digger_config.MatchIncludeExcludePatternsToFile(projectConfig.Dir, diggerConfig.DriftIncludePatterns, diggerConfig.DriftExcludePatterns) {
 					slog.Info("Project excluded by drift patterns, skipping", "project", projectConfig.Name, "dir", projectConfig.Dir)
+					continue
+				}
+			}
+			if len(projectConfig.DriftIncludePatterns) > 0 || len(projectConfig.DriftExcludePatterns) > 0 {
+				if !digger_config.MatchIncludeExcludePatternsToFile(projectConfig.Dir, projectConfig.DriftIncludePatterns, projectConfig.DriftExcludePatterns) {
+					slog.Info("Project excluded by block-level drift patterns, skipping", "project", projectConfig.Name, "dir", projectConfig.Dir, "block", projectConfig.BlockName)
 					continue
 				}
 			}

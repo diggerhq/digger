@@ -65,6 +65,8 @@ type ProjectYaml struct {
 	Generated            bool                        `yaml:"generated"`
 	AwsCognitoOidcConfig *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
 	PulumiStack          string                      `yaml:"pulumi_stack"`
+	DriftIncludePatterns []string                    `yaml:"drift_include_patterns,omitempty"`
+	DriftExcludePatterns []string                    `yaml:"drift_exclude_patterns,omitempty"`
 }
 
 type WorkflowYaml struct {
@@ -121,6 +123,9 @@ type BlockYaml struct {
 	IncludePatterns []string `yaml:"include_patterns,omitempty"`
 	ExcludePatterns []string `yaml:"exclude_patterns,omitempty"`
 
+	DriftIncludePatterns []string `yaml:"drift_include_patterns,omitempty"`
+	DriftExcludePatterns []string `yaml:"drift_exclude_patterns,omitempty"`
+
 	// these flags are only for terragrunt
 	Terragrunt              bool                     `yaml:"terragrunt"`
 	RootDir                 *string                  `yaml:"root_dir"`
@@ -161,8 +166,6 @@ type GenerateProjectsConfigYaml struct {
 	AwsCognitoOidcConfig    *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
 	DriftExcludePatterns    []string                    `yaml:"drift_exclude_patterns,omitempty"`
 	DriftIncludePatterns    []string                    `yaml:"drift_include_patterns,omitempty"`
-	DriftExcludeBlocks      []string                    `yaml:"drift_exclude_blocks,omitempty"`
-	DriftIncludeBlocks      []string                    `yaml:"drift_include_blocks,omitempty"`
 }
 
 type TerragruntParsingConfig struct {

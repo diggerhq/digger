@@ -104,6 +104,8 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			awsCognitoOidc,
 			p.Generated,
 			workspace,
+			p.DriftIncludePatterns,
+			p.DriftExcludePatterns,
 		}
 		result[i] = item
 	}
@@ -295,8 +297,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	if diggerYaml.GenerateProjectsConfig != nil {
 		diggerConfig.DriftExcludePatterns = diggerYaml.GenerateProjectsConfig.DriftExcludePatterns
 		diggerConfig.DriftIncludePatterns = diggerYaml.GenerateProjectsConfig.DriftIncludePatterns
-		diggerConfig.DriftExcludeBlocks = diggerYaml.GenerateProjectsConfig.DriftExcludeBlocks
-		diggerConfig.DriftIncludeBlocks = diggerYaml.GenerateProjectsConfig.DriftIncludeBlocks
 	}
 
 	if diggerYaml.PrLocks != nil {

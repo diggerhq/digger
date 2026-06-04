@@ -448,7 +448,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								"blockName", b.BlockName)
 							return nil, err
 						}
-						if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 {
+						if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 || len(b.DriftIncludePatterns) > 0 || len(b.DriftExcludePatterns) > 0 {
 							for _, project := range config.Projects {
 								if project.BlockName == b.BlockName && project.Terragrunt {
 									if len(b.IncludePatterns) > 0 {
@@ -464,6 +464,12 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 											"projectName", project.Name,
 											"blockName", b.BlockName,
 											"excludePatterns", project.ExcludePatterns)
+									}
+									if len(b.DriftIncludePatterns) > 0 {
+										project.DriftIncludePatterns = append(project.DriftIncludePatterns, b.DriftIncludePatterns...)
+									}
+									if len(b.DriftExcludePatterns) > 0 {
+										project.DriftExcludePatterns = append(project.DriftExcludePatterns, b.DriftExcludePatterns...)
 									}
 								}
 							}
@@ -511,6 +517,8 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								WorkflowFile:         b.WorkflowFile,
 								IncludePatterns:      b.IncludePatterns,
 								ExcludePatterns:      b.ExcludePatterns,
+								DriftIncludePatterns: b.DriftIncludePatterns,
+								DriftExcludePatterns: b.DriftExcludePatterns,
 							}
 							config.Projects = append(config.Projects, &project)
 						}

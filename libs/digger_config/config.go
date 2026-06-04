@@ -33,8 +33,6 @@ type DiggerConfig struct {
 	ReportTerraformOutputs        bool
 	DriftExcludePatterns          []string
 	DriftIncludePatterns          []string
-	DriftExcludeBlocks            []string
-	DriftIncludeBlocks            []string
 }
 
 type ReporterConfig struct {
@@ -74,6 +72,8 @@ type Project struct {
 	AwsCognitoOidcConfig *AwsCognitoOidcConfig
 	Generated            bool
 	PulumiStack          string
+	DriftIncludePatterns []string
+	DriftExcludePatterns []string
 }
 
 type Workflow struct {
