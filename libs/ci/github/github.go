@@ -706,7 +706,42 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 		slog.Error("error getting pull request", "error", err, "prNumber", prNumber)
 		return false, fmt.Errorf("error getting pull request: %v", err)
 	}
-	return pr.GetMergeable() && isMergeableState(pr.GetMergeableState()), nil
+
+	if pr.GetMergeable() && isMergeableState(pr.GetMergeableState()) {
+		return true, nil
+	}
+
+	// When the PR is blocked solely because digger/apply is a required check that hasn't
+	// passed yet, allow the apply to proceed — it's the only way to satisfy that check.
+	if strings.ToLower(pr.GetMergeableState()) == "blocked" {
+		return svc.isBlockedOnlyByDiggerApply(pr.GetHead().GetSHA())
+	}
+
+	return false, nil
+}
+
+// isBlockedOnlyByDiggerApply returns true if the only non-successful check runs on the
+// commit are digger/apply checks. This breaks the chicken-and-egg problem where digger/apply
+// is a required branch protection check: the apply must run to pass the check, but the
+// mergeability gate would otherwise prevent it from running.
+func (svc GithubService) isBlockedOnlyByDiggerApply(headSHA string) (bool, error) {
+	checkRuns, err := svc.GetCheckRunsForCommit(headSHA)
+	if err != nil {
+		return false, fmt.Errorf("could not get check runs for commit %v: %v", headSHA, err)
+	}
+
+	for _, run := range checkRuns {
+		if run.GetConclusion() == "success" {
+			continue
+		}
+		if strings.HasPrefix(run.GetName(), "digger/apply") {
+			continue
+		}
+		slog.Debug("PR blocked by non-digger check", "check", run.GetName(), "conclusion", run.GetConclusion())
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (svc GithubService) IsMerged(prNumber int) (bool, error) {
