@@ -134,6 +134,10 @@ inputs:
   upload-plan-destination:
     description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
     required: false
+  upload-plan-lock-file:
+    description: Optional dependency lock file to store and restore with plan artifacts, relative to each project directory. For Terraform use .terraform.lock.hcl.
+    required: false
+    default: ""
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
     required: false
@@ -504,6 +508,7 @@ runs:
       shell: bash
       env:
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_LOCK_FILE: ${{ inputs.upload-plan-lock-file }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
         PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
@@ -559,6 +564,7 @@ runs:
         DIGGER_OS: ${{ inputs.digger-os }}
         DIGGER_ARCH: ${{ inputs.digger-arch }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_LOCK_FILE: ${{ inputs.upload-plan-lock-file }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
         PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}
@@ -646,6 +652,7 @@ runs:
       env:
         DIGGER_VERSION: ${{ github.action_ref }}
         PLAN_UPLOAD_DESTINATION: ${{ inputs.upload-plan-destination }}
+        PLAN_UPLOAD_LOCK_FILE: ${{ inputs.upload-plan-lock-file }}
         PLAN_UPLOAD_S3_ENCRYPTION_ENABLED: ${{ inputs.upload-plan-destination-s3-encryption-enabled }}
         PLAN_UPLOAD_S3_ENCRYPTION_TYPE: ${{ inputs.upload-plan-destination-s3-encryption-type }}
         PLAN_UPLOAD_S3_ENCRYPTION_KMS_ID: ${{ inputs.upload-plan-destination-s3-encryption-kms-key-id }}

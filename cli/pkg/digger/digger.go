@@ -546,6 +546,17 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			if err != nil {
 				slog.Error("failed to delete stored plan file", "stored plan file path", planPathProvider.StoredPlanFilePath(), "error", err)
 			}
+			if planLockFilePath := execution.PlanLockFilePath(); planLockFilePath != "" {
+				if err := execution.ValidatePlanLockFilePath(planLockFilePath); err != nil {
+					slog.Error("failed to delete stored plan lock file", "error", err)
+				} else {
+					storedPlanLockFilePath := planPathProvider.StoredPlanLockFilePath(planLockFilePath)
+					err = planStorage.DeleteStoredPlan(storedPlanLockFilePath, storedPlanLockFilePath)
+					if err != nil {
+						slog.Error("failed to delete stored plan lock file", "stored plan lock file path", storedPlanLockFilePath, "error", err)
+					}
+				}
+			}
 		}
 	case "digger lock":
 		err := usage.SendUsageRecord(requestedBy, job.EventName, "lock")
