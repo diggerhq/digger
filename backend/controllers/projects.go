@@ -778,7 +778,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		commitSha := batch.CommitSha
 		impactedProjectDb, err := models.DB.GetImpactedProjectSingle(batch.RepoFullName, commitSha, job.ProjectName)
 		if err != nil {
-			slog.Warn("Error fetching impacted project db", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
+			slog.Error("Error fetching impacted project db, auto-merge may not trigger", "jobId", jobId, "projectName", job.ProjectName, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
 		} else if impactedProjectDb == nil && err == nil {
 			slog.Warn("Impacted project entry not found in db (maybe it was not synced in event start)", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
 		} else {
