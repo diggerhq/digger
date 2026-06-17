@@ -788,7 +788,15 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			if batch.BatchType == orchestrator_scheduler.DiggerCommandApply {
 				impactedProjectDb.Applied = true
 			}
-			models.DB.GormDB.Save(impactedProjectDb)
+			if err := models.DB.GormDB.Save(impactedProjectDb).Error; err != nil {
+				slog.Error("Failed to persist impacted project status, auto-merge may not trigger",
+					"jobId", jobId,
+					"projectName", job.ProjectName,
+					"commitSha", commitSha,
+					"repoFullName", batch.RepoFullName,
+					"error", err,
+				)
+			}
 		}
 
 		var prCommentId *int64
