@@ -1104,7 +1104,7 @@ generate_projects:
     - block_name: prod
       terragrunt: true
       root_dir: infrastructure
-      terragrunt_parallelism: 20
+      drift_terragrunt_parallelism: 20
 `
 	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 	defer deleteFile()
@@ -1132,8 +1132,8 @@ generate_projects:
 		}
 		terragruntProjectsFound++
 
-		assert.NotNil(t, project.TerragruntParallelism, "TerragruntParallelism should be set for project %s", project.Name)
-		assert.Equal(t, 20, *project.TerragruntParallelism, "TerragruntParallelism should be 20 for project %s", project.Name)
+		assert.NotNil(t, project.DriftTerragruntParallelism, "DriftTerragruntParallelism should be set for project %s", project.Name)
+		assert.Equal(t, 20, *project.DriftTerragruntParallelism, "DriftTerragruntParallelism should be 20 for project %s", project.Name)
 	}
 
 	assert.Greater(t, terragruntProjectsFound, 0, "should have found at least one terragrunt project")
@@ -1151,14 +1151,14 @@ generate_projects:
     - block_name: prod
       terragrunt: true
       root_dir: infrastructure
-      terragrunt_parallelism: %d
+      drift_terragrunt_parallelism: %d
 `, value)
 			deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
 			defer deleteFile()
 
 			_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
-			assert.Error(t, err, "expected error for terragrunt_parallelism=%d", value)
-			assert.Contains(t, err.Error(), "terragrunt_parallelism")
+			assert.Error(t, err, "expected error for drift_terragrunt_parallelism=%d", value)
+			assert.Contains(t, err.Error(), "drift_terragrunt_parallelism")
 		})
 	}
 }

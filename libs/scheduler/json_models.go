@@ -21,37 +21,37 @@ type StageJson struct {
 type cognitoConfig = digger_config.AwsCognitoOidcConfig
 
 type JobJson struct {
-	JobType                 string            `json:"job_type"`
-	ProjectName             string            `json:"projectName"`
-	ProjectAlias            string            `json:"projectAlias"`
-	ProjectDir              string            `json:"projectDir"`
-	ProjectWorkspace        string            `json:"projectWorkspace"`
-	Terragrunt              bool              `json:"terragrunt"`
-	TerragruntParallelism   *int              `json:"terragrunt_parallelism,omitempty"`
-	OpenTofu                bool              `json:"opentofu"`
-	Pulumi                  bool              `json:"pulumi"`
-	Commands                []string          `json:"commands"`
-	ApplyStage              StageJson         `json:"applyStage"`
-	PlanStage               StageJson         `json:"planStage"`
-	PullRequestNumber       *int              `json:"pullRequestNumber"`
-	Commit                  string            `json:"commit"`
-	Branch                  string            `json:"branch"`
-	EventName               string            `json:"eventName"`
-	RequestedBy             string            `json:"requestedBy"`
-	Namespace               string            `json:"namespace"`
-	RunEnvVars              map[string]string `json:"runEnvVars"`
-	StateEnvVars            map[string]string `json:"stateEnvVars"`
-	CommandEnvVars          map[string]string `json:"commandEnvVars"`
-	AwsRoleRegion           string            `json:"aws_role_region"`
-	StateRoleName           string            `json:"state_role_name"`
-	CommandRoleName         string            `json:"command_role_name"`
-	BackendHostname         string            `json:"backend_hostname"`
-	BackendOrganisationName string            `json:"backend_organisation_hostname"`
-	BackendJobToken         string            `json:"backend_job_token"`
-	SkipMergeCheck          bool              `json:"skip_merge_check"`
-	CommandRoleArn          string            `json:"command_role_arn"`
-	StateRoleArn            string            `json:"state_role_arn"`
-	CognitoOidcConfig       *cognitoConfig    `json:"aws_cognito_oidc"`
+	JobType                    string            `json:"job_type"`
+	ProjectName                string            `json:"projectName"`
+	ProjectAlias               string            `json:"projectAlias"`
+	ProjectDir                 string            `json:"projectDir"`
+	ProjectWorkspace           string            `json:"projectWorkspace"`
+	Terragrunt                 bool              `json:"terragrunt"`
+	DriftTerragruntParallelism *int              `json:"drift_terragrunt_parallelism,omitempty"`
+	OpenTofu                   bool              `json:"opentofu"`
+	Pulumi                     bool              `json:"pulumi"`
+	Commands                   []string          `json:"commands"`
+	ApplyStage                 StageJson         `json:"applyStage"`
+	PlanStage                  StageJson         `json:"planStage"`
+	PullRequestNumber          *int              `json:"pullRequestNumber"`
+	Commit                     string            `json:"commit"`
+	Branch                     string            `json:"branch"`
+	EventName                  string            `json:"eventName"`
+	RequestedBy                string            `json:"requestedBy"`
+	Namespace                  string            `json:"namespace"`
+	RunEnvVars                 map[string]string `json:"runEnvVars"`
+	StateEnvVars               map[string]string `json:"stateEnvVars"`
+	CommandEnvVars             map[string]string `json:"commandEnvVars"`
+	AwsRoleRegion              string            `json:"aws_role_region"`
+	StateRoleName              string            `json:"state_role_name"`
+	CommandRoleName            string            `json:"command_role_name"`
+	BackendHostname            string            `json:"backend_hostname"`
+	BackendOrganisationName    string            `json:"backend_organisation_hostname"`
+	BackendJobToken            string            `json:"backend_job_token"`
+	SkipMergeCheck             bool              `json:"skip_merge_check"`
+	CommandRoleArn             string            `json:"command_role_arn"`
+	StateRoleArn               string            `json:"state_role_arn"`
+	CognitoOidcConfig          *cognitoConfig    `json:"aws_cognito_oidc"`
 	// Policy-related fields computed on backend/webhook side
 	Teams         []string `json:"teams"`
 	Approvals     []string `json:"approvals"`
@@ -82,72 +82,72 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		commandRole = project.AwsRoleToAssume.Command
 	}
 	return JobJson{
-		JobType:                 string(jobType),
-		ProjectName:             job.ProjectName,
-		ProjectAlias:            job.ProjectAlias,
-		ProjectDir:              job.ProjectDir,
-		ProjectWorkspace:        job.ProjectWorkspace,
-		OpenTofu:                job.OpenTofu,
-		Pulumi:                  job.Pulumi,
-		Terragrunt:              job.Terragrunt,
-		TerragruntParallelism:   job.TerragruntParallelism,
-		Commands:                job.Commands,
-		ApplyStage:              stageToJson(job.ApplyStage),
-		PlanStage:               stageToJson(job.PlanStage),
-		PullRequestNumber:       job.PullRequestNumber,
-		Commit:                  commitSha,
-		Branch:                  branch,
-		EventName:               job.EventName,
-		RequestedBy:             job.RequestedBy,
-		Namespace:               job.Namespace,
-		RunEnvVars:              job.RunEnvVars,
-		StateEnvVars:            job.StateEnvVars,
-		CommandEnvVars:          job.CommandEnvVars,
-		AwsRoleRegion:           region,
-		StateRoleName:           stateRole,
-		CommandRoleName:         commandRole,
-		BackendHostname:         backendHostname,
-		BackendJobToken:         jobToken,
-		BackendOrganisationName: organisationName,
-		SkipMergeCheck:          job.SkipMergeCheck,
-		CommandRoleArn:          job.CommandRoleArn,
-		StateRoleArn:            job.StateRoleArn,
-		CognitoOidcConfig:       job.CognitoOidcConfig,
-		Teams:                   job.Teams,
-		Approvals:               job.Approvals,
-		ApprovalTeams:           job.ApprovalTeams,
+		JobType:                    string(jobType),
+		ProjectName:                job.ProjectName,
+		ProjectAlias:               job.ProjectAlias,
+		ProjectDir:                 job.ProjectDir,
+		ProjectWorkspace:           job.ProjectWorkspace,
+		OpenTofu:                   job.OpenTofu,
+		Pulumi:                     job.Pulumi,
+		Terragrunt:                 job.Terragrunt,
+		DriftTerragruntParallelism: job.DriftTerragruntParallelism,
+		Commands:                   job.Commands,
+		ApplyStage:                 stageToJson(job.ApplyStage),
+		PlanStage:                  stageToJson(job.PlanStage),
+		PullRequestNumber:          job.PullRequestNumber,
+		Commit:                     commitSha,
+		Branch:                     branch,
+		EventName:                  job.EventName,
+		RequestedBy:                job.RequestedBy,
+		Namespace:                  job.Namespace,
+		RunEnvVars:                 job.RunEnvVars,
+		StateEnvVars:               job.StateEnvVars,
+		CommandEnvVars:             job.CommandEnvVars,
+		AwsRoleRegion:              region,
+		StateRoleName:              stateRole,
+		CommandRoleName:            commandRole,
+		BackendHostname:            backendHostname,
+		BackendJobToken:            jobToken,
+		BackendOrganisationName:    organisationName,
+		SkipMergeCheck:             job.SkipMergeCheck,
+		CommandRoleArn:             job.CommandRoleArn,
+		StateRoleArn:               job.StateRoleArn,
+		CognitoOidcConfig:          job.CognitoOidcConfig,
+		Teams:                      job.Teams,
+		Approvals:                  job.Approvals,
+		ApprovalTeams:              job.ApprovalTeams,
 	}
 }
 
 func JsonToJob(jobJson JobJson) Job {
 	return Job{
-		ProjectName:           jobJson.ProjectName,
-		ProjectAlias:          jobJson.ProjectAlias,
-		ProjectDir:            jobJson.ProjectDir,
-		ProjectWorkspace:      jobJson.ProjectWorkspace,
-		OpenTofu:              jobJson.OpenTofu,
-		Pulumi:                jobJson.Pulumi,
-		Terragrunt:            jobJson.Terragrunt,
-		TerragruntParallelism: jobJson.TerragruntParallelism,
-		Commands:              jobJson.Commands,
-		ApplyStage:            jsonToStage(jobJson.ApplyStage),
-		PlanStage:             jsonToStage(jobJson.PlanStage),
-		PullRequestNumber:     jobJson.PullRequestNumber,
-		EventName:             jobJson.EventName,
-		RequestedBy:           jobJson.RequestedBy,
-		Namespace:             jobJson.Namespace,
-		RunEnvVars:            jobJson.RunEnvVars,
-		StateEnvVars:          jobJson.StateEnvVars,
-		CommandEnvVars:        jobJson.CommandEnvVars,
-		StateEnvProvider:      GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
-		CommandEnvProvider:    GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
-		CommandRoleArn:        jobJson.CommandRoleArn,
-		StateRoleArn:          jobJson.StateRoleArn,
-		SkipMergeCheck:        jobJson.SkipMergeCheck,
-		CognitoOidcConfig:     jobJson.CognitoOidcConfig,
-		Teams:                 jobJson.Teams,
-		Approvals:             jobJson.Approvals,
-		ApprovalTeams:         jobJson.ApprovalTeams,
+		ProjectName:                jobJson.ProjectName,
+		ProjectAlias:               jobJson.ProjectAlias,
+		ProjectDir:                 jobJson.ProjectDir,
+		ProjectWorkspace:           jobJson.ProjectWorkspace,
+		OpenTofu:                   jobJson.OpenTofu,
+		Pulumi:                     jobJson.Pulumi,
+		Terragrunt:                 jobJson.Terragrunt,
+		DriftTerragruntParallelism: jobJson.DriftTerragruntParallelism,
+		Commands:                   jobJson.Commands,
+		ApplyStage:                 jsonToStage(jobJson.ApplyStage),
+		PlanStage:                  jsonToStage(jobJson.PlanStage),
+		PullRequestNumber:          jobJson.PullRequestNumber,
+		EventName:                  jobJson.EventName,
+		RequestedBy:                jobJson.RequestedBy,
+		Namespace:                  jobJson.Namespace,
+		RunEnvVars:                 jobJson.RunEnvVars,
+		StateEnvVars:               jobJson.StateEnvVars,
+		CommandEnvVars:             jobJson.CommandEnvVars,
+		StateEnvProvider:           GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
+		CommandEnvProvider:         GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
+		CommandRoleArn:             jobJson.CommandRoleArn,
+		StateRoleArn:               jobJson.StateRoleArn,
+		SkipMergeCheck:             jobJson.SkipMergeCheck,
+		CognitoOidcConfig:          jobJson.CognitoOidcConfig,
+		Teams:                      jobJson.Teams,
+		Approvals:                  jobJson.Approvals,
+		ApprovalTeams:              jobJson.ApprovalTeams,
 	}
 }
 

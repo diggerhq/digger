@@ -302,7 +302,7 @@ func validateBlockYaml(blocks []BlockYaml) error {
 				return fmt.Errorf("block %v is a terragrunt block but does not have root_dir specified", b.BlockName)
 			}
 		}
-		if err := validateTerragruntParallelism(b.TerragruntParallelism, fmt.Sprintf("block %v", b.BlockName)); err != nil {
+		if err := validateTerragruntParallelism(b.DriftTerragruntParallelism, fmt.Sprintf("block %v", b.BlockName)); err != nil {
 			return err
 		}
 	}
@@ -317,7 +317,7 @@ func validateTerragruntParallelism(value *int, scope string) error {
 		return nil
 	}
 	if *value < minTerragruntParallelism || *value > maxTerragruntParallelism {
-		return fmt.Errorf("%s has terragrunt_parallelism=%d; must be between %d and %d", scope, *value, minTerragruntParallelism, maxTerragruntParallelism)
+		return fmt.Errorf("%s has drift_terragrunt_parallelism=%d; must be between %d and %d", scope, *value, minTerragruntParallelism, maxTerragruntParallelism)
 	}
 	return nil
 }
@@ -464,7 +464,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								"blockName", b.BlockName)
 							return nil, err
 						}
-						if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 || len(b.DriftIncludePatterns) > 0 || len(b.DriftExcludePatterns) > 0 || b.TerragruntParallelism != nil {
+						if len(b.IncludePatterns) > 0 || len(b.ExcludePatterns) > 0 || len(b.DriftIncludePatterns) > 0 || len(b.DriftExcludePatterns) > 0 || b.DriftTerragruntParallelism != nil {
 							for _, project := range config.Projects {
 								if project.BlockName == b.BlockName && project.Terragrunt {
 									if len(b.IncludePatterns) > 0 {
@@ -487,8 +487,8 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 									if len(b.DriftExcludePatterns) > 0 {
 										project.DriftExcludePatterns = append(project.DriftExcludePatterns, b.DriftExcludePatterns...)
 									}
-									if b.TerragruntParallelism != nil && project.TerragruntParallelism == nil {
-										project.TerragruntParallelism = b.TerragruntParallelism
+									if b.DriftTerragruntParallelism != nil && project.DriftTerragruntParallelism == nil {
+										project.DriftTerragruntParallelism = b.DriftTerragruntParallelism
 									}
 								}
 							}
@@ -524,21 +524,21 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 								"projectName", projectName)
 
 							project := ProjectYaml{
-								BlockName:             b.BlockName,
-								Name:                  projectName,
-								Dir:                   dir,
-								Workflow:              workflow,
-								Workspace:             workspace,
-								OpenTofu:              b.OpenTofu,
-								AwsRoleToAssume:       b.AwsRoleToAssume,
-								Generated:             true,
-								AwsCognitoOidcConfig:  b.AwsCognitoOidcConfig,
-								WorkflowFile:          b.WorkflowFile,
-								IncludePatterns:       b.IncludePatterns,
-								ExcludePatterns:       b.ExcludePatterns,
-								DriftIncludePatterns:  b.DriftIncludePatterns,
-								DriftExcludePatterns:  b.DriftExcludePatterns,
-								TerragruntParallelism: b.TerragruntParallelism,
+								BlockName:                  b.BlockName,
+								Name:                       projectName,
+								Dir:                        dir,
+								Workflow:                   workflow,
+								Workspace:                  workspace,
+								OpenTofu:                   b.OpenTofu,
+								AwsRoleToAssume:            b.AwsRoleToAssume,
+								Generated:                  true,
+								AwsCognitoOidcConfig:       b.AwsCognitoOidcConfig,
+								WorkflowFile:               b.WorkflowFile,
+								IncludePatterns:            b.IncludePatterns,
+								ExcludePatterns:            b.ExcludePatterns,
+								DriftIncludePatterns:       b.DriftIncludePatterns,
+								DriftExcludePatterns:       b.DriftExcludePatterns,
+								DriftTerragruntParallelism: b.DriftTerragruntParallelism,
 							}
 							config.Projects = append(config.Projects, &project)
 						}
@@ -714,7 +714,7 @@ func ValidateProjects(config *DiggerConfig) error {
 			return err
 		}
 
-		if err := validateTerragruntParallelism(project.TerragruntParallelism, fmt.Sprintf("project %v", project.Name)); err != nil {
+		if err := validateTerragruntParallelism(project.DriftTerragruntParallelism, fmt.Sprintf("project %v", project.Name)); err != nil {
 			return err
 		}
 	}
