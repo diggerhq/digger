@@ -660,6 +660,9 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 				"blockCount", len(configYaml.GenerateProjectsConfig.Blocks))
 			return fmt.Errorf("if include/exclude patterns are used for project generation, blocks of include/exclude can't be used")
 		}
+		if err := validateTerragruntParallelism(configYaml.GenerateProjectsConfig.DriftTerragruntParallelism, "generate_projects"); err != nil {
+			return err
+		}
 	}
 
 	slog.Debug("digger config YAML validation successful", "fileName", fileName)

@@ -33,6 +33,7 @@ type DiggerConfig struct {
 	ReportTerraformOutputs        bool
 	DriftExcludePatterns          []string
 	DriftIncludePatterns          []string
+	DriftTerragruntParallelism    *int
 }
 
 type ReporterConfig struct {

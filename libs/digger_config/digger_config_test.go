@@ -1139,6 +1139,60 @@ generate_projects:
 	assert.Greater(t, terragruntProjectsFound, 0, "should have found at least one terragrunt project")
 }
 
+func TestDiggerGenerateProjectsTopLevelDriftTerragruntParallelism(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  drift_terragrunt_parallelism: 5
+  blocks:
+    - block_name: with_override
+      terragrunt: true
+      root_dir: infrastructure
+      drift_terragrunt_parallelism: 15
+    - block_name: inherits
+      terragrunt: true
+      root_dir: services
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	dirsToCreate := []string{
+		"infrastructure/env1/app1",
+		"services/api",
+	}
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		assert.NoError(t, err)
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+	}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, dg)
+	assert.NotNil(t, dg.DriftTerragruntParallelism)
+	assert.Equal(t, 5, *dg.DriftTerragruntParallelism)
+
+	var overrideSeen, inheritedSeen bool
+	for _, project := range dg.Projects {
+		if !project.Terragrunt {
+			continue
+		}
+		assert.NotNil(t, project.DriftTerragruntParallelism, "project %s should have parallelism set", project.Name)
+		switch project.BlockName {
+		case "with_override":
+			assert.Equal(t, 15, *project.DriftTerragruntParallelism, "with_override block should keep its 15")
+			overrideSeen = true
+		case "inherits":
+			assert.Equal(t, 5, *project.DriftTerragruntParallelism, "inherits block should fall back to top-level 5")
+			inheritedSeen = true
+		}
+	}
+	assert.True(t, overrideSeen, "expected to see a project from with_override block")
+	assert.True(t, inheritedSeen, "expected to see a project from inherits block")
+}
+
 func TestDiggerGenerateProjectsTerragruntBlocksWithTerragruntParallelismOutOfRange(t *testing.T) {
 	for _, value := range []int{0, 21, -1, 100} {
 		t.Run(fmt.Sprintf("value_%d", value), func(t *testing.T) {

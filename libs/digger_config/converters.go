@@ -298,6 +298,7 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	if diggerYaml.GenerateProjectsConfig != nil {
 		diggerConfig.DriftExcludePatterns = diggerYaml.GenerateProjectsConfig.DriftExcludePatterns
 		diggerConfig.DriftIncludePatterns = diggerYaml.GenerateProjectsConfig.DriftIncludePatterns
+		diggerConfig.DriftTerragruntParallelism = diggerYaml.GenerateProjectsConfig.DriftTerragruntParallelism
 	}
 
 	if diggerYaml.PrLocks != nil {
@@ -342,6 +343,17 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 
 	projects := copyProjects(diggerYaml.Projects)
 	diggerConfig.Projects = projects
+
+	// cascade top-level drift_terragrunt_parallelism into any project that
+	// did not set its own (project-level set in copyProjects) or inherit one
+	// from its block (handled during block expansion).
+	if diggerConfig.DriftTerragruntParallelism != nil {
+		for i := range diggerConfig.Projects {
+			if diggerConfig.Projects[i].DriftTerragruntParallelism == nil {
+				diggerConfig.Projects[i].DriftTerragruntParallelism = diggerConfig.DriftTerragruntParallelism
+			}
+		}
+	}
 
 	// update project's workflow if needed
 	for _, project := range diggerConfig.Projects {

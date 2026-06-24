@@ -160,15 +160,16 @@ type AwsCognitoOidcConfig struct {
 }
 
 type GenerateProjectsConfigYaml struct {
-	Include                 string                      `yaml:"include"`
-	Exclude                 string                      `yaml:"exclude"`
-	Terragrunt              bool                        `yaml:"terragrunt"`
-	Blocks                  []BlockYaml                 `yaml:"blocks"`
-	TerragruntParsingConfig *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
-	AwsRoleToAssume         *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	AwsCognitoOidcConfig    *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
-	DriftExcludePatterns    []string                    `yaml:"drift_exclude_patterns,omitempty"`
-	DriftIncludePatterns    []string                    `yaml:"drift_include_patterns,omitempty"`
+	Include                    string                      `yaml:"include"`
+	Exclude                    string                      `yaml:"exclude"`
+	Terragrunt                 bool                        `yaml:"terragrunt"`
+	Blocks                     []BlockYaml                 `yaml:"blocks"`
+	TerragruntParsingConfig    *TerragruntParsingConfig    `yaml:"terragrunt_parsing,omitempty"`
+	AwsRoleToAssume            *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	AwsCognitoOidcConfig       *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	DriftExcludePatterns       []string                    `yaml:"drift_exclude_patterns,omitempty"`
+	DriftIncludePatterns       []string                    `yaml:"drift_include_patterns,omitempty"`
+	DriftTerragruntParallelism *int                        `yaml:"drift_terragrunt_parallelism,omitempty"`
 }
 
 type TerragruntParsingConfig struct {

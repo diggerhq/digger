@@ -385,6 +385,10 @@ Automatically generate projects from directory structure using the `generate_pro
   Glob patterns matched against each project's `dir`. Matching projects are skipped during drift detection. Evaluated after `drift_include_patterns`.
 </ParamField>
 
+<ParamField path="drift_terragrunt_parallelism" type="integer">
+  Default cap on the worker pool Terragrunt uses for dependency loading on each unit during drift detection — equivalent to passing `-parallelism=N`. Must be between `1` and `20`. Applied to every Terragrunt project that does not set its own `drift_terragrunt_parallelism` (project-level overrides block-level overrides this top-level default). Only takes effect for drift runs; plan/apply are unaffected.
+</ParamField>
+
 <ParamField path="aws_role_to_assume" type="object">
   Default AWS role configuration for all generated projects. See [AWS Role Configuration](#aws-role-configuration).
 </ParamField>
@@ -426,7 +430,7 @@ Automatically generate projects from directory structure using the `generate_pro
     </ParamField>
 
     <ParamField path="drift_terragrunt_parallelism" type="integer">
-      Caps the worker pool Terragrunt uses for dependency loading on each unit plan/apply — equivalent to passing `-parallelism=N` to Terragrunt. Useful for large estates where unbounded concurrency overwhelms the runner. Must be between `1` and `20`. Only applies when the generated projects are Terragrunt.
+      Caps the worker pool Terragrunt uses for dependency loading on each unit during drift detection — equivalent to passing `-parallelism=N` to Terragrunt. Useful for large estates where unbounded concurrency overwhelms the runner. Must be between `1` and `20`. Only takes effect for drift runs (plan/apply are unaffected) and only when the generated projects are Terragrunt. Overrides the top-level `drift_terragrunt_parallelism` default for this block.
     </ParamField>
 
     <ParamField path="workflow" type="string" default="default">
