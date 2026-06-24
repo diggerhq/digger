@@ -11,10 +11,19 @@ import (
 )
 
 type Terragrunt struct {
-	WorkingDir string
+	WorkingDir  string
+	Parallelism *int
+}
+
+func (terragrunt Terragrunt) appendParallelism(params []string) []string {
+	if terragrunt.Parallelism == nil {
+		return params
+	}
+	return append(params, fmt.Sprintf("-parallelism=%d", *terragrunt.Parallelism))
 }
 
 func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (string, string, error) {
+	params = terragrunt.appendParallelism(params)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("init", true, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -26,6 +35,7 @@ func (terragrunt Terragrunt) Init(params []string, envs map[string]string) (stri
 func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[string]string) (string, string, error) {
 	params = append(params, []string{"-lock-timeout=3m"}...)
 	params = append(params, "--auto-approve")
+	params = terragrunt.appendParallelism(params)
 	if plan != nil {
 		params = append(params, *plan)
 	}
@@ -39,6 +49,7 @@ func (terragrunt Terragrunt) Apply(params []string, plan *string, envs map[strin
 
 func (terragrunt Terragrunt) Destroy(params []string, envs map[string]string) (string, string, error) {
 	params = append(params, "--auto-approve")
+	params = terragrunt.appendParallelism(params)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("destroy", true, envs, nil, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -52,6 +63,7 @@ func (terragrunt Terragrunt) Plan(params []string, envs map[string]string, planA
 		params = append(params, []string{"-out", planArtefactFilePath}...)
 	}
 	params = append(params, "-lock-timeout=3m")
+	params = terragrunt.appendParallelism(params)
 	stdout, stderr, exitCode, err := terragrunt.runTerragruntCommand("plan", true, envs, filterRegex, params...)
 	if exitCode != 0 {
 		logCommandFail(exitCode, err)
@@ -122,6 +134,11 @@ func (terragrunt Terragrunt) runTerragruntCommand(command string, printOutputToS
 	env = append(env, "TG_NO_COLOR=true")
 	env = append(env, "TG_NON_INTERACTIVE=true")
 	env = append(env, "TG_TF_FORWARD_STDOUT=true")
+
+	if terragrunt.Parallelism != nil {
+		env = append(env, fmt.Sprintf("TERRAGRUNT_PARALLELISM=%d", *terragrunt.Parallelism))
+		env = append(env, fmt.Sprintf("TG_PARALLELISM=%d", *terragrunt.Parallelism))
+	}
 
 	for k, v := range envs {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))

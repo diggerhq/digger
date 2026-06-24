@@ -57,12 +57,13 @@ func ConvertProjectsToJobs(actor string, repoNamespace string, command string, p
 			"hasCognitoConfig", project.AwsCognitoOidcConfig != nil)
 
 		jobs = append(jobs, Job{
-			ProjectName:      project.Name,
-			ProjectDir:       project.Dir,
-			ProjectWorkspace: project.Workspace,
-			Terragrunt:       project.Terragrunt,
-			OpenTofu:         project.OpenTofu,
-			Pulumi:           project.Pulumi,
+			ProjectName:           project.Name,
+			ProjectDir:            project.Dir,
+			ProjectWorkspace:      project.Workspace,
+			Terragrunt:            project.Terragrunt,
+			TerragruntParallelism: project.TerragruntParallelism,
+			OpenTofu:              project.OpenTofu,
+			Pulumi:                project.Pulumi,
 			// TODO: expose lower level api per command configuration
 			Commands:   []string{command},
 			ApplyStage: ToConfigStage(workflow.Apply),

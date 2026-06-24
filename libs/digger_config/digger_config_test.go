@@ -1094,6 +1094,75 @@ generate_projects:
 	assert.Greater(t, terragruntProjectsFound, 0, "should have found at least one terragrunt project")
 }
 
+func TestDiggerGenerateProjectsTerragruntBlocksWithTerragruntParallelism(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: prod
+      terragrunt: true
+      root_dir: infrastructure
+      terragrunt_parallelism: 20
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	dirsToCreate := []string{
+		"infrastructure/env1/app1",
+		"infrastructure/env1/app2",
+		"infrastructure/env2/app1",
+	}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		assert.NoError(t, err, "expected error to be nil")
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+	}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+
+	terragruntProjectsFound := 0
+	for _, project := range dg.Projects {
+		if project.BlockName != "prod" || !project.Terragrunt {
+			continue
+		}
+		terragruntProjectsFound++
+
+		assert.NotNil(t, project.TerragruntParallelism, "TerragruntParallelism should be set for project %s", project.Name)
+		assert.Equal(t, 20, *project.TerragruntParallelism, "TerragruntParallelism should be 20 for project %s", project.Name)
+	}
+
+	assert.Greater(t, terragruntProjectsFound, 0, "should have found at least one terragrunt project")
+}
+
+func TestDiggerGenerateProjectsTerragruntBlocksWithTerragruntParallelismOutOfRange(t *testing.T) {
+	for _, value := range []int{0, 21, -1, 100} {
+		t.Run(fmt.Sprintf("value_%d", value), func(t *testing.T) {
+			tempDir, teardown := setUp()
+			defer teardown()
+
+			diggerCfg := fmt.Sprintf(`
+generate_projects:
+  blocks:
+    - block_name: prod
+      terragrunt: true
+      root_dir: infrastructure
+      terragrunt_parallelism: %d
+`, value)
+			deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+			defer deleteFile()
+
+			_, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+			assert.Error(t, err, "expected error for terragrunt_parallelism=%d", value)
+			assert.Contains(t, err.Error(), "terragrunt_parallelism")
+		})
+	}
+}
+
 func TestDiggerGenerateProjectsWithOpenTofu(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()

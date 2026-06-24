@@ -248,7 +248,12 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 	var iacUtils iac_utils.IacUtils
 	projectPath := path.Join(workingDir, job.ProjectDir)
 	if job.Terragrunt {
-		terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
+		terraformExecutor = execution.Terragrunt{WorkingDir: projectPath, Parallelism: job.TerragruntParallelism}
+		if job.TerragruntParallelism != nil {
+			slog.Info("terragrunt_parallelism enabled",
+				"projectName", job.ProjectName,
+				"parallelism", *job.TerragruntParallelism)
+		}
 		iacUtils = iac_utils.TerraformUtils{}
 	} else if job.OpenTofu {
 		terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}
@@ -680,7 +685,7 @@ func RunJob(
 		var iacUtils iac_utils.IacUtils
 		projectPath := path.Join(workingDir, job.ProjectDir)
 		if job.Terragrunt {
-			terraformExecutor = execution.Terragrunt{WorkingDir: projectPath}
+			terraformExecutor = execution.Terragrunt{WorkingDir: projectPath, Parallelism: job.TerragruntParallelism}
 			iacUtils = iac_utils.TerraformUtils{}
 		} else if job.OpenTofu {
 			terraformExecutor = execution.OpenTofu{WorkingDir: projectPath, Workspace: job.ProjectWorkspace}

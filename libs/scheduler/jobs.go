@@ -15,31 +15,32 @@ var IacTypeTerraform IacType = "terraform"
 var IacTypePulumi IacType = "pulumi"
 
 type Job struct {
-	ProjectName        string
-	ProjectAlias       string
-	ProjectDir         string
-	ProjectWorkspace   string
-	ProjectWorkflow    string
-	Layer              uint
-	Terragrunt         bool
-	OpenTofu           bool
-	Pulumi             bool
-	Commands           []string
-	ApplyStage         *Stage
-	PlanStage          *Stage
-	PullRequestNumber  *int
-	EventName          string
-	RequestedBy        string
-	Namespace          string
-	RunEnvVars         map[string]string
-	StateEnvVars       map[string]string
-	CommandEnvVars     map[string]string
-	StateEnvProvider   *stscreds.WebIdentityRoleProvider
-	StateRoleArn       string
-	CommandEnvProvider *stscreds.WebIdentityRoleProvider
-	CommandRoleArn     string
-	CognitoOidcConfig  *configuration.AwsCognitoOidcConfig
-	SkipMergeCheck     bool
+	ProjectName           string
+	ProjectAlias          string
+	ProjectDir            string
+	ProjectWorkspace      string
+	ProjectWorkflow       string
+	Layer                 uint
+	Terragrunt            bool
+	TerragruntParallelism *int
+	OpenTofu              bool
+	Pulumi                bool
+	Commands              []string
+	ApplyStage            *Stage
+	PlanStage             *Stage
+	PullRequestNumber     *int
+	EventName             string
+	RequestedBy           string
+	Namespace             string
+	RunEnvVars            map[string]string
+	StateEnvVars          map[string]string
+	CommandEnvVars        map[string]string
+	StateEnvProvider      *stscreds.WebIdentityRoleProvider
+	StateRoleArn          string
+	CommandEnvProvider    *stscreds.WebIdentityRoleProvider
+	CommandRoleArn        string
+	CognitoOidcConfig     *configuration.AwsCognitoOidcConfig
+	SkipMergeCheck        bool
 	// Policy-related fields computed on backend/webhook side
 	Teams         []string
 	Approvals     []string

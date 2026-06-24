@@ -106,6 +106,7 @@ func copyProjects(projects []*ProjectYaml) []Project {
 			workspace,
 			p.DriftIncludePatterns,
 			p.DriftExcludePatterns,
+			p.TerragruntParallelism,
 		}
 		result[i] = item
 	}

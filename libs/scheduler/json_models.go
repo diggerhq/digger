@@ -27,6 +27,7 @@ type JobJson struct {
 	ProjectDir              string            `json:"projectDir"`
 	ProjectWorkspace        string            `json:"projectWorkspace"`
 	Terragrunt              bool              `json:"terragrunt"`
+	TerragruntParallelism   *int              `json:"terragrunt_parallelism,omitempty"`
 	OpenTofu                bool              `json:"opentofu"`
 	Pulumi                  bool              `json:"pulumi"`
 	Commands                []string          `json:"commands"`
@@ -89,6 +90,7 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		OpenTofu:                job.OpenTofu,
 		Pulumi:                  job.Pulumi,
 		Terragrunt:              job.Terragrunt,
+		TerragruntParallelism:   job.TerragruntParallelism,
 		Commands:                job.Commands,
 		ApplyStage:              stageToJson(job.ApplyStage),
 		PlanStage:               stageToJson(job.PlanStage),
@@ -119,32 +121,33 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 
 func JsonToJob(jobJson JobJson) Job {
 	return Job{
-		ProjectName:        jobJson.ProjectName,
-		ProjectAlias:       jobJson.ProjectAlias,
-		ProjectDir:         jobJson.ProjectDir,
-		ProjectWorkspace:   jobJson.ProjectWorkspace,
-		OpenTofu:           jobJson.OpenTofu,
-		Pulumi:             jobJson.Pulumi,
-		Terragrunt:         jobJson.Terragrunt,
-		Commands:           jobJson.Commands,
-		ApplyStage:         jsonToStage(jobJson.ApplyStage),
-		PlanStage:          jsonToStage(jobJson.PlanStage),
-		PullRequestNumber:  jobJson.PullRequestNumber,
-		EventName:          jobJson.EventName,
-		RequestedBy:        jobJson.RequestedBy,
-		Namespace:          jobJson.Namespace,
-		RunEnvVars:         jobJson.RunEnvVars,
-		StateEnvVars:       jobJson.StateEnvVars,
-		CommandEnvVars:     jobJson.CommandEnvVars,
-		StateEnvProvider:   GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
-		CommandEnvProvider: GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
-		CommandRoleArn:     jobJson.CommandRoleArn,
-		StateRoleArn:       jobJson.StateRoleArn,
-		SkipMergeCheck:     jobJson.SkipMergeCheck,
-		CognitoOidcConfig:  jobJson.CognitoOidcConfig,
-		Teams:              jobJson.Teams,
-		Approvals:          jobJson.Approvals,
-		ApprovalTeams:      jobJson.ApprovalTeams,
+		ProjectName:           jobJson.ProjectName,
+		ProjectAlias:          jobJson.ProjectAlias,
+		ProjectDir:            jobJson.ProjectDir,
+		ProjectWorkspace:      jobJson.ProjectWorkspace,
+		OpenTofu:              jobJson.OpenTofu,
+		Pulumi:                jobJson.Pulumi,
+		Terragrunt:            jobJson.Terragrunt,
+		TerragruntParallelism: jobJson.TerragruntParallelism,
+		Commands:              jobJson.Commands,
+		ApplyStage:            jsonToStage(jobJson.ApplyStage),
+		PlanStage:             jsonToStage(jobJson.PlanStage),
+		PullRequestNumber:     jobJson.PullRequestNumber,
+		EventName:             jobJson.EventName,
+		RequestedBy:           jobJson.RequestedBy,
+		Namespace:             jobJson.Namespace,
+		RunEnvVars:            jobJson.RunEnvVars,
+		StateEnvVars:          jobJson.StateEnvVars,
+		CommandEnvVars:        jobJson.CommandEnvVars,
+		StateEnvProvider:      GetProviderFromRole(jobJson.StateRoleName, jobJson.AwsRoleRegion),
+		CommandEnvProvider:    GetProviderFromRole(jobJson.CommandRoleName, jobJson.AwsRoleRegion),
+		CommandRoleArn:        jobJson.CommandRoleArn,
+		StateRoleArn:          jobJson.StateRoleArn,
+		SkipMergeCheck:        jobJson.SkipMergeCheck,
+		CognitoOidcConfig:     jobJson.CognitoOidcConfig,
+		Teams:                 jobJson.Teams,
+		Approvals:             jobJson.Approvals,
+		ApprovalTeams:         jobJson.ApprovalTeams,
 	}
 }
 

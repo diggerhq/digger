@@ -31,7 +31,7 @@ type DiggerConfigYaml struct {
 }
 
 type ReportingConfigYaml struct {
-	AiSummary bool `yaml:"ai_summary"`
+	AiSummary       bool `yaml:"ai_summary"`
 	CommentsEnabled bool `yaml:"comments_enabled"`
 }
 
@@ -44,29 +44,30 @@ const ApplyRequirementsMergeable = "mergeable"
 const ApplyRequirementsUndiverged = "undiverged"
 
 type ProjectYaml struct {
-	BlockName            string                      `yaml:"block_name"`
-	Name                 string                      `yaml:"name"`
-	Alias                string                      `yaml:"alias,omitempty"`
-	ApplyRequirements    []string                    `yaml:"apply_requirements,omitempty"`
-	Dir                  string                      `yaml:"dir"`
-	Workspace            string                      `yaml:"workspace"`
-	Terragrunt           bool                        `yaml:"terragrunt"`
-	Branch               *string                     `yaml:"branch,omitempty"`
-	OpenTofu             bool                        `yaml:"opentofu"`
-	Pulumi               bool                        `yaml:"pulumi"`
-	Workflow             string                      `yaml:"workflow"`
-	WorkflowFile         string                      `yaml:"workflow_file"`
-	IncludePatterns      []string                    `yaml:"include_patterns,omitempty"`
-	Layer                *uint                       `yaml:"layer"`
-	ExcludePatterns      []string                    `yaml:"exclude_patterns,omitempty"`
-	DependencyProjects   []string                    `yaml:"depends_on,omitempty"`
-	DriftDetection       *bool                       `yaml:"drift_detection,omitempty"`
-	AwsRoleToAssume      *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
-	Generated            bool                        `yaml:"generated"`
-	AwsCognitoOidcConfig *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
-	PulumiStack          string                      `yaml:"pulumi_stack"`
-	DriftIncludePatterns []string                    `yaml:"drift_include_patterns,omitempty"`
-	DriftExcludePatterns []string                    `yaml:"drift_exclude_patterns,omitempty"`
+	BlockName             string                      `yaml:"block_name"`
+	Name                  string                      `yaml:"name"`
+	Alias                 string                      `yaml:"alias,omitempty"`
+	ApplyRequirements     []string                    `yaml:"apply_requirements,omitempty"`
+	Dir                   string                      `yaml:"dir"`
+	Workspace             string                      `yaml:"workspace"`
+	Terragrunt            bool                        `yaml:"terragrunt"`
+	Branch                *string                     `yaml:"branch,omitempty"`
+	OpenTofu              bool                        `yaml:"opentofu"`
+	Pulumi                bool                        `yaml:"pulumi"`
+	Workflow              string                      `yaml:"workflow"`
+	WorkflowFile          string                      `yaml:"workflow_file"`
+	IncludePatterns       []string                    `yaml:"include_patterns,omitempty"`
+	Layer                 *uint                       `yaml:"layer"`
+	ExcludePatterns       []string                    `yaml:"exclude_patterns,omitempty"`
+	DependencyProjects    []string                    `yaml:"depends_on,omitempty"`
+	DriftDetection        *bool                       `yaml:"drift_detection,omitempty"`
+	AwsRoleToAssume       *AssumeRoleForProjectConfig `yaml:"aws_role_to_assume,omitempty"`
+	Generated             bool                        `yaml:"generated"`
+	AwsCognitoOidcConfig  *AwsCognitoOidcConfig       `yaml:"aws_cognito_oidc,omitempty"`
+	PulumiStack           string                      `yaml:"pulumi_stack"`
+	DriftIncludePatterns  []string                    `yaml:"drift_include_patterns,omitempty"`
+	DriftExcludePatterns  []string                    `yaml:"drift_exclude_patterns,omitempty"`
+	TerragruntParallelism *int                        `yaml:"terragrunt_parallelism,omitempty"`
 }
 
 type WorkflowYaml struct {
@@ -125,6 +126,8 @@ type BlockYaml struct {
 
 	DriftIncludePatterns []string `yaml:"drift_include_patterns,omitempty"`
 	DriftExcludePatterns []string `yaml:"drift_exclude_patterns,omitempty"`
+
+	TerragruntParallelism *int `yaml:"terragrunt_parallelism,omitempty"`
 
 	// these flags are only for terragrunt
 	Terragrunt              bool                     `yaml:"terragrunt"`
