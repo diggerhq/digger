@@ -31,11 +31,44 @@ func (_ GithubServiceProviderBasic) NewService(ghToken string, repoName string, 
 		client = client.WithAuthToken(ghToken)
 	}
 
+	client, err := configureEnterpriseClient(client)
+	if err != nil {
+		return GithubService{}, err
+	}
+
 	return GithubService{
 		Client:   client,
 		RepoName: repoName,
 		Owner:    owner,
 	}, nil
+}
+
+// configureEnterpriseClient configures the GitHub client for Enterprise if
+// DIGGER_GITHUB_HOSTNAME or GITHUB_API_URL environment variables are set.
+func configureEnterpriseClient(client *github.Client) (*github.Client, error) {
+	// Check for DIGGER_GITHUB_HOSTNAME first (explicit configuration)
+	if hostname := os.Getenv("DIGGER_GITHUB_HOSTNAME"); hostname != "" {
+		baseURL := fmt.Sprintf("https://%s/api/v3/", hostname)
+		uploadURL := fmt.Sprintf("https://%s/api/uploads/", hostname)
+		slog.Info("configuring GitHub Enterprise client", "hostname", hostname)
+		return client.WithEnterpriseURLs(baseURL, uploadURL)
+	}
+
+	// Fall back to GITHUB_API_URL (set automatically in GitHub Actions)
+	if apiURL := os.Getenv("GITHUB_API_URL"); apiURL != "" && apiURL != "https://api.github.com" {
+		// Derive upload URL from API URL by replacing /api/v3 with /api/uploads
+		uploadURL := strings.Replace(apiURL, "/api/v3", "/api/uploads", 1)
+		if !strings.HasSuffix(apiURL, "/") {
+			apiURL += "/"
+		}
+		if !strings.HasSuffix(uploadURL, "/") {
+			uploadURL += "/"
+		}
+		slog.Info("configuring GitHub Enterprise client from GITHUB_API_URL", "apiUrl", apiURL, "uploadUrl", uploadURL)
+		return client.WithEnterpriseURLs(apiURL, uploadURL)
+	}
+
+	return client, nil
 }
 
 type GithubService struct {
