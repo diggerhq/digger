@@ -174,6 +174,15 @@ func (a *AzureReposService) GetChangedFiles(prNumber int) ([]string, error) {
 	return changedFiles, nil
 }
 
+// CommentMaxLength implements ci.CommentMaxLengthProvider. Azure DevOps
+// rejects pull request thread comments over 150,000 characters ("A
+// discussion comment cannot be longer than 150000 characters"). Not
+// officially documented; sourced from the API validation error, see e.g.
+// https://github.com/Azure/AzOps/issues/652
+func (a *AzureReposService) CommentMaxLength() int {
+	return 150000
+}
+
 func (a *AzureReposService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	_, err := a.Client.CreateThread(context.Background(), git.CreateThreadArgs{
 		Project:       &a.ProjectName,
