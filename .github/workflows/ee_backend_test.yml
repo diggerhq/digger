@@ -10,6 +10,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Download Go
@@ -28,7 +31,6 @@ jobs:
         uses: depot/build-push-action@v1
         with:
           project: kcld4zgwzx
-          token: ${{ secrets.DEPOT_TOKEN }}
           context: .
           file: ./Dockerfile_backend_ee
           push: false
