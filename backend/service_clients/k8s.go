@@ -219,6 +219,9 @@ func (k K8sJobClient) TriggerProjectsRefreshService(
 			"repoFullName":  repoFullName,
 			"triggerSource": "orchestrator-api",
 		},
+		Annotations: map[string]string{
+			"linkerd.io/inject": "disabled",
+		},
 		Env: map[string]string{
 			"DIGGER_GITHUB_REPO_CLONE_URL":     cloneUrl,
 			"DIGGER_GITHUB_REPO_CLONE_BRANCH":       branch,
