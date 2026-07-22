@@ -1,4 +1,4 @@
----
+ī---
 name: run-digger
 description: Manage terraform collaboration
 author: Digger
@@ -215,6 +215,10 @@ inputs:
     default: ""
   drift-detection-slack-notification-url:
     description: "drift-detection slack drift url"
+    required: false
+    default: ""
+  drift-detection-ms-teams-notification-url:
+    description: "drift-detection MS Teams drift url"
     required: false
     default: ""
   drift-detection-advanced-slack-notification-url:
@@ -525,6 +529,7 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_MS_TEAMS_NOTIFICATION_URL: ${{ inputs.drift-detection-ms-teams-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
 
         NO_BACKEND: ${{ inputs.no-backend }}
@@ -580,6 +585,7 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_MS_TEAMS_NOTIFICATION_URL: ${{ inputs.drift-detection-ms-teams-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
@@ -667,6 +673,7 @@ runs:
         INPUT_DIGGER_MODE: ${{ inputs.mode }}
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_MS_TEAMS_NOTIFICATION_URL: ${{ inputs.drift-detection-ms-teams-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
         NO_BACKEND: ${{ inputs.no-backend }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
