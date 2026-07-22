@@ -360,6 +360,13 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
+		// Set pending status before execution
+		if scheduler.IsPlanJobs(jobs) {
+			githubPrService.SetStatus(prNumber, "pending", "digger/plan")
+		} else {
+			githubPrService.SetStatus(prNumber, "pending", "digger/apply")
+		}
+
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
 		if !allAppliesSuccessful || err != nil {
 			// aggregate status checks: failure
@@ -380,6 +387,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			// aggregate status checks: success
 			if scheduler.IsPlanJobs(jobs) {
 				githubPrService.SetStatus(prNumber, "success", "digger/plan")
+				// Merge gate: after successful plan, apply is still pending.
+				// Users can add digger/apply as a required status check to
+				// block merge until `digger apply` is run.
+				githubPrService.SetStatus(prNumber, "pending", "digger/apply")
 			} else {
 				githubPrService.SetStatus(prNumber, "success", "digger/apply")
 			}
