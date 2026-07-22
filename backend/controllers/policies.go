@@ -184,7 +184,8 @@ func upsertPolicyForOrg(c *gin.Context, policyType string) {
 		}
 		slog.Info("Created new policy", "organisation", organisation, "policyType", policyType)
 	} else {
-		err := policyResult.Update("policy", string(policyData)).Error
+		policy.Policy = string(policyData)
+		err := models.DB.GormDB.Save(&policy).Error
 		if err != nil {
 			slog.Error("Error updating policy", "organisation", organisation, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error updating policy")
@@ -280,7 +281,8 @@ func upsertPolicyForRepoAndProject(c *gin.Context, policyType string) {
 		}
 		slog.Info("Created new policy for repo and project", "repo", repo, "project", projectName, "policyType", policyType)
 	} else {
-		err := policyResult.Update("policy", string(policyData)).Error
+		policy.Policy = string(policyData)
+		err := models.DB.GormDB.Save(&policy).Error
 		if err != nil {
 			slog.Error("Error updating policy", "repo", repo, "project", projectName, "policyType", policyType, "error", err)
 			c.String(http.StatusInternalServerError, "Error updating policy")
