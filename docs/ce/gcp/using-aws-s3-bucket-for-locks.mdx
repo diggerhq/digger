@@ -1,0 +1,11 @@
+---
+title: "AWS: Backendless S3 bucket lock storage"
+---
+
+This setup is only required for backendless mode (`no-backend: true`).
+
+With the OpenTaco backend/orchestrator, PR locks are stored in the backend database automatically and this bucket setup is not needed.
+
+In backendless mode, you can configure Digger to use an AWS S3 bucket for PR locks. Set the following workflow input:
+
+- `aws-s3-lock-bucket` action input pointing to your bucket

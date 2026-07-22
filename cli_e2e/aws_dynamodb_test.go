@@ -10,7 +10,7 @@ import (
 func TestAWSDynamoDBLockE2E(t *testing.T) {
 	// Requires AWS login
 	os.Setenv("AWS_REGION", "us-east-1")
-	os.Setenv("LOCK_PROVIDER", "aws")
+	os.Setenv("LOCK_PROVIDER", "dynamodb")
 
 	lock, err := locking.GetLock()
 	if err != nil {
