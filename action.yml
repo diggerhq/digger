@@ -255,13 +255,13 @@ inputs:
     required: false
     default: ""
   digger-os:
-    description: "OS variant of the digger CLI to install. Valid configurable values are: windows, linux, darwin, freebsd."
+    description: "OS variant of the digger CLI to install. Valid configurable values are: windows, linux, darwin, freebsd. Defaults to runner.os if empty."
     required: false
-    default: "Linux"
+    default: ""
   digger-arch:
-    description: "Architecture of the digger CLI to install. Valid configurable values are: amd64, arm64, 386."
+    description: "Architecture of the digger CLI to install. Valid configurable values are: amd64, arm64, 386. Defaults to runner.arch if empty."
     required: false
-    default: "X64"
+    default: ""
   log-level:
     description: "Log level for digger CLI. Valid values are: DEBUG, INFO, WARN, ERROR."
     required: false
@@ -594,8 +594,27 @@ runs:
       run: |
         set -euo pipefail
 
+        if [[ -z "$DIGGER_OS" ]]; then
+          case "${{ runner.os }}" in
+            Linux) DIGGER_OS="linux" ;;
+            macOS) DIGGER_OS="darwin" ;;
+            Windows) DIGGER_OS="windows" ;;
+            *) DIGGER_OS="linux" ;;
+          esac
+        fi
+
+        if [[ -z "$DIGGER_ARCH" ]]; then
+          case "${{ runner.arch }}" in
+            X64) DIGGER_ARCH="amd64" ;;
+            ARM64) DIGGER_ARCH="arm64" ;;
+            ARM) DIGGER_ARCH="arm" ;;
+            X86) DIGGER_ARCH="386" ;;
+            *) DIGGER_ARCH="amd64" ;;
+          esac
+        fi
+
         echo "🔧 Downloading Digger CLI..."
-        echo "Runner OS: ${{ runner.os }}, Arch: ${{ runner.arch }}, Digger Version: ${DIGGER_VERSION}"
+        echo "Resolved OS: ${DIGGER_OS}, Arch: ${DIGGER_ARCH}, Digger Version: ${DIGGER_VERSION}"
 
         if [[ ${{ inputs.ee }} == "true" ]]; then
           if [[ ${{ inputs.fips }} == "true" ]]; then
