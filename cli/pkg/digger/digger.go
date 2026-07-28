@@ -65,7 +65,7 @@ func DetectCI() CIName {
 
 }
 
-func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, error) {
+func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgService ci.OrgService, lock locking2.Lock, reporter reporting.Reporter, planStorage storage.PlanStorage, policyChecker policy.Checker, commentUpdater comment_updater.CommentUpdater, backendApi backendapi.Api, jobId string, reportFinalStatusToBackend bool, reportTerraformOutput bool, prCommentId string, workingDir string) (bool, bool, bool, error) {
 	defer reporter.Flush()
 
 	slog.Debug("Variable info", "TF_PLUGIN_CACHE_DIR", os.Getenv("TF_PLUGIN_CACHE_DIR"))
@@ -74,6 +74,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 	exectorResults := make([]execution.DiggerExecutorResult, len(jobs))
 	appliesPerProject := make(map[string]bool)
+	failOnChangesTriggered := false
 
 	for i, job := range jobs {
 		splits := strings.Split(job.Namespace, "/")
@@ -100,7 +101,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, job.PullRequestNumber, job.RequestedBy, teams, approvals, approvalTeams, []string{})
 
 			if err != nil {
-				return false, false, fmt.Errorf("error checking policy: %v", err)
+				return false, false, failOnChangesTriggered, fmt.Errorf("error checking policy: %v", err)
 			}
 
 			if !allowedToPerformCommand {
@@ -122,6 +123,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 				break
 			}
 			exectorResults[i] = *executorResult
+			failOnChangesTriggered = failOnChangesTriggered || planTriggeredFailOnChanges(job, *executorResult)
 
 		}
 	}
@@ -142,7 +144,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			cmt, cmt_err := prService.PublishComment(*currentJob.PullRequestNumber, fmt.Sprintf(":yellow_circle: Warning: failed to post report for project %v, received error: %v.\n\n you may review details in the job logs", currentJob.ProjectName, err))
 			if cmt_err != nil {
 				slog.Error("Error while posting error comment", "error", err)
-				return false, false, fmt.Errorf("failed to post reporter error comment, aborting. Error: %v", err)
+				return false, false, failOnChangesTriggered, fmt.Errorf("failed to post reporter error comment, aborting. Error: %v", err)
 			}
 			jobPrCommentUrl = cmt.Url
 		}
@@ -161,7 +163,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 		batchResult, err := backendApi.ReportProjectJobStatus(currentJob.Namespace, projectNameForBackendReporting, jobId, "succeeded", time.Now(), &summary, "", jobPrCommentUrl, jobPrCommentId, terraformOutput, iacUtils)
 		if err != nil {
 			slog.Error("error reporting Job status", "error", err)
-			return false, false, fmt.Errorf("error while running command: %v", err)
+			return false, false, failOnChangesTriggered, fmt.Errorf("error while running command: %v", err)
 		}
 
 		// Check if batchResult is nil (can happen with mock backend or when backend is not configured)
@@ -171,7 +173,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			err = commentUpdater.UpdateComment(batchResult.Jobs, prNumber, prService, prCommentId)
 			if err != nil {
 				slog.Error("error Updating status comment", "error", err, "prNumber", prNumber, "jobId", jobId)
-				return false, false, err
+				return false, false, failOnChangesTriggered, err
 			}
 		}
 
@@ -179,7 +181,11 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 	atLeastOneApply := len(appliesPerProject) > 0
 
-	return allAppliesSuccess, atLeastOneApply, nil
+	return allAppliesSuccess, atLeastOneApply, failOnChangesTriggered, nil
+}
+
+func planTriggeredFailOnChanges(job orchestrator.Job, result execution.DiggerExecutorResult) bool {
+	return job.FailOnChanges && result.PlanResult != nil && result.PlanResult.IsNonEmptyPlan
 }
 
 func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
@@ -370,8 +376,9 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 				OperationType:   execution.DiggerOparationTypePlan,
 				TerraformOutput: plan,
 				PlanResult: &execution.DiggerExecutorPlanResult{
-					PlanSummary:   *planSummary,
-					TerraformJson: planJsonOutput,
+					PlanSummary:    *planSummary,
+					TerraformJson:  planJsonOutput,
+					IsNonEmptyPlan: isNonEmptyPlan,
 				},
 			}
 			return &result, plan, nil
@@ -644,9 +651,11 @@ func RunJob(
 	backendApi backendapi.Api,
 	driftNotification *core_drift.Notification,
 	workingDir string,
-) error {
+) (bool, error) {
 	SCMOrganisation, SCMrepository := utils.ParseRepoNamespace(repo)
 	slog.Info("Running commands for project", "commands", job.Commands, "project name", job.ProjectName)
+
+	failOnChangesTriggered := false
 
 	// Use teams, approvals, and approval_teams from the job (computed on backend/webhook side)
 	teams := job.Teams
@@ -668,7 +677,7 @@ func RunJob(
 		allowedToPerformCommand, err := policyChecker.CheckAccessPolicy(SCMOrganisation, SCMrepository, job.ProjectName, job.ProjectDir, command, nil, requestedBy, teams, approvals, approvalTeams, []string{})
 
 		if err != nil {
-			return fmt.Errorf("error checking policy: %v", err)
+			return false, fmt.Errorf("error checking policy: %v", err)
 		}
 
 		if !allowedToPerformCommand {
@@ -677,7 +686,7 @@ func RunJob(
 				slog.Error("Error publishing comment.", "error", err)
 			}
 			slog.Error(msg)
-			return errors.New(msg)
+			return false, errors.New(msg)
 		}
 
 		err = job.PopulateAwsCredentialsEnvVarsForJob()
@@ -743,23 +752,24 @@ func RunJob(
 			if err != nil {
 				slog.Error("Failed to send usage report.", "error", err)
 			}
-			_, _, _, _, planJsonOutput, err := diggerExecutor.Plan()
+			_, _, isNonEmptyPlan, _, planJsonOutput, err := diggerExecutor.Plan()
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Run digger plan command. %v", err)
 				slog.Error(msg)
-				return fmt.Errorf("%s", msg)
+				return false, fmt.Errorf("%s", msg)
 			}
+			failOnChangesTriggered = failOnChangesTriggered || (job.FailOnChanges && isNonEmptyPlan)
 			planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, requestedBy, teams, approvals, approvalTeams, planJsonOutput)
 			slog.Info(strings.Join(messages, "\n"))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to validate plan %v", err)
 				slog.Error(msg)
-				return fmt.Errorf("%s", msg)
+				return false, fmt.Errorf("%s", msg)
 			}
 			if !planIsAllowed {
 				msg := fmt.Sprintf("Plan is not allowed")
 				slog.Error(msg)
-				return fmt.Errorf("%s", msg)
+				return false, fmt.Errorf("%s", msg)
 			} else {
 			}
 
@@ -772,7 +782,7 @@ func RunJob(
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Run digger apply command. %v", err)
 				slog.Error(msg)
-				return fmt.Errorf("%s", msg)
+				return false, fmt.Errorf("%s", msg)
 			}
 		case "digger destroy":
 			err := usage.SendUsageRecord(requestedBy, job.EventName, "destroy")
@@ -782,18 +792,18 @@ func RunJob(
 			_, err = diggerExecutor.Destroy()
 			if err != nil {
 				slog.Error("Failed to Run digger destroy command.", "error", err)
-				return fmt.Errorf("failed to Run digger apply command. %v", err)
+				return false, fmt.Errorf("failed to Run digger apply command. %v", err)
 			}
 
 		case "digger drift-detect":
 			_, err = runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor, driftNotification)
 			if err != nil {
-				return fmt.Errorf("failed to Run digger drift-detect command. %v", err)
+				return false, fmt.Errorf("failed to Run digger drift-detect command. %v", err)
 			}
 		}
 
 	}
-	return nil
+	return failOnChangesTriggered, nil
 }
 
 func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
