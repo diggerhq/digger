@@ -315,12 +315,12 @@ runs:
         exit 1
       shell: bash
       if: inputs.setup-google-cloud == 'true'
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         clean: false
         ref: refs/pull/${{ github.event.issue.number }}/merge
       if: ${{ github.event_name == 'issue_comment' && inputs.configure-checkout == 'true' }}
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         clean: false
       if: ${{ github.event_name != 'issue_comment' && inputs.configure-checkout == 'true' }}
@@ -485,7 +485,7 @@ runs:
       if: ${{ steps.determine-binary-mode.outputs.binary-mode != 'prebuilt' }}
 
     - name: Adding required env vars for next step
-      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       env:
         github-token: $GITHUB_TOKEN
       with:
