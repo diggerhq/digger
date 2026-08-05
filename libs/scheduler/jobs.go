@@ -41,6 +41,10 @@ type Job struct {
 	CommandRoleArn             string
 	CognitoOidcConfig          *configuration.AwsCognitoOidcConfig
 	SkipMergeCheck             bool
+	// PlanIdentifier isolates plans that do not belong to a pull request.
+	PlanIdentifier string
+	// SkipProjectLock is for synthetic merge-queue commits that have no pull request number.
+	SkipProjectLock bool
 	// Policy-related fields computed on backend/webhook side
 	Teams         []string
 	Approvals     []string

@@ -235,15 +235,6 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		os.Exit(1)
 	}
 
-	projectLock := &locking2.PullRequestLock{
-		InternalLock:     lock,
-		Reporter:         reporter,
-		CIService:        prService,
-		ProjectName:      job.ProjectName,
-		ProjectNamespace: projectNamespace,
-		PrNumber:         *job.PullRequestNumber,
-	}
-
 	var terraformExecutor execution.TerraformExecutor
 	var iacUtils iac_utils.IacUtils
 	projectPath := path.Join(workingDir, job.ProjectDir)
@@ -276,28 +267,44 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		ProjectNamespace: projectNamespace,
 		ProjectName:      job.ProjectName,
 		PRNumber:         PRNumber,
+		Identifier:       job.PlanIdentifier,
 	}
 
-	diggerExecutor := execution.LockingExecutorWrapper{
-		ProjectLock: projectLock,
-		Executor: execution.DiggerExecutor{
-			ProjectNamespace:  projectNamespace,
-			ProjectName:       job.ProjectName,
-			ProjectPath:       projectPath,
-			StateEnvVars:      job.StateEnvVars,
-			RunEnvVars:        job.RunEnvVars,
-			CommandEnvVars:    job.CommandEnvVars,
-			ApplyStage:        job.ApplyStage,
-			PlanStage:         job.PlanStage,
-			CommandRunner:     commandRunner,
-			TerraformExecutor: terraformExecutor,
-			Reporter:          reporter,
-			PlanStorage:       planStorage,
-			PlanPathProvider:  planPathProvider,
-			IacUtils:          iacUtils,
-		},
+	executor := execution.DiggerExecutor{
+		ProjectNamespace:  projectNamespace,
+		ProjectName:       job.ProjectName,
+		ProjectPath:       projectPath,
+		StateEnvVars:      job.StateEnvVars,
+		RunEnvVars:        job.RunEnvVars,
+		CommandEnvVars:    job.CommandEnvVars,
+		ApplyStage:        job.ApplyStage,
+		PlanStage:         job.PlanStage,
+		CommandRunner:     commandRunner,
+		TerraformExecutor: terraformExecutor,
+		Reporter:          reporter,
+		PlanStorage:       planStorage,
+		PlanPathProvider:  planPathProvider,
+		IacUtils:          iacUtils,
 	}
-	executor := diggerExecutor.Executor.(execution.DiggerExecutor)
+	var executorToRun execution.Executor = executor
+	var lockingExecutor *execution.LockingExecutorWrapper
+	projectLockID := job.ProjectName
+	if !job.SkipProjectLock {
+		if job.PullRequestNumber == nil {
+			return nil, "missing pull request number", errors.New("cannot use a pull request lock without a pull request number")
+		}
+		projectLock := &locking2.PullRequestLock{
+			InternalLock:     lock,
+			Reporter:         reporter,
+			CIService:        prService,
+			ProjectName:      job.ProjectName,
+			ProjectNamespace: projectNamespace,
+			PrNumber:         *job.PullRequestNumber,
+		}
+		lockingExecutor = &execution.LockingExecutorWrapper{ProjectLock: projectLock, Executor: executor}
+		executorToRun = lockingExecutor
+		projectLockID = projectLock.LockId()
+	}
 
 	switch command {
 
@@ -306,7 +313,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if err != nil {
 			slog.Error("failed to send usage report", "error", err)
 		}
-		planSummary, planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := diggerExecutor.Plan()
+		planSummary, planPerformed, isNonEmptyPlan, plan, planJsonOutput, err := executorToRun.Plan()
 
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Run digger plan command. %v", err)
@@ -315,7 +322,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, msg, fmt.Errorf("%s", msg)
 		} else if planPerformed {
 			if isNonEmptyPlan {
-				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
+				reportTerraformPlanOutput(reporter, projectLockID, plan)
 
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, requestedBy, teams, approvals, approvalTeams, planJsonOutput)
 				if err != nil {
@@ -363,7 +370,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					}
 				}
 			} else {
-				reportEmptyPlanOutput(reporter, projectLock.LockId())
+				reportEmptyPlanOutput(reporter, projectLockID)
 			}
 
 			result := execution.DiggerExecutorResult{
@@ -383,17 +390,9 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			slog.Error("failed to send usage report.", "error", err)
 		}
 
-		isMerged, err := prService.IsMerged(*job.PullRequestNumber)
+		isMergeable, isMerged, err := getPullRequestMergeStatus(job, prService)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to check if PR is merged. %v", err)
-			return nil, msg, fmt.Errorf("%s", msg)
-		}
-
-		// this might go into some sort of "appliability" plugin later
-		isMergeable, err := prService.IsMergeable(*job.PullRequestNumber)
-		if err != nil {
-			msg := fmt.Sprintf("Failed to check if PR is mergeable. %v", err)
-			return nil, msg, fmt.Errorf("%s", msg)
+			return nil, err.Error(), err
 		}
 		slog.Info("PR status Information", "mergeable", isMergeable, "merged", isMerged, "skipMergeCheck", job.SkipMergeCheck)
 		if !isMergeable && !isMerged && !job.SkipMergeCheck {
@@ -505,7 +504,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 
 			// Running apply
 
-			applySummary, applyPerformed, output, err := diggerExecutor.Apply()
+			applySummary, applyPerformed, output, err := executorToRun.Apply()
 			if err != nil {
 				//TODO reuse executor error handling
 				slog.Error("Failed to Run digger apply command.", "error", err)
@@ -529,7 +528,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if err != nil {
 			slog.Error("Failed to send usage report.", "error", err)
 		}
-		_, err = diggerExecutor.Destroy()
+		_, err = executorToRun.Destroy()
 
 		if err != nil {
 			slog.Error("Failed to Run digger destroy command.", "error", err)
@@ -544,7 +543,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if err != nil {
 			slog.Error("failed to send usage report.", "error", err)
 		}
-		err = diggerExecutor.Unlock()
+		if lockingExecutor == nil {
+			return nil, "project lock is disabled", errors.New("cannot unlock when the project lock is disabled")
+		}
+		err = lockingExecutor.Unlock()
 		if err != nil {
 			msg := fmt.Sprintf("Failed to unlock project. %v", err)
 			return nil, msg, fmt.Errorf("%s", msg)
@@ -561,7 +563,10 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		if err != nil {
 			slog.Error("failed to send usage report.", "error", err)
 		}
-		err = diggerExecutor.Lock()
+		if lockingExecutor == nil {
+			return nil, "project lock is disabled", errors.New("cannot lock when the project lock is disabled")
+		}
+		err = lockingExecutor.Lock()
 		if err != nil {
 			msg := fmt.Sprintf("Failed to lock project. %v", err)
 			return nil, msg, fmt.Errorf("%s", msg)
@@ -572,6 +577,27 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 		return nil, msg, fmt.Errorf("%s", msg)
 	}
 	return &execution.DiggerExecutorResult{}, "", nil
+}
+
+func getPullRequestMergeStatus(job orchestrator.Job, prService ci.PullRequestService) (bool, bool, error) {
+	if job.EventName == "merge_group" {
+		return true, false, nil
+	}
+	if job.PullRequestNumber == nil {
+		return false, false, errors.New("cannot check mergeability without a pull request number")
+	}
+
+	isMerged, err := prService.IsMerged(*job.PullRequestNumber)
+	if err != nil {
+		return false, false, fmt.Errorf("failed to check if PR is merged: %w", err)
+	}
+
+	// This check can move into an appliability plugin later.
+	isMergeable, err := prService.IsMergeable(*job.PullRequestNumber)
+	if err != nil {
+		return false, false, fmt.Errorf("failed to check if PR is mergeable: %w", err)
+	}
+	return isMergeable, isMerged, nil
 }
 
 func reportApplyMergeabilityError(reporter reporting.Reporter) string {

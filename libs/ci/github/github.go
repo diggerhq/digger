@@ -142,6 +142,36 @@ func (svc GithubService) GetChangedFilesForCommit(owner string, repo string, com
 	return fileNames, nil
 }
 
+func (svc GithubService) GetChangedFilesBetweenCommits(base string, head string) ([]string, error) {
+	comparison, _, err := svc.Client.Repositories.CompareCommits(context.Background(), svc.Owner, svc.RepoName, base, head, &github.ListOptions{PerPage: 100})
+	if err != nil {
+		slog.Error("error comparing merge group commits", "error", err, "base", base, "head", head)
+		return nil, fmt.Errorf("error comparing merge group commits: %v", err)
+	}
+
+	return changedFileNamesFromComparison(comparison)
+}
+
+const githubCompareFileLimit = 300
+
+func changedFileNamesFromComparison(comparison *github.CommitsComparison) ([]string, error) {
+	if comparison == nil {
+		return nil, fmt.Errorf("GitHub returned an empty commit comparison")
+	}
+	if len(comparison.Files) >= githubCompareFileLimit {
+		return nil, fmt.Errorf("commit comparison returned %d files, which reached GitHub's limit; refusing an incomplete project selection", len(comparison.Files))
+	}
+
+	fileNames := make([]string, 0, len(comparison.Files))
+	for _, file := range comparison.Files {
+		fileNames = append(fileNames, file.GetFilename())
+		if file.PreviousFilename != nil {
+			fileNames = append(fileNames, file.GetPreviousFilename())
+		}
+	}
+	return fileNames, nil
+}
+
 func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 	allIssues := make([]*ci.Issue, 0)
 	opts := &github.IssueListByRepoOptions{
@@ -888,6 +918,55 @@ func getWorkflowCommands(config *digger_config.WorkflowConfiguration, commandTyp
 	}
 }
 
+func ConvertGithubMergeGroupEventToJobs(payload *github.MergeGroupEvent, impactedProjects []digger_config.Project, config digger_config.DiggerConfig, performEnvVarInterpolation bool) ([]scheduler.Job, []scheduler.Job, error) {
+	if payload == nil || payload.MergeGroup == nil || payload.Repo == nil {
+		return nil, nil, fmt.Errorf("invalid merge_group payload: missing required fields")
+	}
+	if payload.GetAction() != "checks_requested" {
+		return nil, nil, fmt.Errorf("unsupported merge_group action %q", payload.GetAction())
+	}
+
+	defaultBranch := payload.Repo.GetDefaultBranch()
+	headRef := strings.TrimPrefix(payload.MergeGroup.GetHeadRef(), "refs/heads/")
+	headSHA := payload.MergeGroup.GetHeadSHA()
+	if defaultBranch == "" || headRef == "" || headSHA == "" {
+		return nil, nil, fmt.Errorf("invalid merge_group payload: missing branch or commit data")
+	}
+
+	planJobs := make([]scheduler.Job, 0, len(impactedProjects))
+	applyJobs := make([]scheduler.Job, 0, len(impactedProjects))
+	for _, project := range impactedProjects {
+		projectJobs, err := generic.CreateJobsForProjects(
+			[]digger_config.Project{project},
+			"digger plan",
+			"merge_group",
+			payload.Repo.GetFullName(),
+			payload.Sender.GetLogin(),
+			config.Workflows,
+			nil,
+			&headSHA,
+			defaultBranch,
+			headRef,
+			performEnvVarInterpolation,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(projectJobs) != 1 {
+			return nil, nil, fmt.Errorf("expected one merge_group job for project %s, got %d", project.Name, len(projectJobs))
+		}
+		for i := range projectJobs {
+			projectJobs[i].SkipMergeCheck = true
+			projectJobs[i].Layer = project.Layer
+		}
+		planJobs = append(planJobs, projectJobs...)
+		applyJob := projectJobs[0]
+		applyJob.Commands = []string{"digger apply"}
+		applyJobs = append(applyJobs, applyJob)
+	}
+	return planJobs, applyJobs, nil
+}
+
 func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impactedProjects []digger_config.Project, requestedProject *digger_config.Project, config digger_config.DiggerConfig, performEnvVarInterpolation bool) ([]scheduler.Job, bool, error) {
 	workflows := config.Workflows
 	jobs := make([]scheduler.Job, 0)
@@ -1223,6 +1302,44 @@ func ProcessGitHubPullRequestEvent(payload *github.PullRequestEvent, diggerConfi
 	}
 
 	return impactedProjects, impactedProjectsSourceLocations, prNumber, nil
+}
+
+type CommitComparisonService interface {
+	GetChangedFilesBetweenCommits(base string, head string) ([]string, error)
+}
+
+func ProcessGitHubMergeGroupEvent(payload *github.MergeGroupEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService CommitComparisonService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, error) {
+	if payload == nil || payload.MergeGroup == nil || payload.Repo == nil {
+		return nil, nil, fmt.Errorf("invalid merge_group payload: missing required fields")
+	}
+	if payload.GetAction() != "checks_requested" {
+		return nil, nil, fmt.Errorf("unsupported merge_group action %q", payload.GetAction())
+	}
+
+	baseSHA := payload.MergeGroup.GetBaseSHA()
+	headSHA := payload.MergeGroup.GetHeadSHA()
+	if baseSHA == "" || headSHA == "" {
+		return nil, nil, fmt.Errorf("invalid merge_group payload: missing commit data")
+	}
+
+	changedFiles, err := ciService.GetChangedFilesBetweenCommits(baseSHA, headSHA)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not get changed files for merge group: %w", err)
+	}
+
+	impactedProjects, sourceMapping := diggerConfig.GetModifiedProjects(changedFiles)
+	defaultBranch := payload.Repo.GetDefaultBranch()
+	targetBranch := strings.TrimPrefix(payload.MergeGroup.GetBaseRef(), "refs/heads/")
+	impactedProjects = generic.FilterTargetBranchForImpactedProjects(impactedProjects, defaultBranch, targetBranch)
+
+	if diggerConfig.DependencyConfiguration.Mode == digger_config.DependencyConfigurationHard {
+		impactedProjects, err = generic.FindAllProjectsDependantOnImpactedProjects(impactedProjects, dependencyGraph)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to find all projects dependant on impacted projects: %w", err)
+		}
+	}
+
+	return impactedProjects, sourceMapping, nil
 }
 
 func ProcessGitHubPushEvent(payload *github.PushEvent, diggerConfig *digger_config.DiggerConfig, dependencyGraph graph.Graph[string, digger_config.Project], ciService ci.PullRequestService) ([]digger_config.Project, map[string]digger_config.ProjectToSourceMapping, *digger_config.Project, int, error) {

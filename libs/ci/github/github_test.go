@@ -1,14 +1,100 @@
 package github
 
 import (
-	"github.com/diggerhq/digger/libs/ci/generic"
 	"testing"
 
+	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/digger_config"
 	"github.com/google/go-github/v61/github"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+type mergeGroupChangedFilesServiceStub struct {
+	base  string
+	head  string
+	files []string
+}
+
+func (s *mergeGroupChangedFilesServiceStub) GetChangedFilesBetweenCommits(base, head string) ([]string, error) {
+	s.base = base
+	s.head = head
+	return s.files, nil
+}
+
+func TestProcessGitHubMergeGroupEventUsesSyntheticCommitRange(t *testing.T) {
+	config := &digger_config.DiggerConfig{
+		Projects: []digger_config.Project{
+			{Name: "network", Dir: "infra/network", Workflow: "default", Branch: digger_config.DefaultBranchName},
+			{Name: "database", Dir: "infra/database", Workflow: "default", Branch: digger_config.DefaultBranchName},
+		},
+	}
+	dependencyGraph, err := digger_config.CreateProjectDependencyGraph(config.Projects)
+	require.NoError(t, err)
+
+	service := &mergeGroupChangedFilesServiceStub{files: []string{"infra/network/main.tf"}}
+	event := &github.MergeGroupEvent{
+		Action: github.String("checks_requested"),
+		MergeGroup: &github.MergeGroup{
+			BaseSHA: github.String("base-sha"),
+			HeadSHA: github.String("merge-group-sha"),
+			BaseRef: github.String("refs/heads/main"),
+		},
+		Repo: &github.Repository{DefaultBranch: github.String("main")},
+	}
+
+	projects, _, err := ProcessGitHubMergeGroupEvent(event, config, dependencyGraph, service)
+
+	require.NoError(t, err)
+	assert.Equal(t, "base-sha", service.base)
+	assert.Equal(t, "merge-group-sha", service.head)
+	require.Len(t, projects, 1)
+	assert.Equal(t, "network", projects[0].Name)
+}
+
+func TestConvertGithubMergeGroupEventToJobsPlansAndAppliesExactSyntheticCommit(t *testing.T) {
+	event := &github.MergeGroupEvent{
+		Action: github.String("checks_requested"),
+		MergeGroup: &github.MergeGroup{
+			BaseRef: github.String("refs/heads/main"),
+			HeadRef: github.String("refs/heads/gh-readonly-queue/main/pr-42-deadbeef"),
+			HeadSHA: github.String("merge-group-sha"),
+		},
+		Repo: &github.Repository{
+			DefaultBranch: github.String("main"),
+			FullName:      github.String("acme/infrastructure"),
+		},
+		Sender: &github.User{Login: github.String("github-merge-queue[bot]")},
+	}
+	projects := []digger_config.Project{{Name: "network", Dir: "infra/network", Workflow: "default"}}
+	config := digger_config.DiggerConfig{Workflows: map[string]digger_config.Workflow{"default": {}}}
+
+	planJobs, applyJobs, err := ConvertGithubMergeGroupEventToJobs(event, projects, config, false)
+
+	require.NoError(t, err)
+	require.Len(t, planJobs, 1)
+	require.Len(t, applyJobs, 1)
+	job := planJobs[0]
+	assert.Equal(t, []string{"digger plan"}, job.Commands)
+	assert.Equal(t, []string{"digger apply"}, applyJobs[0].Commands)
+	assert.Equal(t, "merge_group", job.EventName)
+	assert.Equal(t, "merge-group-sha", job.PlanIdentifier)
+	assert.Nil(t, job.PullRequestNumber)
+	assert.True(t, job.SkipMergeCheck)
+	assert.True(t, job.SkipProjectLock)
+}
+
+func TestChangedFileNamesFromComparisonFailsClosedAtGitHubLimit(t *testing.T) {
+	files := make([]*github.CommitFile, githubCompareFileLimit)
+	for i := range files {
+		files[i] = &github.CommitFile{Filename: github.String("infra/file.tf")}
+	}
+
+	_, err := changedFileNamesFromComparison(&github.CommitsComparison{Files: files})
+
+	require.ErrorContains(t, err, "reached GitHub's limit")
+}
 
 func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
 

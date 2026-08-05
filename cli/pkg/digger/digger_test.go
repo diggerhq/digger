@@ -72,6 +72,18 @@ type MockPRManager struct {
 	Commands []RunInfo
 }
 
+func TestGetPullRequestMergeStatusSkipsAPIsForMergeGroup(t *testing.T) {
+	manager := &MockPRManager{}
+	job := orchestrator.Job{EventName: "merge_group", SkipMergeCheck: true, SkipProjectLock: true}
+
+	isMergeable, isMerged, err := getPullRequestMergeStatus(job, manager)
+
+	assert.NoError(t, err)
+	assert.True(t, isMergeable)
+	assert.False(t, isMerged)
+	assert.Empty(t, manager.Commands)
+}
+
 func (m *MockPRManager) GetUserTeams(organisation string, user string) ([]string, error) {
 	return []string{}, nil
 }

@@ -143,6 +143,7 @@ type PlanPathProvider interface {
 
 type ProjectPathProvider struct {
 	PRNumber         *int
+	Identifier       string
 	ProjectPath      string
 	ProjectNamespace string
 	ProjectName      string
@@ -153,7 +154,9 @@ func (d ProjectPathProvider) ArtifactName() string {
 }
 
 func (d ProjectPathProvider) StoredPlanFilePath() string {
-	if d.PRNumber != nil {
+	if d.Identifier != "" {
+		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + d.Identifier + "-" + d.ProjectName + ".tfplan"
+	} else if d.PRNumber != nil {
 		prNumber := strconv.Itoa(*d.PRNumber)
 		return strings.ReplaceAll(d.ProjectNamespace, "/", "-") + "-" + prNumber + "-" + d.ProjectName + ".tfplan"
 	} else {

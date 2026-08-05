@@ -186,6 +186,35 @@ Start with default GitHub Actions cache behavior. If your repositories are large
   For the full set of supported GitHub Action inputs and configuration options, refer to the action source: [diggerhq/digger/action.yml](https://github.com/diggerhq/digger/blob/develop/action.yml).
 </Note>
 
+## 6) Run plan and apply in the merge queue
+
+GitHub Merge Queue can run Digger on the synthetic commit that GitHub will merge. Add the `merge_group` trigger to the Digger workflow:
+
+```yaml
+on:
+  pull_request:
+  issue_comment:
+    types: [created]
+  merge_group:
+    types: [checks_requested]
+```
+
+When GitHub sends this event, Digger compares the merge-group base and head commits. Digger then runs `plan` and `apply` for each changed project. Digger does not run pull-request mergeability checks and does not merge the pull request. GitHub merges the group only after the required workflow succeeds.
+
+Digger uses a fixed two-phase sequence for this event. It plans every changed project first. It starts the apply phase only if all plans pass.
+
+Keep the default Digger checkout enabled. Digger verifies that the checked-out commit is the merge-group head SHA. Digger also fails closed if GitHub returns its 300-file limit for a commit comparison because that file list can be incomplete.
+
+Configure the target branch ruleset as follows:
+
+- Require the Digger merge-group workflow.
+- Require the normal checks and reviews before a user can add a pull request to the queue.
+- Set the merge-queue group size to one pull request.
+- Set merge-queue build concurrency to one.
+- Use a Terraform or OpenTofu backend that supports state locking.
+
+Merge-group jobs have no pull request number. For this reason, Digger does not use its pull-request project lock for these jobs. The queue limits above prevent two merge-group applies from this repository from running at the same time. Backend state locking remains required.
+
 ## Next step
 
 After updating your workflow, open a PR with a change to at least project and verify `plan` and `digger apply` still complete successfully.

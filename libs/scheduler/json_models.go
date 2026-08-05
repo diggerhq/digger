@@ -49,6 +49,8 @@ type JobJson struct {
 	BackendOrganisationName    string            `json:"backend_organisation_hostname"`
 	BackendJobToken            string            `json:"backend_job_token"`
 	SkipMergeCheck             bool              `json:"skip_merge_check"`
+	PlanIdentifier             string            `json:"plan_identifier,omitempty"`
+	SkipProjectLock            bool              `json:"skip_project_lock"`
 	CommandRoleArn             string            `json:"command_role_arn"`
 	StateRoleArn               string            `json:"state_role_arn"`
 	CognitoOidcConfig          *cognitoConfig    `json:"aws_cognito_oidc"`
@@ -110,6 +112,8 @@ func JobToJson(job Job, jobType DiggerCommand, organisationName string, branch s
 		BackendJobToken:            jobToken,
 		BackendOrganisationName:    organisationName,
 		SkipMergeCheck:             job.SkipMergeCheck,
+		PlanIdentifier:             job.PlanIdentifier,
+		SkipProjectLock:            job.SkipProjectLock,
 		CommandRoleArn:             job.CommandRoleArn,
 		StateRoleArn:               job.StateRoleArn,
 		CognitoOidcConfig:          job.CognitoOidcConfig,
@@ -144,6 +148,8 @@ func JsonToJob(jobJson JobJson) Job {
 		CommandRoleArn:             jobJson.CommandRoleArn,
 		StateRoleArn:               jobJson.StateRoleArn,
 		SkipMergeCheck:             jobJson.SkipMergeCheck,
+		PlanIdentifier:             jobJson.PlanIdentifier,
+		SkipProjectLock:            jobJson.SkipProjectLock,
 		CognitoOidcConfig:          jobJson.CognitoOidcConfig,
 		Teams:                      jobJson.Teams,
 		Approvals:                  jobJson.Approvals,

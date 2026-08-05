@@ -169,6 +169,10 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarsInterpolations)
 		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
 		workspace := project.Workspace
+		planIdentifier := ""
+		if event == "merge_group" && commitSha != nil {
+			planIdentifier = *commitSha
+		}
 		jobs = append(jobs, scheduler.Job{
 			ProjectName:                project.Name,
 			ProjectAlias:               project.Alias,
@@ -195,6 +199,8 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 			StateRoleArn:               stateRole,
 			CognitoOidcConfig:          project.AwsCognitoOidcConfig,
 			SkipMergeCheck:             skipMerge,
+			PlanIdentifier:             planIdentifier,
+			SkipProjectLock:            event == "merge_group",
 		})
 	}
 	return jobs, nil

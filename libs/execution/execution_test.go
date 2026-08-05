@@ -6,6 +6,17 @@ import (
 	"testing"
 )
 
+func TestProjectPathProviderUsesPlanIdentifierWithoutPullRequest(t *testing.T) {
+	provider := ProjectPathProvider{
+		ProjectNamespace: "acme/infrastructure",
+		ProjectName:      "network",
+		ProjectPath:      "infra/network",
+		Identifier:       "merge-group-sha",
+	}
+
+	assert.Equal(t, "acme-infrastructure-merge-group-sha-network.tfplan", provider.StoredPlanFilePath())
+}
+
 func TestCorrectCleanUpWithoutRegexDoesNotProduceException(t *testing.T) {
 	stdout := `
 Note: Objects have changed outside of Terraform

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
@@ -281,6 +282,44 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to flush drift notification. %s", err), 8)
 		}
 	} else {
+		if mergeGroupEvent, ok := ghEvent.(github.MergeGroupEvent); ok {
+			if err := verifyMergeGroupHead(currentDir, mergeGroupEvent.MergeGroup.GetHeadSHA()); err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Merge group checkout verification failed. %s", err), 6)
+			}
+			impactedProjects, _, err := dg_github.ProcessGitHubMergeGroupEvent(&mergeGroupEvent, diggerConfig, dependencyGraph, &githubPrService)
+			if err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to process GitHub merge group event. %s", err), 6)
+			}
+			if len(impactedProjects) == 0 {
+				slog.Info("No projects impacted by merge group")
+				return
+			}
+
+			planJobs, applyJobs, err := dg_github.ConvertGithubMergeGroupEventToJobs(&mergeGroupEvent, impactedProjects, *diggerConfig, true)
+			if err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub merge group event to commands. %s", err), 7)
+			}
+			logCommands(planJobs)
+			logCommands(applyJobs)
+
+			planStorage, err := storage.NewPlanStorage(ghToken, repoOwner, repositoryName, nil)
+			if err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to get plan storage. %s", err), 4)
+			}
+
+			planJobs = digger.SortedCommandsByDependency(planJobs, &dependencyGraph)
+			applyJobs = digger.SortedCommandsByDependency(applyJobs, &dependencyGraph)
+			reporter := &reporting.StdOutReporter{}
+			runner := func(jobs []scheduler.Job) (bool, bool, error) {
+				return digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
+			}
+			if err := runMergeGroupPhases(planJobs, applyJobs, runner); err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run merge group plan and apply. %s", err), 8)
+			}
+
+			slog.Info("Merge group plan and apply completed successfully", "headSha", mergeGroupEvent.MergeGroup.GetHeadSHA())
+			return
+		}
 
 		impactedProjects, requestedProject, prNumber, err := dg_github.ProcessGitHubEvent(ghEvent, diggerConfig, &githubPrService)
 		if err != nil {
@@ -389,6 +428,43 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	}
 
 	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
+}
+
+type mergeGroupPhaseRunner func([]scheduler.Job) (bool, bool, error)
+
+func runMergeGroupPhases(planJobs []scheduler.Job, applyJobs []scheduler.Job, runner mergeGroupPhaseRunner) error {
+	plansSuccessful, _, err := runner(planJobs)
+	if err != nil {
+		return fmt.Errorf("merge group plan phase failed: %w", err)
+	}
+	if !plansSuccessful {
+		return errors.New("merge group plan phase failed")
+	}
+
+	appliesSuccessful, atLeastOneApply, err := runner(applyJobs)
+	if err != nil {
+		return fmt.Errorf("merge group apply phase failed: %w", err)
+	}
+	if !appliesSuccessful || !atLeastOneApply {
+		return errors.New("merge group apply phase failed")
+	}
+	return nil
+}
+
+func verifyMergeGroupHead(workingDir string, expectedHead string) error {
+	if expectedHead == "" {
+		return errors.New("merge group head SHA is empty")
+	}
+	command := exec.Command("git", "-C", workingDir, "rev-parse", "HEAD")
+	output, err := command.Output()
+	if err != nil {
+		return fmt.Errorf("could not read the checked-out commit: %w", err)
+	}
+	actualHead := strings.TrimSpace(string(output))
+	if actualHead != expectedHead {
+		return fmt.Errorf("checked-out commit %s does not match merge group head %s", actualHead, expectedHead)
+	}
+	return nil
 }
 
 // Helper function to search for a project in the configuration

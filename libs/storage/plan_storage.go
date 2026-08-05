@@ -13,10 +13,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/google/go-github/v61/github"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 )
 
 type GithubPlanStorage struct {
@@ -352,11 +352,15 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 		}
 		zipManager := Zipper{}
 		slog.Debug("Using GitHub artifacts for plan storage")
+		pullRequestNumber := 0
+		if prNumber != nil {
+			pullRequestNumber = *prNumber
+		}
 		planStorage = &GithubPlanStorage{
 			Client:            github.NewTokenClient(context.Background(), ghToken),
 			Owner:             ghRepoOwner,
 			RepoName:          ghRepositoryName,
-			PullRequestNumber: *prNumber,
+			PullRequestNumber: pullRequestNumber,
 			ZipManager:        zipManager,
 		}
 	case uploadDestination == "gcp":
