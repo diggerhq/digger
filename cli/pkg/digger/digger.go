@@ -315,7 +315,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, msg, fmt.Errorf("%s", msg)
 		} else if planPerformed {
 			if isNonEmptyPlan {
-				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan)
+				reportTerraformPlanOutput(reporter, job.ProjectName, plan)
 
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, requestedBy, teams, approvals, approvalTeams, planJsonOutput)
 				if err != nil {
@@ -356,7 +356,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 					if err != nil {
 						slog.Error("Failed to report plan.", "error", err)
 					}
-					reportPlanSummary(reporter, planSummary)
+					reportPlanSummary(reporter, job.ProjectName, planSummary)
 
 					if err := reporting.FormatAndReportExampleCommands(job.ProjectName, reporter); err != nil {
 						slog.Error("Failed to report example commands.", "error", err)
@@ -594,11 +594,15 @@ func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 
 func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string) {
 	var formatter func(string) string
+	title := "Plan output"
+	if projectId != "" {
+		title = fmt.Sprintf("Plan output (%s)", projectId)
+	}
 
 	if reporter.SupportsMarkdown() {
-		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Plan output", true)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment(title, true)
 	} else {
-		formatter = reporting.GetTerraformOutputAsComment("Plan output")
+		formatter = reporting.GetTerraformOutputAsComment(title)
 	}
 
 	_, _, err := reporter.Report(plan, formatter)
@@ -607,13 +611,17 @@ func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, pl
 	}
 }
 
-func reportPlanSummary(reporter reporting.Reporter, summary string) {
+func reportPlanSummary(reporter reporting.Reporter, projectId string, summary string) {
 	var formatter func(string) string
+	title := "Plan summary"
+	if projectId != "" {
+		title = fmt.Sprintf("Plan summary (%s)", projectId)
+	}
 
 	if reporter.SupportsMarkdown() {
-		formatter = reporting.AsCollapsibleComment("Plan summary", false)
+		formatter = reporting.AsCollapsibleComment(title, false)
 	} else {
-		formatter = reporting.AsComment("Plan summary")
+		formatter = reporting.AsComment(title)
 	}
 
 	_, _, err := reporter.Report("\n"+summary, formatter)
