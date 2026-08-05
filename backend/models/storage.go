@@ -772,12 +772,12 @@ func (db *Database) GetImpactedProjects(repoFullName string, commitSha string) (
 
 func (db *Database) GetImpactedProjectSingle(repoFullName string, commitSha string, projectName string) (*ImpactedProject, error) {
 	var impactedProject ImpactedProject
-	err := db.GormDB.Where("repo_full_name=? AND commit_sha = ?", repoFullName, commitSha).Find(&impactedProject).Error
+	err := db.GormDB.Where("repo_full_name = ? AND commit_sha = ? AND project_name = ?", repoFullName, commitSha, projectName).First(&impactedProject).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		slog.Error("failed to get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
+		slog.Error("failed to get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha, "projectName", projectName)
 		return nil, err
 	}
 	return &impactedProject, nil

@@ -268,3 +268,38 @@ func TestDiggerLockFunctionalities(t *testing.T) {
 	assert.Equal(t, "org/repo2#dev", existingLocksAfterDeletion[0].Resource)
 	assert.Equal(t, "org/repo2#prod", existingLocksAfterDeletion[1].Resource)
 }
+
+func TestGetImpactedProjectSingle(t *testing.T) {
+	teardownSuite, db, _ := setupSuite(t)
+	defer teardownSuite(t)
+
+	err := db.GormDB.AutoMigrate(&ImpactedProject{})
+	assert.NoError(t, err)
+
+	repoFullName := "diggerhq/digger"
+	commitSha := "sha123"
+
+	ipA := ImpactedProject{
+		RepoFullName: repoFullName,
+		CommitSHA:    commitSha,
+		ProjectName:  "projectA",
+		Applied:      false,
+	}
+	ipB := ImpactedProject{
+		RepoFullName: repoFullName,
+		CommitSHA:    commitSha,
+		ProjectName:  "projectB",
+		Applied:      false,
+	}
+	assert.NoError(t, db.GormDB.Create(&ipA).Error)
+	assert.NoError(t, db.GormDB.Create(&ipB).Error)
+
+	resB, err := db.GetImpactedProjectSingle(repoFullName, commitSha, "projectB")
+	assert.NoError(t, err)
+	assert.NotNil(t, resB)
+	assert.Equal(t, "projectB", resB.ProjectName)
+
+	resNone, err := db.GetImpactedProjectSingle(repoFullName, commitSha, "projectC")
+	assert.NoError(t, err)
+	assert.Nil(t, resNone)
+}
