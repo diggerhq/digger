@@ -160,7 +160,7 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 				continue
 			}
 
-			allIssues = append(allIssues, &ci.Issue{ID: int64(*issue.Number), Title: *issue.Title, Body: *issue.Body})
+			allIssues = append(allIssues, &ci.Issue{ID: int64(issue.GetNumber()), Title: issue.GetTitle(), Body: issue.GetBody()})
 		}
 		if resp.NextPage == 0 {
 			break
