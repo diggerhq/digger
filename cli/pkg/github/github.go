@@ -324,11 +324,9 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			requestedBy := *commentEvent.Sender.Login
 			commentBody := *commentEvent.Comment.Body
 
-			var impactedProjectsForEvent []digger_config.Project
-			if requestedProject != nil {
-				impactedProjectsForEvent = []digger_config.Project{*requestedProject}
-			} else {
-				impactedProjectsForEvent = impactedProjects
+			impactedProjectsForEvent, err := generic.FilterOutProjectsFromComment(impactedProjects, commentBody)
+			if err != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Error while filtering projects from comment: %v", err), 6)
 			}
 			jobs, coversAllImpactedProjects, err = generic.ConvertIssueCommentEventToJobs(repoFullName, requestedBy, prNumber, commentBody, impactedProjectsForEvent, impactedProjects, diggerConfig.Workflows, prBranchName, defaultBranch, true)
 		} else {

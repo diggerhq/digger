@@ -1143,30 +1143,16 @@ func ProcessGitHubEvent(ghEvent interface{}, diggerConfig *digger_config.DiggerC
 		}
 
 		impactedProjects, _ = diggerConfig.GetModifiedProjects(changedFiles)
-		requestedProject := scheduler.ParseProjectName(*event.Comment.Body)
-
-		if requestedProject == "" {
-			slog.Debug("no specific project requested in comment", "prNumber", prNumber)
-			return impactedProjects, nil, prNumber, nil
+		filteredProjects, err := generic.FilterOutProjectsFromComment(impactedProjects, *event.Comment.Body)
+		if err != nil {
+			slog.Error("error filtering projects from comment", "error", err, "prNumber", prNumber)
+			return nil, nil, 0, err
 		}
 
-		slog.Debug("specific project requested in comment",
-			"requestedProject", requestedProject,
-			"prNumber", prNumber)
-
-		for _, project := range impactedProjects {
-			if project.Name == requestedProject {
-				slog.Debug("found requested project in impacted projects",
-					"project", requestedProject,
-					"prNumber", prNumber)
-				return impactedProjects, &project, prNumber, nil
-			}
+		if len(filteredProjects) == 1 {
+			return impactedProjects, &filteredProjects[0], prNumber, nil
 		}
-
-		slog.Error("requested project not found in modified projects",
-			"requestedProject", requestedProject,
-			"prNumber", prNumber)
-		return nil, nil, 0, fmt.Errorf("requested project not found in modified projects")
+		return impactedProjects, nil, prNumber, nil
 
 	case github.MergeGroupEvent:
 		slog.Debug("merge group event received - not handled")
