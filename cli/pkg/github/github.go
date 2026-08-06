@@ -12,6 +12,7 @@ import (
 	github_models "github.com/diggerhq/digger/cli/pkg/github/models"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	"github.com/diggerhq/digger/cli/pkg/utils"
+	"github.com/diggerhq/digger/libs/apply_requirements"
 	core_backend "github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
@@ -359,6 +360,14 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		}
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
+
+		if scheduler.IsApplyJobs(jobs) {
+			err = apply_requirements.CheckApplyRequirements(&githubPrService, impactedProjects, jobs, prNumber, prBranchName, defaultBranch)
+			if err != nil {
+				reporter.Report(fmt.Sprintf("Failed to run apply: %v", err), reporting.AsComment)
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed apply requirements check: %v", err), 8)
+			}
+		}
 
 		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
 		if !allAppliesSuccessful || err != nil {
