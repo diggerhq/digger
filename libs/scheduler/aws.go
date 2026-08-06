@@ -107,6 +107,23 @@ func populateKeys(envs map[string]string, provider stscreds.WebIdentityRoleProvi
 }
 
 func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
+	if job.CommandEnvVars == nil {
+		job.CommandEnvVars = make(map[string]string)
+	}
+	if job.StateEnvVars == nil {
+		job.StateEnvVars = make(map[string]string)
+	}
+
+	// Clear any serialized stale AWS credentials before re-authenticating
+	if job.CommandEnvProvider != nil || job.StateEnvProvider != nil || job.CognitoOidcConfig != nil {
+		delete(job.CommandEnvVars, "AWS_ACCESS_KEY_ID")
+		delete(job.CommandEnvVars, "AWS_SECRET_ACCESS_KEY")
+		delete(job.CommandEnvVars, "AWS_SESSION_TOKEN")
+		delete(job.StateEnvVars, "AWS_ACCESS_KEY_ID")
+		delete(job.StateEnvVars, "AWS_SECRET_ACCESS_KEY")
+		delete(job.StateEnvVars, "AWS_SESSION_TOKEN")
+	}
+
 	var err error
 	switch job.GetAuthStrategy() {
 	case Cognito:
@@ -126,15 +143,21 @@ func (job *Job) PopulateAwsCredentialsEnvVarsForJob() error {
 		return err
 	}
 
-	// If state environment variables are not set them to match command env vars
+	// Always sync fresh credentials between state and command
 	if len(job.StateEnvVars) == 0 && len(job.CommandEnvVars) > 0 {
 		slog.Debug("Copying command environment variables to state environment variables")
-		job.StateEnvVars = job.CommandEnvVars
-	}
-
-	if len(job.StateEnvVars) > 0 && len(job.CommandEnvVars) == 0 {
+		for k, v := range job.CommandEnvVars {
+			job.StateEnvVars[k] = v
+		}
+	} else if len(job.CommandEnvVars) == 0 && len(job.StateEnvVars) > 0 {
 		slog.Debug("Copying state environment variables to command environment variables")
-		job.CommandEnvVars = job.StateEnvVars
+		for k, v := range job.StateEnvVars {
+			job.CommandEnvVars[k] = v
+		}
+	} else if job.StateEnvProvider == nil && job.CommandEnvProvider != nil {
+		for k, v := range job.CommandEnvVars {
+			job.StateEnvVars[k] = v
+		}
 	}
 
 	return nil
