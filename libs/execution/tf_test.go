@@ -73,3 +73,18 @@ func TestRedactSecrets(t *testing.T) {
 	assert.Equal(t, redactedSecrets[1], "-backend-config=secret_key=<REDACTED>")
 	assert.Equal(t, redactedSecrets[2], "-backend-config=token=<REDACTED>")
 }
+
+func TestRedactPlanSecrets(t *testing.T) {
+	rawPlan := `- env {
+    - name  = "SOME_API_KEY" -> null
+    - value = "<SYNTHETIC-SECRET-VALUE>" -> null
+  }`
+	redacted := RedactPlanSecrets(rawPlan)
+	assert.Contains(t, redacted, `name  = "SOME_API_KEY"`)
+	assert.Contains(t, redacted, `value = "<REDACTED>" -> "<REDACTED>"`)
+	assert.NotContains(t, redacted, "<SYNTHETIC-SECRET-VALUE>")
+
+	directAttr := `api_key = "super-secret-key-value"`
+	redactedAttr := RedactPlanSecrets(directAttr)
+	assert.Equal(t, `api_key = "<REDACTED>"`, redactedAttr)
+}

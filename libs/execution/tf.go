@@ -195,6 +195,23 @@ func RedactSecret(s string) string {
 	return s
 }
 
+func RedactPlanSecrets(plan string) string {
+	plan = RedactSecret(plan)
+
+	// Redact env container secret values (e.g., Cloud Run env.value where name is a key/secret/token)
+	envSecretArrowRegex := regexp.MustCompile(`(?i)(name\s*=\s*"[^"]*(?:KEY|SECRET|TOKEN|PASSWORD|AUTH|CREDENTIAL)[^"]*"\s*\n\s*[\+\-]?\s*value\s*=\s*)"[^"]+"(\s*->\s*)("[^"]+"|\S+)`)
+	plan = envSecretArrowRegex.ReplaceAllString(plan, `${1}"<REDACTED>"${2}"<REDACTED>"`)
+
+	envSecretRegex := regexp.MustCompile(`(?i)(name\s*=\s*"[^"]*(?:KEY|SECRET|TOKEN|PASSWORD|AUTH|CREDENTIAL)[^"]*"\s*\n\s*[\+\-]?\s*value\s*=\s*)"[^"]+"`)
+	plan = envSecretRegex.ReplaceAllString(plan, `${1}"<REDACTED>"`)
+
+	// Redact direct sensitive attributes (e.g., api_key = "...", client_secret = "...")
+	attrSecretRegex := regexp.MustCompile(`(?i)((?:api_key|access_key|secret_key|token|password|auth_token|client_secret)\s*=\s*)"[^"]+"`)
+	plan = attrSecretRegex.ReplaceAllString(plan, `${1}"<REDACTED>"`)
+
+	return plan
+}
+
 func RedactSecrets(secrets []string) []string {
 	for i, s := range secrets {
 		secrets[i] = RedactSecret(s)

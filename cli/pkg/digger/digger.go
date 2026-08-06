@@ -595,10 +595,12 @@ func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string) {
 	var formatter func(string) string
 
+	plan = execution.RedactPlanSecrets(plan)
+
 	if reporter.SupportsMarkdown() {
-		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Plan output", true)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan output (%s)", projectId), true)
 	} else {
-		formatter = reporting.GetTerraformOutputAsComment("Plan output")
+		formatter = reporting.GetTerraformOutputAsComment(fmt.Sprintf("Plan output (%s)", projectId))
 	}
 
 	_, _, err := reporter.Report(plan, formatter)
