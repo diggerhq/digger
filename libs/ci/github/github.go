@@ -993,7 +993,7 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				CognitoOidcConfig:          project.AwsCognitoOidcConfig,
 				SkipMergeCheck:             skipMerge,
 			})
-		} else if action == "opened" || action == "reopened" || action == "synchronize" {
+		} else if action == "opened" || action == "reopened" || action == "synchronize" || action == "ready_for_review" {
 			slog.Info("processing PR update",
 				"prNumber", *pullRequestNumber,
 				"project", project.Name,
