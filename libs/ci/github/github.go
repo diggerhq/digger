@@ -1027,6 +1027,39 @@ func ConvertGithubPullRequestEventToJobs(payload *github.PullRequestEvent, impac
 				CognitoOidcConfig:          project.AwsCognitoOidcConfig,
 				SkipMergeCheck:             skipMerge,
 			})
+		} else if action == "ready_for_review" {
+			slog.Info("processing PR ready for review",
+				"prNumber", *pullRequestNumber,
+				"project", project.Name,
+				"action", action)
+
+			jobs = append(jobs, scheduler.Job{
+				ProjectName:        project.Name,
+				ProjectAlias:       project.Alias,
+				ProjectDir:         project.Dir,
+				ProjectWorkspace:   project.Workspace,
+				ProjectWorkflow:    project.Workflow,
+				Layer:              project.Layer,
+				Terragrunt:         project.Terragrunt,
+				OpenTofu:           project.OpenTofu,
+				Pulumi:             project.Pulumi,
+				Commands:           workflow.Configuration.OnPullRequestPushed,
+				ApplyStage:         scheduler.ToConfigStage(workflow.Apply),
+				PlanStage:          scheduler.ToConfigStage(workflow.Plan),
+				RunEnvVars:         runEnvVars,
+				CommandEnvVars:     commandEnvVars,
+				StateEnvVars:       stateEnvVars,
+				PullRequestNumber:  pullRequestNumber,
+				EventName:          "pull_request",
+				Namespace:          *payload.Repo.FullName,
+				RequestedBy:        *payload.Sender.Login,
+				CommandEnvProvider: CommandEnvProvider,
+				CommandRoleArn:     cmdRole,
+				StateRoleArn:       stateRole,
+				StateEnvProvider:   StateEnvProvider,
+				CognitoOidcConfig:  project.AwsCognitoOidcConfig,
+				SkipMergeCheck:     skipMerge,
+			})
 		} else if action == "closed" {
 			slog.Info("processing PR closed",
 				"prNumber", *pullRequestNumber,
