@@ -5,6 +5,7 @@ import { getOrgSettings, updateOrgSettings } from "./orchestrator_orgs";
 import { testSlackWebhook } from "./drift_slack";
 import { fetchProjects, updateProject, fetchProject } from "./orchestrator_projects";
 import { requireAuth } from "./helpers";
+import { getOrgSource } from '@/authkit/ssr/staticAuth';
 
 export const getOrgSettingsFn = createServerFn({method: 'GET'})
   .handler(async () => {
@@ -79,7 +80,7 @@ export const getRepoDetailsFn = createServerFn({method: 'GET'})
             'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
             'DIGGER_ORG_ID': auth.organizationId,
             'DIGGER_USER_ID': auth.userId,
-            'DIGGER_ORG_SOURCE': 'workos',
+            'DIGGER_ORG_SOURCE': getOrgSource(),
           },
         });
 
