@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { deleteCookie } from '@tanstack/react-start/server';
 import { getConfig } from './ssr/config';
+import { getStaticOrganisation, isStaticAuthMode } from './ssr/staticAuth';
 import { terminateSession, withAuth } from './ssr/session';
 import { getWorkOS } from './ssr/workos';
 import type { GetAuthURLOptions, NoUserInfo, UserInfo } from './ssr/interfaces';
@@ -28,6 +29,9 @@ export const getAuthorizationUrl = createServerFn({ method: 'GET' })
 export const getOrganisationDetails = createServerFn({method: 'GET'})
   .inputValidator((data: {organizationId: string}) => data)
   .handler(async ({data: {organizationId}}) : Promise<Organization> => {
+    if (isStaticAuthMode()) {
+      return getStaticOrganisation(organizationId);
+    }
     // Check cache first
     const cached = serverCache.getOrg(organizationId);
     if (cached) {
@@ -103,32 +107,38 @@ export const getAuth = createServerFn({ method: 'GET' }).handler(async (): Promi
 export const getOrganization = createServerFn({method: 'GET'})
     .inputValidator((data: {organizationId: string}) => data)
     .handler(async ({data: {organizationId}}) : Promise<Organization> => {
+  if (isStaticAuthMode()) {
+    return getStaticOrganisation(organizationId);
+  }
   // Check cache first
   const cached = serverCache.getOrg(organizationId);
   if (cached) {
     return cached;
   }
-  
+
   // Cache miss - fetch from WorkOS
   const organization = await getWorkOS().organizations.getOrganization(organizationId);
   serverCache.setOrg(organizationId, organization);
-  
+
   return organization;
 });
 
 export const ensureOrgExists = createServerFn({method: 'GET'})
     .inputValidator((data: {organizationId: string}) => data)
     .handler(async ({data: {organizationId}}) : Promise<Organization> => {
+  if (isStaticAuthMode()) {
+    return getStaticOrganisation(organizationId);
+  }
   // Check cache first
   const cached = serverCache.getOrg(organizationId);
   if (cached) {
     return cached;
   }
-  
+
   // Cache miss - fetch from WorkOS
   const organization = await getWorkOS().organizations.getOrganization(organizationId);
   serverCache.setOrg(organizationId, organization);
-  
+
   return organization;
 });
 
