@@ -3,11 +3,14 @@ package storage
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
@@ -20,6 +23,14 @@ type mockS3Client struct {
 	MockPutObject    func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 	MockGetObject    func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 	MockDeleteObject func(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+}
+
+type mockS3PresignClient struct {
+	MockPresignGetObject func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
+}
+
+func (m *mockS3PresignClient) PresignGetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error) {
+	return m.MockPresignGetObject(ctx, params, optFns...)
 }
 
 func (m *mockS3Client) HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
@@ -150,17 +161,123 @@ func TestPlanStorageAWS_E2E(t *testing.T) {
 }
 
 func TestStoredPlanUrl(t *testing.T) {
-	psa := &PlanStorageAWS{Bucket: "my-plans"}
+	const (
+		bucket = "my-plans"
+		key    = "nested/acme infra+network.tfplan.txt"
+		url    = "https://my-plans.s3.eu-central-1.amazonaws.com/nested/acme%20infra%2Bnetwork.tfplan.txt?X-Amz-Expires=3600&X-Amz-Signature=signature"
+	)
 
-	t.Setenv("AWS_REGION", "eu-central-1")
-	assert.Equal(t,
-		"https://eu-central-1.console.aws.amazon.com/s3/object/my-plans?region=eu-central-1&prefix=acme-infra-42-vpc.tfplan.txt",
-		psa.StoredPlanUrl("acme-infra-42-vpc.tfplan.txt"))
+	client := &mockS3Client{
+		MockHeadObject: func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
+			require.Equal(t, bucket, *params.Bucket)
+			require.Equal(t, key, *params.Key)
+			return &s3.HeadObjectOutput{}, nil
+		},
+	}
+	presigner := &mockS3PresignClient{
+		MockPresignGetObject: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error) {
+			require.Equal(t, bucket, *params.Bucket)
+			require.Equal(t, key, *params.Key, "the SDK must receive the unencoded object key")
+			require.Equal(t, "inline", *params.ResponseContentDisposition)
+			require.Equal(t, "text/plain", *params.ResponseContentType)
 
-	t.Setenv("AWS_REGION", "")
-	assert.Equal(t,
-		"s3://my-plans/acme-infra-42-vpc.tfplan.txt",
-		psa.StoredPlanUrl("acme-infra-42-vpc.tfplan.txt"))
+			options := s3.PresignOptions{}
+			for _, optFn := range optFns {
+				optFn(&options)
+			}
+			require.Equal(t, time.Hour, options.Expires)
+			return &v4.PresignedHTTPRequest{URL: url}, nil
+		},
+	}
+	psa := &PlanStorageAWS{
+		Client:    client,
+		Presigner: presigner,
+		Bucket:    bucket,
+		Context:   context.Background(),
+	}
+
+	got, err := psa.StoredPlanUrl(key, time.Hour)
+	require.NoError(t, err)
+	require.Equal(t, url, got)
+	require.NotContains(t, got, "console.aws.amazon.com")
+	require.NotContains(t, got, "s3://")
+}
+
+func TestStoredPlanUrlErrors(t *testing.T) {
+	tests := []struct {
+		name             string
+		headError        error
+		presignError     error
+		missingPresigner bool
+		wantError        string
+		wantPresignCalls int
+	}{
+		{
+			name:      "readable object is missing",
+			headError: &types.NotFound{},
+			wantError: "readable plan does not exist",
+		},
+		{
+			name:      "object check fails",
+			headError: errors.New("head object failed"),
+			wantError: "unable to verify readable plan",
+		},
+		{
+			name:             "signing fails",
+			presignError:     errors.New("signing failed"),
+			wantError:        "unable to presign readable plan",
+			wantPresignCalls: 1,
+		},
+		{
+			name:             "presigner is missing",
+			missingPresigner: true,
+			wantError:        "S3 presigner is not configured",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &mockS3Client{
+				MockHeadObject: func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
+					if tt.headError != nil {
+						return nil, tt.headError
+					}
+					return &s3.HeadObjectOutput{}, nil
+				},
+			}
+
+			presignCalls := 0
+			var presigner S3PresignClient
+			if !tt.missingPresigner {
+				presigner = &mockS3PresignClient{
+					MockPresignGetObject: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error) {
+						presignCalls++
+						if tt.presignError != nil {
+							return nil, tt.presignError
+						}
+						return &v4.PresignedHTTPRequest{URL: "https://example.com/plan"}, nil
+					},
+				}
+			}
+
+			var s3Client S3Client = client
+			if tt.missingPresigner {
+				s3Client = nil
+			}
+
+			psa := &PlanStorageAWS{
+				Client:    s3Client,
+				Presigner: presigner,
+				Bucket:    "my-plans",
+				Context:   context.Background(),
+			}
+
+			got, err := psa.StoredPlanUrl("acme-infra-42-vpc.tfplan.txt", time.Hour)
+			require.ErrorContains(t, err, tt.wantError)
+			require.Empty(t, got)
+			require.Equal(t, tt.wantPresignCalls, presignCalls)
+		})
+	}
 }
 
 var _ PlanUrlProvider = (*PlanStorageAWS)(nil)

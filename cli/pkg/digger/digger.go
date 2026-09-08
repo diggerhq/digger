@@ -3,6 +3,7 @@ package digger
 import (
 	"errors"
 	"fmt"
+	"html"
 	"log"
 	"log/slog"
 	"os"
@@ -38,6 +39,8 @@ const (
 	BitBucket = CIName("bitbucket")
 	Azure     = CIName("azure")
 )
+
+const fullPlanLinkTTL = time.Hour
 
 func (ci CIName) String() string {
 	return string(ci)
@@ -315,11 +318,7 @@ func run(command string, job orchestrator.Job, policyChecker policy.Checker, org
 			return nil, msg, fmt.Errorf("%s", msg)
 		} else if planPerformed {
 			if isNonEmptyPlan {
-				planUrl := ""
-				if urlProvider, ok := planStorage.(storage.PlanUrlProvider); ok {
-					planUrl = urlProvider.StoredPlanUrl(planPathProvider.StoredPlanFilePath() + ".txt")
-				}
-				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan, planUrl)
+				reportTerraformPlanOutput(reporter, projectLock.LockId(), plan, planStorage, planPathProvider.StoredPlanFilePath())
 
 				planIsAllowed, messages, err := policyChecker.CheckPlanPolicy(SCMrepository, SCMOrganisation, job.ProjectName, job.ProjectDir, requestedBy, teams, approvals, approvalTeams, planJsonOutput)
 				if err != nil {
@@ -596,21 +595,39 @@ func reportApplyMergeabilityError(reporter reporting.Reporter) string {
 	return comment
 }
 
-func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string, planUrl string) {
-	var formatter func(string) string
+func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, plan string, planStorage storage.PlanStorage, storedPlanFilePath string) {
+	urlProvider, hasUrlProvider := planStorage.(storage.PlanUrlProvider)
+	supportsMarkdown := reporter.SupportsMarkdown()
+	readablePlanFilePath := storedPlanFilePath + ".txt"
 
-	if reporter.SupportsMarkdown() {
-		summary := "Plan output"
-		if planUrl != "" {
-			summary = fmt.Sprintf("Plan output (<a href=%q>full plan</a>)", planUrl)
+	formatter := func(plan string) string {
+		planUrl := ""
+		if hasUrlProvider {
+			var err error
+			planUrl, err = urlProvider.StoredPlanUrl(readablePlanFilePath, fullPlanLinkTTL)
+			if err != nil {
+				logAttributes := []any{"key", readablePlanFilePath, "error", err}
+				if awsPlanStorage, ok := planStorage.(*storage.PlanStorageAWS); ok {
+					logAttributes = append([]any{"bucket", awsPlanStorage.Bucket}, logAttributes...)
+				}
+				slog.Warn("Could not create full plan link", logAttributes...)
+				planUrl = ""
+			}
 		}
-		formatter = reporting.GetTerraformOutputAsCollapsibleComment(summary, false)
-	} else {
+
+		if supportsMarkdown {
+			summary := "Plan output"
+			if planUrl != "" {
+				summary = fmt.Sprintf(`Plan output (<a href="%s">full plan — valid for up to 1 hour</a>)`, html.EscapeString(planUrl))
+			}
+			return reporting.GetTerraformOutputAsCollapsibleComment(summary, false)(plan)
+		}
+
 		summary := "Plan output"
 		if planUrl != "" {
 			summary = "Plan output - full plan: " + planUrl
 		}
-		formatter = reporting.GetTerraformOutputAsComment(summary)
+		return reporting.GetTerraformOutputAsComment(summary)(plan)
 	}
 
 	_, _, err := reporter.Report(plan, formatter)

@@ -5,6 +5,7 @@ package reporting
 
 import (
 	"fmt"
+	"html"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -34,15 +35,19 @@ const fixtureValidationCheckBody = "Terraform plan validation checks succeeded :
 // upsertComment accumulates only into a comment whose body contains the report title.
 const accumulatingTitle = "plan for shared-services"
 
-func planOutputSummary(project string) string {
-	return strings.ReplaceAll(fixturePlanOutputSummary, "shared-services", project)
+func planOutputSummary(project string, supportsMarkdown bool) string {
+	summary := fixturePlainPlanOutputSummary
+	if supportsMarkdown {
+		summary = fixturePlanOutputSummary
+	}
+	return strings.ReplaceAll(summary, "shared-services", project)
 }
 
 // The four reports production emits per project (see cli/pkg/digger/digger.go).
 func planReports(t testing.TB, project, planOutput string, supportsCollapsible bool) []report {
 	t.Helper()
 
-	summary := planOutputSummary(project)
+	summary := planOutputSummary(project, supportsCollapsible)
 	planFormatter := GetTerraformOutputAsComment(summary)
 	wrap := func(title string) func(string) string { return AsComment(title) }
 	if supportsCollapsible {
@@ -75,6 +80,38 @@ func replay(t *testing.T, svc MockCiService, strategy ReportStrategy, reports []
 		formatted = append(formatted, r.formatted())
 	}
 	return formatted
+}
+
+func replayLazy(t *testing.T, svc MockCiService, strategy ReportStrategy, reports []report, supportsCollapsible bool) []string {
+	t.Helper()
+	lazy := NewCiReporterLazy(CiReporter{
+		CiService:         svc,
+		PrNumber:          1,
+		IsSupportMarkdown: supportsCollapsible,
+		ReportStrategy:    strategy,
+	})
+	formatted := make([]string, 0, len(reports))
+	for _, r := range reports {
+		_, _, err := lazy.Report(r.body, r.formatter)
+		require.NoError(t, err)
+		formatted = append(formatted, r.formatted())
+	}
+	_, _, err := lazy.Flush()
+	require.NoError(t, err)
+	return formatted
+}
+
+func assertPresignedPlanLinkSurvives(t *testing.T, body string, supportsMarkdown bool) {
+	t.Helper()
+	if !supportsMarkdown {
+		assert.Contains(t, body, fixturePlainPlanOutputSummary)
+		assert.NotContains(t, body, fixtureEscapedPresignedPlanURL)
+		return
+	}
+
+	assert.Equal(t, fixturePresignedPlanURL, html.UnescapeString(fixtureEscapedPresignedPlanURL))
+	assert.Contains(t, body, `href="`+fixtureEscapedPresignedPlanURL+`"`)
+	assert.Contains(t, body, "full plan — valid for up to 1 hour")
 }
 
 // Measures a run's protected prose by replaying the same reports with empty plan output. It
@@ -247,7 +284,7 @@ func TestReferenceAccumulationKeepsEveryProtectedReport(t *testing.T) {
 
 	for _, want := range []string{
 		"<summary>plan for shared-services ",
-		`&prefix=example-sharedservices-account-134-shared-services.tfplan.txt">full plan</a>`,
+		`href="` + fixtureEscapedPresignedPlanURL + `">full plan — valid for up to 1 hour</a>`,
 		"<details><summary>Terraform plan validation check (shared-services)</summary>",
 		fixtureValidationCheckBody,
 		"<details><summary>Plan summary</summary>",
@@ -260,6 +297,7 @@ func TestReferenceAccumulationKeepsEveryProtectedReport(t *testing.T) {
 	} {
 		assert.Contains(t, body, want)
 	}
+	assertPresignedPlanLinkSurvives(t, body, true)
 	assert.Equal(t, 3, strings.Count(body, "```bash"), "the three Instructions fences are protected prose")
 
 	_, blocks := splitTerraformBlocks(body)
@@ -329,8 +367,8 @@ func TestGreedyAllocationFillsEarliestPlansFirst(t *testing.T) {
 	}
 }
 
-// Every plan carries the same payload, so N * floor is what the comment needs — which is where
-// the cliff at 32 plans comes from.
+// Every plan carries the same payload and a protected pre-signed link. As their combined overhead
+// grows, eventually every block can no longer retain the full per-block floor.
 func TestManyPlansInOneComment(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -343,8 +381,8 @@ func TestManyPlansInOneComment(t *testing.T) {
 		{name: "small plan", plans: 1, planSize: 200, floorFits: true, mustNotTrim: true},
 		{name: "five plans", plans: 5, planSize: 20000, floorFits: true},
 		{name: "twenty plans", plans: 20, planSize: 20000, floorFits: true},
-		{name: "thirty-one plans, the most the floor fits", plans: 31, planSize: 20000, floorFits: true},
-		{name: "thirty-two plans, the first the floor does not fit", plans: 32, planSize: 20000},
+		{name: "thirty-one plans", plans: 31, planSize: 20000},
+		{name: "thirty-two plans", plans: 32, planSize: 20000},
 		{name: "forty plans", plans: 40, planSize: 20000},
 	}
 
@@ -372,6 +410,7 @@ func TestManyPlansInOneComment(t *testing.T) {
 			assert.Len(t, blocks, tt.plans, "every plan keeps its terraform block, with both delimiters")
 
 			assert.Equal(t, tt.plans, strings.Count(body, "<details><summary>Plan summary</summary>"))
+			assert.Equal(t, tt.plans, strings.Count(body, "full plan — valid for up to 1 hour"))
 			for _, project := range projects {
 				assert.Contains(t, body, "digger apply -p "+project)
 			}
@@ -605,29 +644,45 @@ func TestTrimmingHoldsAcrossStrategiesAndWrappers(t *testing.T) {
 
 	for _, s := range strategies {
 		for _, collapsible := range []bool{true, false} {
-			for _, regime := range regimes {
-				t.Run(fmt.Sprintf("%s/%s/%s", s.name, wrapperName(collapsible), regime.name), func(t *testing.T) {
-					svc := newMockCiService()
-					reports := regime.order(planReports(t, "shared-services", planOutput, collapsible))
-
-					formatted := replay(t, svc, s.strategy, reports, collapsible)
-
-					if !s.perComment {
-						body := onlyBody(t, svc, 1)
-						assertCommentInvariants(t, body, collapsible)
-						assertProtectedTextSurvives(t, body, formatted)
-						return
+			for _, lazy := range []bool{false, true} {
+				for _, regime := range regimes {
+					reporterName := "direct"
+					if lazy {
+						reporterName = "lazy"
 					}
+					t.Run(fmt.Sprintf("%s/%s/%s/%s", s.name, wrapperName(collapsible), reporterName, regime.name), func(t *testing.T) {
+						svc := newMockCiService()
+						reports := regime.order(planReports(t, "shared-services", planOutput, collapsible))
 
-					// MultipleCommentsStrategy never accumulates: one report per comment.
-					comments, err := svc.GetComments(1)
-					require.NoError(t, err)
-					require.Len(t, comments, len(reports))
-					for i, comment := range comments {
-						assertCommentInvariants(t, *comment.Body, collapsible)
-						assertProtectedTextSurvives(t, *comment.Body, []string{formatted[i]})
-					}
-				})
+						var formatted []string
+						if lazy {
+							formatted = replayLazy(t, svc, s.strategy, reports, collapsible)
+						} else {
+							formatted = replay(t, svc, s.strategy, reports, collapsible)
+						}
+
+						if !s.perComment {
+							body := onlyBody(t, svc, 1)
+							assertCommentInvariants(t, body, collapsible)
+							assertProtectedTextSurvives(t, body, formatted)
+							assertPresignedPlanLinkSurvives(t, body, collapsible)
+							return
+						}
+
+						// MultipleCommentsStrategy never accumulates: one report per comment.
+						comments, err := svc.GetComments(1)
+						require.NoError(t, err)
+						require.Len(t, comments, len(reports))
+						for i, comment := range comments {
+							assertCommentInvariants(t, *comment.Body, collapsible)
+							assertProtectedTextSurvives(t, *comment.Body, []string{formatted[i]})
+							if strings.Contains(formatted[i], fixtureEscapedPresignedPlanURL) ||
+								strings.Contains(formatted[i], fixturePresignedPlanURL) {
+								assertPresignedPlanLinkSurvives(t, *comment.Body, collapsible)
+							}
+						}
+					})
+				}
 			}
 		}
 	}

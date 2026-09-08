@@ -46,6 +46,30 @@ With S3, Digger uploads a `.txt` copy of the human-readable plan output. The PR
 comment links to it, so you can still read the whole plan when the comment has
 to be trimmed to fit GitHub's character comment limit.
 
+The full-plan link is a pre-signed S3 `GetObject` URL, so opening it does not
+require an AWS console session. It is created as the comment is published and
+is valid for up to one hour. Links in older comments are intentionally not
+refreshed and will eventually expire.
+
+The bucket and object remain private. A pre-signed URL is a bearer credential:
+anyone who has the URL can temporarily read that one `.txt` object. Use this
+feature only where pull request comments are visible to trusted users. The AWS
+principal used by Digger must have `s3:GetObject` permission for the `.txt` key.
+If the object uses SSE-KMS, the principal also needs the existing `kms:Decrypt`
+permission.
+
+Bucket policy conditions still apply to pre-signed requests. For example, a
+policy requiring a particular VPC endpoint or source IP can prevent a
+reviewer's browser from opening the link. CORS configuration is not required
+for ordinary browser navigation to the URL.
+
+When Digger uses temporary AWS credentials, the link expires at the earlier of
+the requested one-hour lifetime and the credential session's expiration. The
+action's default role session lasts one hour and begins before planning, so the
+link may remain usable for less than a full hour. To provide a full hour after
+comment publication, set `aws-role-duration-seconds` high enough to cover both
+the run duration and the desired link lifetime.
+
 ### Azure 
 You can also use Azure storage accounts to store plan outputs.  
 

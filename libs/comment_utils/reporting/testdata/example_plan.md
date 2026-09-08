@@ -1,5 +1,5 @@
 <details><summary>plan for shared-services 2026-08-24 10:54:03 (UTC)</summary>
-<details><summary>Plan output (<a href="https://eu-central-1.console.aws.amazon.com/s3/object/example-plans-bucket?region=eu-central-1&prefix=example-sharedservices-account-134-shared-services.tfplan.txt">full plan</a>)</summary>
+<details><summary>Plan output (<a href="https://example-plans-bucket.s3.eu-central-1.amazonaws.com/example-sharedservices-account-134-shared-services.tfplan.txt?response-content-disposition=inline&amp;response-content-type=text%2Fplain&amp;X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=ASIAIOSFODNN7EXAMPLE%2F20260903%2Feu-central-1%2Fs3%2Faws4_request&amp;X-Amz-Date=20260903T120000Z&amp;X-Amz-Expires=3600&amp;X-Amz-Security-Token=IQoJb3JpZ2luX2VjEExampleTemporarySessionToken&amp;X-Amz-SignedHeaders=host&amp;X-Amz-Signature=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef">full plan — valid for up to 1 hour</a>)</summary>
 
 ```terraform
 OpenTofu will perform the following actions:

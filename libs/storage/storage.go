@@ -1,5 +1,7 @@
 package storage
 
+import "time"
+
 type PlanStorage interface {
 	StorePlanFile(fileContents []byte, artifactName string, storedPlanFilePath string) error
 	RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error)
@@ -8,5 +10,5 @@ type PlanStorage interface {
 }
 
 type PlanUrlProvider interface {
-	StoredPlanUrl(storedPlanFilePath string) string
+	StoredPlanUrl(storedPlanFilePath string, validFor time.Duration) (string, error)
 }

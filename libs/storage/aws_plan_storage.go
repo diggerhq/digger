@@ -9,8 +9,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -24,6 +26,10 @@ type S3Client interface {
 	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
 }
 
+type S3PresignClient interface {
+	PresignGetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (*v4.PresignedHTTPRequest, error)
+}
+
 type AwsS3EncryptionType string
 
 const (
@@ -33,6 +39,7 @@ const (
 
 type PlanStorageAWS struct {
 	Client            S3Client
+	Presigner         S3PresignClient
 	Bucket            string
 	Context           context.Context
 	EncryptionEnabled bool
@@ -58,9 +65,10 @@ func NewAWSPlanStorage(bucketName string, encryptionEnabled bool, encryptionType
 	}
 
 	planStorage := &PlanStorageAWS{
-		Context: ctx,
-		Client:  client,
-		Bucket:  bucketName,
+		Context:   ctx,
+		Client:    client,
+		Presigner: s3.NewPresignClient(client),
+		Bucket:    bucketName,
 	}
 
 	if encryptionEnabled {
@@ -147,13 +155,29 @@ func (psa *PlanStorageAWS) StorePlanFile(fileContents []byte, artifactName, file
 	return nil
 }
 
-func (psa *PlanStorageAWS) StoredPlanUrl(storedPlanFilePath string) string {
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		return fmt.Sprintf("s3://%v/%v", psa.Bucket, storedPlanFilePath)
+func (psa *PlanStorageAWS) StoredPlanUrl(storedPlanFilePath string, validFor time.Duration) (string, error) {
+	if psa.Presigner == nil {
+		return "", fmt.Errorf("S3 presigner is not configured for bucket %q and key %q", psa.Bucket, storedPlanFilePath)
 	}
-	return fmt.Sprintf("https://%v.console.aws.amazon.com/s3/object/%v?region=%v&prefix=%v",
-		region, psa.Bucket, region, storedPlanFilePath)
+
+	exists, err := psa.PlanExists("", storedPlanFilePath)
+	if err != nil {
+		return "", fmt.Errorf("unable to verify readable plan in bucket %q at key %q: %w", psa.Bucket, storedPlanFilePath, err)
+	}
+	if !exists {
+		return "", fmt.Errorf("readable plan does not exist in bucket %q at key %q", psa.Bucket, storedPlanFilePath)
+	}
+	presignedRequest, err := psa.Presigner.PresignGetObject(psa.Context, &s3.GetObjectInput{
+		Bucket:                     aws.String(psa.Bucket),
+		Key:                        aws.String(storedPlanFilePath),
+		ResponseContentDisposition: aws.String("inline"),
+		ResponseContentType:        aws.String("text/plain"),
+	}, s3.WithPresignExpires(validFor))
+	if err != nil {
+		return "", fmt.Errorf("unable to presign readable plan in bucket %q at key %q: %w", psa.Bucket, storedPlanFilePath, err)
+	}
+
+	return presignedRequest.URL, nil
 }
 
 func (psa *PlanStorageAWS) RetrievePlan(localPlanFilePath, artifactName, storedPlanFilePath string) (*string, error) {
