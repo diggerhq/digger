@@ -27,11 +27,12 @@ type DiggerConfigYaml struct {
 	TraverseToNestedProjects      *bool                        `yaml:"traverse_to_nested_projects"`
 	MentionDriftedProjectsInPR    *bool                        `yaml:"mention_drifted_projects_in_pr"`
 	ReportTerraformOutputs        *bool                        `yaml:"report_terraform_outputs"`
+	GitTimeout                    *int                         `yaml:"git_timeout,omitempty"`
 	Reporting                     *ReportingConfigYaml         `yaml:"reporting"`
 }
 
 type ReportingConfigYaml struct {
-	AiSummary bool `yaml:"ai_summary"`
+	AiSummary       bool `yaml:"ai_summary"`
 	CommentsEnabled bool `yaml:"comments_enabled"`
 }
 

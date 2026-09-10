@@ -215,6 +215,10 @@ workflows:
   Include Terraform outputs in the PR comment after apply.
 </ParamField>
 
+<ParamField path="git_timeout" type="integer" default="30">
+  Timeout in seconds for each git command (clone, checkout) Digger runs when it clones a repository. Increase this for large repositories that take longer than 30 seconds to clone.
+</ParamField>
+
 <ParamField path="projects" type="array">
   List of projects to manage. See [Project Configuration](#project-configuration).
 </ParamField>
