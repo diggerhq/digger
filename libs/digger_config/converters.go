@@ -241,6 +241,12 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 		diggerConfig.ReportTerraformOutputs = true
 	}
 
+	if diggerYaml.GitTimeout != nil && *diggerYaml.GitTimeout > 0 {
+		diggerConfig.GitTimeout = *diggerYaml.GitTimeout
+	} else {
+		diggerConfig.GitTimeout = DefaultGitTimeoutSeconds
+	}
+
 	diggerConfig.Reporting = copyReporterConfig(diggerYaml.Reporting)
 
 	if diggerYaml.AutoMerge != nil {

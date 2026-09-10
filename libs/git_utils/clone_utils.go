@@ -23,7 +23,14 @@ func createTempDir() (string, error) {
 
 type action func(string) error
 
+const defaultGitTimeout = 30 * time.Second
+
 func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, token string, tokenUsername string, action action) error {
+	return CloneGitRepoAndDoActionWithTimeout(repoUrl, branch, commitHash, token, tokenUsername, defaultGitTimeout, action)
+}
+
+// CloneGitRepoAndDoActionWithTimeout is CloneGitRepoAndDoAction with a per-git-command timeout (digger.yml git_timeout, in seconds)
+func CloneGitRepoAndDoActionWithTimeout(repoUrl string, branch string, commitHash string, token string, tokenUsername string, timeout time.Duration, action action) error {
 	dir, err := createTempDir()
 	if err != nil {
 		slog.Error("Failed to create temporary directory", "error", err)
@@ -38,6 +45,9 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, t
 	)
 
 	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
+	if timeout > 0 {
+		git.timeout = timeout
+	}
 	err = git.Clone(repoUrl, branch)
 	if err != nil {
 		slog.Error("Failed to clone repository",
@@ -101,7 +111,7 @@ func NewGitShell(workDir string, auth *GitAuth) *GitShell {
 
 	return &GitShell{
 		workDir:     workDir,
-		timeout:     30 * time.Second,
+		timeout:     defaultGitTimeout,
 		environment: env,
 		auth:        auth,
 	}

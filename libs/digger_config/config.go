@@ -11,6 +11,9 @@ const AutomergeStrategyRebase AutomergeStrategy = "rebase"
 
 const DefaultBranchName = "__default__"
 
+// DefaultGitTimeoutSeconds is the default per-command git timeout used when git_timeout is not set in digger.yml
+const DefaultGitTimeoutSeconds = 30
+
 type DiggerConfig struct {
 	ApplyAfterMerge               bool
 	AllowDraftPRs                 bool
@@ -31,6 +34,7 @@ type DiggerConfig struct {
 	TraverseToNestedProjects      bool
 	Reporting                     ReporterConfig
 	ReportTerraformOutputs        bool
+	GitTimeout                    int // seconds, per git command when cloning
 	DriftExcludePatterns          []string
 	DriftIncludePatterns          []string
 	DriftTerragruntParallelism    *int
