@@ -121,8 +121,9 @@ type DiggerExecutorApplyResult struct {
 }
 
 type DiggerExecutorPlanResult struct {
-	PlanSummary   iac_utils.IacSummary
-	TerraformJson string
+	PlanSummary    iac_utils.IacSummary
+	TerraformJson  string
+	IsNonEmptyPlan bool
 }
 
 func (d DiggerExecutorResult) GetTerraformSummary() iac_utils.IacSummary {

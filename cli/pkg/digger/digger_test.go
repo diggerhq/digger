@@ -515,3 +515,56 @@ func TestParseWorkspace(t *testing.T) {
 	}
 
 }
+
+func TestPlanTriggeredFailOnChanges(t *testing.T) {
+	nonEmpty := execution.DiggerExecutorResult{PlanResult: &execution.DiggerExecutorPlanResult{IsNonEmptyPlan: true}}
+	empty := execution.DiggerExecutorResult{PlanResult: &execution.DiggerExecutorPlanResult{IsNonEmptyPlan: false}}
+	// a plan that never ran, because the project was locked by another PR
+	skipped := execution.DiggerExecutorResult{}
+
+	tests := []struct {
+		name     string
+		job      orchestrator.Job
+		result   execution.DiggerExecutorResult
+		expected bool
+	}{
+		{
+			name:     "an opted in project has changes",
+			job:      orchestrator.Job{FailOnChanges: true},
+			result:   nonEmpty,
+			expected: true,
+		},
+		{
+			name:     "an opted in project is clean",
+			job:      orchestrator.Job{FailOnChanges: true},
+			result:   empty,
+			expected: false,
+		},
+		{
+			// projects can use different workflows, so only some of them opt in
+			name:     "changes belong to a project that did not opt in",
+			job:      orchestrator.Job{FailOnChanges: false},
+			result:   nonEmpty,
+			expected: false,
+		},
+		{
+			name:     "plan was skipped",
+			job:      orchestrator.Job{FailOnChanges: true},
+			result:   skipped,
+			expected: false,
+		},
+		{
+			// digger apply and the like never produce a plan result
+			name:     "not a plan",
+			job:      orchestrator.Job{FailOnChanges: true},
+			result:   execution.DiggerExecutorResult{ApplyResult: &execution.DiggerExecutorApplyResult{}},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, planTriggeredFailOnChanges(tt.job, tt.result))
+		})
+	}
+}

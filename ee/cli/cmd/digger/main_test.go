@@ -905,7 +905,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 		assert.NoError(t, err)
 		log.Println(err)
 	}
-	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "dir")
+	_, _, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "dir")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -937,7 +937,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 
 	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "digger plan", impactedProjects, impactedProjects, map[string]configuration.Workflow{}, "prbranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
+	_, _, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
 	if err != nil {
 		log.Println(err)

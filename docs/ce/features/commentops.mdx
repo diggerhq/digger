@@ -17,3 +17,7 @@ title: "CommentOps"
 `digger apply/plan`
 
 * **\-p** enables user to run the command for a particular project, e.g. `digger plan -p staging`
+
+`digger plan`
+
+* **\--fail-on-changes** makes the job exit non-zero when a project that asked for it has a non-empty plan, e.g. `digger plan --fail-on-changes`. Backendless and manual mode only. See [Fail on changes](/ce/howto/fail-on-changes).
