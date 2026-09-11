@@ -6,9 +6,10 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // generateTestKeyPair generates a test RSA key pair
@@ -76,6 +77,7 @@ func TestDecryptProvider(t *testing.T) {
 				}
 				tc.variables[0].Value = base64.StdEncoding.EncodeToString(v)
 			}
+
 			variables, err := VariablesProvider{}.GetVariables(tc.variables)
 			if tc.expectError {
 				if err == nil {
@@ -85,8 +87,15 @@ func TestDecryptProvider(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
 				}
-				value := variables[tc.variables[0].Name]
-				assert.Equal(t, tc.plaintext, value)
+
+				// Since the return type is map[string]map[string]string, we need to check the stage and variable name
+				stage := tc.variables[0].Stage
+				if _, ok := variables[stage]; !ok {
+					t.Errorf("Expected stage '%s' not found in variables map", stage)
+				} else {
+					value := variables[stage][tc.variables[0].Name]
+					assert.Equal(t, tc.plaintext, value)
+				}
 			}
 		})
 	}
