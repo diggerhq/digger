@@ -20,6 +20,7 @@ import (
 	"github.com/diggerhq/digger/libs/storage"
 
 	core_drift "github.com/diggerhq/digger/cli/pkg/core/drift"
+	cli_drift "github.com/diggerhq/digger/cli/pkg/drift"
 	"github.com/diggerhq/digger/cli/pkg/usage"
 	utils "github.com/diggerhq/digger/cli/pkg/utils"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
@@ -786,7 +787,7 @@ func RunJob(
 			}
 
 		case "digger drift-detect":
-			_, err = runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, requestedBy, job.EventName, diggerExecutor, driftNotification)
+			_, err = runDriftDetection(policyChecker, SCMOrganisation, SCMrepository, job.ProjectName, projectPath, requestedBy, job.EventName, diggerExecutor, driftNotification)
 			if err != nil {
 				return fmt.Errorf("failed to Run digger drift-detect command. %v", err)
 			}
@@ -796,7 +797,7 @@ func RunJob(
 	return nil
 }
 
-func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
+func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCMrepository string, projectName string, projectPath string, requestedBy string, eventName string, diggerExecutor execution.Executor, notification *core_drift.Notification) (string, error) {
 	err := usage.SendUsageRecord(requestedBy, eventName, "drift-detect")
 	if err != nil {
 		slog.Error("Failed to send usage report.", "error", err)
@@ -826,7 +827,12 @@ func runDriftDetection(policyChecker policy.Checker, SCMOrganisation string, SCM
 			return plan, nil
 		}
 		repoFullName := fmt.Sprintf("%s/%s", SCMOrganisation, SCMrepository)
-		err := (*notification).SendNotificationForProject(projectName, repoFullName, plan)
+		lastChange, lcErr := cli_drift.GetLastChange(projectPath)
+		if lcErr != nil {
+			// blame is best-effort; never block the drift notification on it
+			slog.Warn("could not determine last change for project", "project", projectName, "error", lcErr)
+		}
+		err := (*notification).SendNotificationForProject(projectName, repoFullName, plan, lastChange)
 		if err != nil {
 			slog.Error("Error sending drift drift.", "error", err)
 			return plan, fmt.Errorf("failed to send drift. %v", err)

@@ -221,6 +221,14 @@ inputs:
     description: "drift-detection slack drift url (advanced mode, ee only)"
     required: false
     default: ""
+  drift-detection-slack-bot-token:
+    description: "slack bot token for drift notifications; with drift-detection-slack-channel, plans are posted as threaded replies"
+    required: false
+    default: ""
+  drift-detection-slack-channel:
+    description: "slack channel id for drift notifications when using drift-detection-slack-bot-token"
+    required: false
+    default: ""
   cache-dependencies:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
@@ -526,6 +534,8 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_SLACK_BOT_TOKEN: ${{ inputs.drift-detection-slack-bot-token }}
+        INPUT_DRIFT_DETECTION_SLACK_CHANNEL: ${{ inputs.drift-detection-slack-channel }}
 
         NO_BACKEND: ${{ inputs.no-backend }}
         DEBUG: "true"
@@ -581,6 +591,8 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_SLACK_BOT_TOKEN: ${{ inputs.drift-detection-slack-bot-token }}
+        INPUT_DRIFT_DETECTION_SLACK_CHANNEL: ${{ inputs.drift-detection-slack-channel }}
         NO_BACKEND: ${{ inputs.no-backend }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
@@ -668,6 +680,8 @@ runs:
         INPUT_DIGGER_COMMAND: ${{ inputs.command }}
         INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-slack-notification-url }}
         INPUT_DRIFT_DETECTION_ADVANCED_SLACK_NOTIFICATION_URL: ${{ inputs.drift-detection-advanced-slack-notification-url }}
+        INPUT_DRIFT_DETECTION_SLACK_BOT_TOKEN: ${{ inputs.drift-detection-slack-bot-token }}
+        INPUT_DRIFT_DETECTION_SLACK_CHANNEL: ${{ inputs.drift-detection-slack-channel }}
         NO_BACKEND: ${{ inputs.no-backend }}
         TG_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
         TERRAGRUNT_PROVIDER_CACHE: ${{ (inputs.cache-dependencies == 'true' || inputs.cache-dependencies-s3 == 'true') && 1 || 0 }}
