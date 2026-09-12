@@ -25,24 +25,20 @@ jobs:
 
     steps:
       - name: Download Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: 1.25.4
         id: go
 
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Build
         run: |
           env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} CGO_ENABLED=0 go build -o dgctl_bin ./dgctl/main.go
 
-      - name: Publish linux-x64 exec to github
-        id: upload-release-asset-linux-x64
-        uses: actions/upload-release-asset@v1
+      - name: Publish exec to github
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: 'dgctl_bin'
-          asset_name: dgctl-${{matrix.os}}-${{matrix.arch}}
-          asset_content_type: application/octet-stream
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp dgctl_bin dgctl-${{ matrix.os }}-${{ matrix.arch }}
+          gh release upload "${{ github.event.release.tag_name }}" dgctl-${{ matrix.os }}-${{ matrix.arch }} --clobber

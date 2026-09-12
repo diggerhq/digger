@@ -13,24 +13,24 @@ jobs:
 
     steps:
       - name: Setup Opentofu
-        uses: opentofu/setup-opentofu@v1.0.5
+        uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: 1.8.5
           
       - name: Setup terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
           terraform_version: "1.5.5"
 
       - name: Download Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: 1.25.4
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Deps
         run: |
@@ -53,7 +53,7 @@ jobs:
           echo "is_external=true" >> $GITHUB_OUTPUT
           fi
 
-      - uses: opentofu/setup-opentofu@v1
+      - uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: 1.8.5
 

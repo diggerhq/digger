@@ -70,7 +70,7 @@ jobs:
       
       - name: Checkout helm charts repo
         if: steps.parse-tag.outputs.service != ''
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: diggerhq/opentaco-helm-charts
           token: ${{ secrets.HELM_CHARTS_PAT }}

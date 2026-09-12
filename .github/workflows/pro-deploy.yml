@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: pro-deploy    # optional: ensure only one action runs at a time
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only --config fly-pro.toml
 
