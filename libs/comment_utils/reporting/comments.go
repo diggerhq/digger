@@ -28,6 +28,12 @@ func GetTerraformOutputAsComment(summary string) func(string) string {
 	}
 }
 
+// AsCollapsibleComment wraps a comment in a <details> block. The blank line
+// after </summary> is required for markdown (links, bold, fences) to render
+// inside an HTML block, and the content is deliberately not indented: four
+// leading spaces would turn it into a markdown code block, and the
+// strip-and-rewrap cycle in upsertComment accumulates indentation on every
+// appended report.
 func AsCollapsibleComment(summary string, open bool) func(string) string {
 	var openTag string
 	if open {
@@ -37,7 +43,8 @@ func AsCollapsibleComment(summary string, open bool) func(string) string {
 	}
 	return func(comment string) string {
 		return fmt.Sprintf(`<details %v><summary>`+summary+`</summary>
-  `+comment+`
+
+`+comment+`
 </details>`, openTag)
 	}
 }

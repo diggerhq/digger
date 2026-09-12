@@ -99,6 +99,16 @@ type BitbucketCommentResponse struct {
 	} `json:"user"`
 }
 
+// CommentMaxLength implements ci.CommentMaxLengthProvider. Bitbucket
+// rejects pull request comments over 32,768 characters. The limit is not
+// officially documented for Cloud; it is the well-known Bitbucket Server
+// limit ("comments more than 32768 characters cannot be posted", e.g.
+// https://github.com/checkmarx-ltd/cx-flow/issues/374) and is used here as
+// a conservative bound for both.
+func (b BitbucketAPI) CommentMaxLength() int {
+	return 32768
+}
+
 func (b BitbucketAPI) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	url := fmt.Sprintf("%s/repositories/%s/%s/pullrequests/%d/comments", bitbucketBaseURL, b.RepoWorkspace, b.RepoName, prNumber)
 
