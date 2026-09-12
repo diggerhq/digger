@@ -34,7 +34,7 @@ jobs:
       projects_refresh_version: ${{ steps.versions.outputs.projects_refresh_version }}
       sidecar_version: ${{ steps.versions.outputs.sidecar_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       
@@ -146,7 +146,7 @@ jobs:
     if: needs.detect-changes.outputs.backend_ee_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
@@ -166,7 +166,7 @@ jobs:
     if: needs.detect-changes.outputs.drift_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
@@ -186,7 +186,7 @@ jobs:
     if: needs.detect-changes.outputs.ui_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
@@ -206,7 +206,7 @@ jobs:
     if: needs.detect-changes.outputs.statesman_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
@@ -226,7 +226,7 @@ jobs:
     if: needs.detect-changes.outputs.token_service_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
@@ -246,7 +246,7 @@ jobs:
     if: needs.detect-changes.outputs.projects_refresh_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
@@ -266,7 +266,7 @@ jobs:
     if: needs.detect-changes.outputs.sidecar_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.HELM_CHARTS_PAT }}
       
