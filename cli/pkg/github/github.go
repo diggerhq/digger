@@ -401,15 +401,24 @@ func findProjectInConfig(projects []digger_config.Project, projectName string) (
 	return digger_config.Project{}, false
 }
 
-func logCommands(projectCommands []scheduler.Job) {
-	logMessage := fmt.Sprintf("Following commands are going to be executed:\n")
-	for _, pc := range projectCommands {
-		logMessage += fmt.Sprintf("project: %s: commands: ", pc.ProjectName)
-		for _, c := range pc.Commands {
-			logMessage += fmt.Sprintf("\"%s\", ", c)
-		}
-		logMessage += "\n"
-	}
-	// TODO: improve the error message
-	slog.Info(logMessage)
+func formatCommands(projectCommands []scheduler.Job) {
+    if len(projectCommands) == 0 {
+        return " Following commands are going to be executed:\n"
+    }
+
+    logMessage := strings.Builder{}
+    logMessage.WriteString("Following commands are going to be executed:\n")
+    for _, pc := range projectCommands {
+        commands := strings.Join(pc.Commands, ", ")
+        if commands == "" {
+            logMessage.WriteString(fmt.Sprintf("project: %s: commands: (none)\n", pc.ProjectName()
+        } else {
+            logMessage.WriteString(fmt.Sprintf("project: %s: commands: \"%s\"\n", pc.ProjectName, commands))
+        }
+    }
+    return logMessage.string()
+}
+
+func logcommands(projectcommands []scheduler.job) {
+    slog.Info(formatcommands(projectCommands))
 }
