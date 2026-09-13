@@ -2,6 +2,17 @@
 title: "PR Comment Issues"
 ---
 
+## Comment body is too long (422)
+
+Older Digger versions failed the job with exit code 5 when a plan output exceeded GitHub's comment size limit:
+
+```
+error editing comment: PATCH https://api.github.com/repos/.../issues/comments/...:
+422 Validation Failed [{Resource:IssueComment Field:body Code:custom Message:body is too long (maximum is 65536 characters)}]
+```
+
+Upgrade to a version with comment splitting: oversized plan output is posted as a chain of linked comments and the job no longer fails. See [Large plan outputs](/ce/features/commentops#large-plan-outputs). If you still hit this error on a current version, please [open an issue](https://github.com/diggerhq/digger/issues).
+
 ## Links to jobs not working
 
 Sometimes the link to job status leads to the PR instead of the Action job. E.g. if the job has failed, you click on "failed" in the summary comment, but it goes to the same PR.
