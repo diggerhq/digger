@@ -15,14 +15,17 @@ type DriftNotificationProviderBasic struct{}
 
 func (d DriftNotificationProviderBasic) Get(prService ci.PullRequestService) (core_drift.Notification, error) {
 	slackNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL")
+	msTeamsNotificationUrl := os.Getenv("INPUT_DRIFT_DETECTION_MS_TEAMS_NOTIFICATION_URL")
 	githubIssues := os.Getenv("INPUT_DRIFT_GITHUB_ISSUES")
 	var notification core_drift.Notification
-	if slackNotificationUrl != "" {
+	if msTeamsNotificationUrl != "" {
+		notification = &MSTeamsNotification{msTeamsNotificationUrl}
+	} else if slackNotificationUrl != "" {
 		notification = &SlackNotification{slackNotificationUrl}
 	} else if githubIssues != "" {
 		notification = &GithubIssueNotification{GithubService: &prService}
 	} else {
-		return nil, fmt.Errorf("could not identify drift mode, please specify using INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL or INPUT_DRIFT_GITHUB_ISSUES")
+		return nil, fmt.Errorf("could not identify drift mode, please specify using INPUT_DRIFT_DETECTION_MS_TEAMS_NOTIFICATION_URL, INPUT_DRIFT_DETECTION_SLACK_NOTIFICATION_URL or INPUT_DRIFT_GITHUB_ISSUES")
 	}
 	return notification, nil
 }
