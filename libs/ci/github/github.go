@@ -160,7 +160,7 @@ func (svc GithubService) ListIssues() ([]*ci.Issue, error) {
 				continue
 			}
 
-			allIssues = append(allIssues, &ci.Issue{ID: int64(*issue.Number), Title: *issue.Title, Body: *issue.Body})
+			allIssues = append(allIssues, &ci.Issue{ID: int64(issue.GetNumber()), Title: issue.GetTitle(), Body: issue.GetBody()})
 		}
 		if resp.NextPage == 0 {
 			break
@@ -175,7 +175,7 @@ func (svc GithubService) PublishIssue(title string, body string, labels *[]strin
 	if err != nil {
 		return 0, fmt.Errorf("could not publish issue: %v", err)
 	}
-	return *githubissue.ID, err
+	return githubissue.GetID(), err
 }
 
 func (svc GithubService) UpdateIssue(ID int64, title string, body string) (int64, error) {
@@ -183,7 +183,7 @@ func (svc GithubService) UpdateIssue(ID int64, title string, body string) (int64
 	if err != nil {
 		return 0, fmt.Errorf("could not edit issue: %v", err)
 	}
-	return *githubissue.ID, err
+	return githubissue.GetID(), err
 }
 
 func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
