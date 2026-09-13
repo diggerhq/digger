@@ -422,14 +422,58 @@ runs:
         cli_config_credentials_hostname: ${{ inputs.terraform-tfe-hostname || 'otaco.app' }}
       if: inputs.setup-terraform == 'true'
 
+    # rhythmictech/actions-setup-tfenv is unmaintained and still declares node16,
+    # which GitHub removes from runners on 2026-09-23. This reproduces what it did.
     - name: Setup tfenv
-      uses: rhythmictech/actions-setup-tfenv@ef1296cdbec243306d3a3d31909582ca1eeb4627 # v0.1.2
+      shell: bash
+      run: |
+        TFENV_DIR="${HOME:-/opt}/.tfenv"
+        if [ ! -d "$TFENV_DIR" ]; then
+          git clone --depth 1 https://github.com/tfutils/tfenv.git "$TFENV_DIR"
+        fi
+        echo "$TFENV_DIR/bin" >> "$GITHUB_PATH"
       if: inputs.setup-tfenv == 'true'
 
+    # autero1/action-terragrunt is unmaintained and still declares node20,
+    # which GitHub removes from runners on 2026-09-23. This reproduces what it did:
+    # accepts "0.73.7", "v0.73.7" or "latest"; supports linux/darwin/windows on amd64/arm64/386.
     - name: Setup Terragrunt
-      uses: autero1/action-terragrunt@aefb0a43c4f5503a91fefb307745c4d51c26ed0e # v3.0.2
-      with:
-        terragrunt-version: ${{ inputs.terragrunt-version }}
+      shell: bash
+      env:
+        TG_VERSION: ${{ inputs.terragrunt-version }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        if [ "$(echo "$TG_VERSION" | tr '[:upper:]' '[:lower:]')" = "latest" ]; then
+          TG_VERSION=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | \
+            sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+          echo "Latest Terragrunt version: $TG_VERSION"
+        fi
+        case "$TG_VERSION" in v*) ;; *) TG_VERSION="v$TG_VERSION";; esac
+
+        case "$(uname -s)" in
+          Linux)  OS=linux ;;
+          Darwin) OS=darwin ;;
+          MINGW*|MSYS*|CYGWIN*|Windows_NT) OS=windows ;;
+          *) echo "Unsupported OS: $(uname -s)"; exit 1 ;;
+        esac
+        case "$(uname -m)" in
+          x86_64|amd64)  ARCH=amd64 ;;
+          aarch64|arm64) ARCH=arm64 ;;
+          i386|i686)     ARCH=386 ;;
+          *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+        esac
+
+        BIN_DIR="$RUNNER_TEMP/terragrunt-bin"
+        mkdir -p "$BIN_DIR"
+        EXT=""; [ "$OS" = "windows" ] && EXT=".exe"
+        URL="https://github.com/gruntwork-io/terragrunt/releases/download/${TG_VERSION}/terragrunt_${OS}_${ARCH}${EXT}"
+        echo "Downloading Terragrunt ${TG_VERSION} from ${URL}"
+        curl -fsSL -o "$BIN_DIR/terragrunt${EXT}" "$URL"
+        chmod +x "$BIN_DIR/terragrunt${EXT}"
+        echo "$BIN_DIR" >> "$GITHUB_PATH"
+        "$BIN_DIR/terragrunt${EXT}" --version
       if: inputs.setup-terragrunt == 'true'
 
     - name: Setup OpenTofu
