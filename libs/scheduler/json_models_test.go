@@ -49,7 +49,8 @@ func TestAllFieldsInJobAreAlsoInJobJson(t *testing.T) {
 	}
 
 	fmt.Printf("%v ::\n", specFields)
-	fieldsToIgnore := []string{"ProjectWorkflow", "StateEnvProvider", "CommandEnvProvider", "StateRoleArn", "CommandRoleArn", "CognitoOidcConfig", "SkipMergeCheck", "Layer"}
+	// FailOnChanges is resolved by the cli, it is not part of the orchestrator job spec
+	fieldsToIgnore := []string{"ProjectWorkflow", "StateEnvProvider", "CommandEnvProvider", "StateRoleArn", "CommandRoleArn", "CognitoOidcConfig", "SkipMergeCheck", "Layer", "FailOnChanges"}
 	for i := 0; i < nFieldsJob; i++ {
 		field := jobVal.Type().Field(i).Name
 		if slices.Contains(fieldsToIgnore, field) {
