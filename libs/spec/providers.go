@@ -47,8 +47,8 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 	}
 	if lockSpec.LockType == "cloud" {
 		switch lockSpec.LockProvider {
-		case "aws":
-			slog.Info("Using AWS lock provider")
+		case "aws", "dynamodb" :
+			slog.Info("Using AWS DynamoDB lock provider")
 
 			// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/
 			// https://aws.github.io/aws-sdk-go-v2/docs/migrating/
