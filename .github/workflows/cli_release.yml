@@ -7,15 +7,22 @@ name: release cli
       - 'go'
     types:
       - 'released'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag to build the binary for and attach it to'
+        required: true
 
 jobs:
   binary:
-    if: "!startsWith(github.event.release.tag_name, 'taco/')"
+    if: "!startsWith(github.event.inputs.tag_name || github.event.release.tag_name, 'taco/')"
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag_name || github.event.release.tag_name }}
 
       - name: Publish linux-x64 exec to github
         id: build-and-release-binary
@@ -31,5 +38,6 @@ jobs:
           ldflags: ${{ matrix.ldflags }}
           sha256sum: true
           md5sum: false
+          release_tag: ${{ github.event.inputs.tag_name || github.event.release.tag_name }}
           asset_name: "digger-cli-Linux-X64"
           compress_assets: "OFF"

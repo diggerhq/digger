@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: write  # needed to delete/create releases & tags
+  actions: write   # needed to dispatch cli_release.yml after creating the release
 
 jobs:
   recreate-vlatest:
@@ -76,3 +77,21 @@ jobs:
               make_latest: 'false'
             });
             core.info(`Created release ${res.data.html_url}`);
+
+      - name: Trigger CLI binary build for "vLatest"
+        uses: actions/github-script@v9
+        with:
+          script: |
+            // Releases created with the default GITHUB_TOKEN don't fire the `release` event for
+            // other workflows, so cli_release.yml won't run on its own here. workflow_dispatch is
+            // exempt from that restriction, so dispatch it explicitly instead.
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: 'cli_release.yml',
+              ref: 'develop',
+              inputs: { tag_name: 'vLatest' }
+            });
+            core.info('Dispatched cli_release.yml for tag vLatest.');
