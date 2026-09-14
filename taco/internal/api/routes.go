@@ -219,7 +219,7 @@ func RegisterRoutes(e *echo.Echo, deps Dependencies) {
 
 	// S3-compatible endpoint (SigV4, token in X-Amz-Security-Token)
 	// Uses StateOperations interface (6 methods)
-	s3h := s3compat.NewHandler(stateOps, deps.Signer, stsi)
+	s3h := s3compat.NewHandler(stateOps, deps.Signer, stsi, identifierResolver)
 	// Explicitly wire supported methods; verification handled inside handler
 	e.GET("/s3/*", s3h.Handle)
 	e.HEAD("/s3/*", s3h.Handle)
