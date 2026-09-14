@@ -137,7 +137,9 @@ func (d DiggerExecutorResult) GetTerraformSummary() iac_utils.IacSummary {
 
 type PlanPathProvider interface {
 	LocalPlanFilePath() string
+	LocalPlanLockFilePath(lockFilePath string) string
 	StoredPlanFilePath() string
+	StoredPlanLockFilePath(lockFilePath string) string
 	ArtifactName() string
 }
 
@@ -179,6 +181,10 @@ func (d DiggerExecutor) RetrievePlanJson() (string, error) {
 		storedPlanPath, err := planStorage.RetrievePlan(planPathProvider.LocalPlanFilePath(), planPathProvider.ArtifactName(), planPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return "", fmt.Errorf("failed to retrieve stored plan path. %v", err)
+		}
+		err = executor.retrievePlanLockFile()
+		if err != nil {
+			return "", err
 		}
 
 		// Running terraform init to load provider
@@ -339,6 +345,11 @@ func (d DiggerExecutor) postProcessPlan(stdout string) (string, string, *iac_uti
 			return "", "", nil, false, fmt.Errorf("error storing artifact file: %v", err)
 
 		}
+
+		err = d.storePlanLockFile()
+		if err != nil {
+			return "", "", nil, false, err
+		}
 	}
 
 	// TODO: move this function to iacUtils interface and implement for pulumi
@@ -369,6 +380,10 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		plansFilename, err = d.PlanStorage.RetrievePlan(d.PlanPathProvider.LocalPlanFilePath(), d.PlanPathProvider.ArtifactName(), d.PlanPathProvider.StoredPlanFilePath())
 		if err != nil {
 			return nil, false, "", fmt.Errorf("error retrieving plan: %v", err)
+		}
+		err = d.retrievePlanLockFile()
+		if err != nil {
+			return nil, false, "", err
 		}
 	}
 

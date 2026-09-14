@@ -86,6 +86,10 @@ inputs:
   upload-plan-destination:
     description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
     required: false
+  upload-plan-lock-file:
+    description: Optional dependency lock file to store and restore with plan artifacts, relative to each project directory. For Terraform use .terraform.lock.hcl.
+    required: false
+    default: ''
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
     required: false
