@@ -219,8 +219,9 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	}
 
 	hasPlanStep := lo.ContainsBy(planSteps, func(step scheduler.Step) bool {
-		return step.Action == "plan"
-	})
+    return step.Action == "plan" ||
+        (step.Action == "run" && strings.Contains(step.Value, "run --all plan"))
+})
 
 	// setting additional env vars for run step
 	if d.RunEnvVars == nil {
