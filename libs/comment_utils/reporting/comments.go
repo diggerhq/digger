@@ -13,12 +13,7 @@ func GetTerraformOutputAsCollapsibleComment(summary string, open bool) func(stri
 	}
 
 	return func(comment string) string {
-		return fmt.Sprintf(`<details %v><summary>`+summary+`</summary>
-
-`+"```terraform"+`
-`+comment+`
-`+"```"+`
-</details>`, openTag)
+		return fmt.Sprintf("<details %s><summary>%s</summary>\n\n```terraform\n%s\n```\n</details>", openTag, summary, comment)
 	}
 }
 
@@ -36,9 +31,7 @@ func AsCollapsibleComment(summary string, open bool) func(string) string {
 		openTag = ""
 	}
 	return func(comment string) string {
-		return fmt.Sprintf(`<details %v><summary>`+summary+`</summary>
-  `+comment+`
-</details>`, openTag)
+		return fmt.Sprintf("<details %s><summary>%s</summary>\n  %s\n</details>", openTag, summary, comment)
 	}
 }
 
