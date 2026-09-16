@@ -37,7 +37,7 @@ func AsCollapsibleComment(summary string, open bool) func(string) string {
 	}
 	return func(comment string) string {
 		return fmt.Sprintf(`<details %v><summary>`+summary+`</summary>
-  `+comment+`
+`+comment+`
 </details>`, openTag)
 	}
 }
@@ -45,5 +45,11 @@ func AsCollapsibleComment(summary string, open bool) func(string) string {
 func AsComment(summary string) func(string) string {
 	return func(comment string) string {
 		return summary + "\n" + comment
+	}
+}
+
+func AsTitle() func(string) string {
+	return func(projectName string) string {
+		return fmt.Sprintf("\n## project: %s", projectName)
 	}
 }
