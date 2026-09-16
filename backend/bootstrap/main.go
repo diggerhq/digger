@@ -101,18 +101,26 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 	logging.Init()
 	cfg := config.DiggerConfig
 
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:           os.Getenv("SENTRY_DSN"),
-		EnableTracing: true,
-		// Set TracesSampleRate to 1.0 to capture 100%
-		// of transactions for performance monitoring.
-		// We recommend adjusting this value in production,
-		TracesSampleRate: 0.1,
-		Release:          "api@" + Version,
-		Debug:            true,
-		DebugWriter:      utils.NewSentrySlogWriter(slog.Default().WithGroup("sentry")),
-	}); err != nil {
-		slog.Error("Sentry initialization failed", "error", err)
+	sentryDsn := os.Getenv("SENTRY_DSN")
+	if sentryDsn != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              sentryDsn,
+			EnableTracing:    true,
+			AttachStacktrace: true,
+			// Set TracesSampleRate to 1.0 to capture 100%
+			// of transactions for performance monitoring.
+			// We recommend adjusting this value in production,
+			TracesSampleRate: 0.1,
+			Release:          "api@" + Version,
+			Debug:            true,
+			DebugWriter:      utils.NewSentrySlogWriter(slog.Default().WithGroup("sentry")),
+		}); err != nil {
+			slog.Error("Sentry initialization failed", "error", err)
+		} else {
+			slog.Info("Sentry initialized successfully", "dsn_configured", true)
+		}
+	} else {
+		slog.Warn("SENTRY_DSN not configured, Sentry error tracking disabled")
 	}
 
 	//database migrations
