@@ -127,9 +127,9 @@ func TestCharacterLimit(t *testing.T) {
 			expectTruncate: false,
 		},
 		{
-			name:           "at limit - no truncation",
+			name:           "at limit - truncated to make room for code fence",
 			inputLength:    65535,
-			expectTruncate: false,
+			expectTruncate: true,
 		},
 		{
 			name:           "over limit - truncation applied",
@@ -145,22 +145,17 @@ func TestCharacterLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			input := strings.Repeat("a", tt.inputLength)
 
-			result := input
-			if utf8.RuneCountInString(result) > maxCheckRunTextLength {
-				runes := []rune(result)
-				truncateAt := maxCheckRunTextLength - utf8.RuneCountInString(cutOffMsg)
-				result = string(runes[:truncateAt]) + cutOffMsg
-			}
+			result := checkRunText(input)
 
+			assert.LessOrEqual(t, utf8.RuneCountInString(result), maxCheckRunTextLength,
+				"check run text should never exceed 65535 characters")
 			if tt.expectTruncate {
 				assert.Equal(t, maxCheckRunTextLength, utf8.RuneCountInString(result),
 					"truncated output should be exactly 65535 characters")
-				assert.True(t, strings.HasSuffix(result, cutOffMsg),
-					"truncated output should end with cutoff message")
+				assert.True(t, strings.Contains(result, cutOffMsg),
+					"truncated output should contain cutoff message")
 			} else {
-				assert.Equal(t, tt.inputLength, utf8.RuneCountInString(result),
-					"non-truncated output should maintain original length")
-				assert.False(t, strings.HasSuffix(result, cutOffMsg),
+				assert.False(t, strings.Contains(result, cutOffMsg),
 					"non-truncated output should not have cutoff message")
 			}
 		})

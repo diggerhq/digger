@@ -400,6 +400,23 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 	return nil
 }
 
+// checkRunText wraps terraform output in a code fence, truncating the output so
+// the whole text stays within GitHub's 65535 character limit for check runs.
+func checkRunText(output string) string {
+	const maxCheckRunTextLength = 65535
+	const fenceOpen = "```terraform\n"
+	const fenceClose = "```\n"
+	const cutOffMsg = "\n[Character limit exceeded, output truncated]"
+
+	maxOutputLength := maxCheckRunTextLength - utf8.RuneCountInString(fenceOpen) - utf8.RuneCountInString(fenceClose)
+	if utf8.RuneCountInString(output) > maxOutputLength {
+		runes := []rune(output)
+		truncateAt := maxOutputLength - utf8.RuneCountInString(cutOffMsg)
+		output = string(runes[:truncateAt]) + cutOffMsg
+	}
+	return fenceOpen + output + fenceClose
+}
+
 // more modern check runs on github have their own page
 func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob, aiSummaryEnabled bool) error {
 	batch := job.Batch
@@ -509,19 +526,7 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob, 
 		conclusionPtr = &conclusion
 	}
 
-	// Character limit check - GitHub check run text field has a 65535 character limit
-	const maxCheckRunTextLength = 65535
-	cutOffMsg := "\n[Character limit exceeded, output truncated]"
-	if utf8.RuneCountInString(job.TerraformOutput) > maxCheckRunTextLength {
-		runes := []rune(job.TerraformOutput)
-		truncateAt := maxCheckRunTextLength - utf8.RuneCountInString(cutOffMsg)
-		job.TerraformOutput = string(runes[:truncateAt]) + cutOffMsg
-	}
-
-	text := "" +
-		"```terraform\n" +
-		job.TerraformOutput +
-		"```\n"
+	text := checkRunText(job.TerraformOutput)
 
 	var summary = ""
 	if aiSummaryEnabled && (job.Status == orchestrator_scheduler.DiggerJobSucceeded || job.Status == orchestrator_scheduler.DiggerJobFailed) {
