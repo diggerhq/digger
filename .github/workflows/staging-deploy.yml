@@ -17,6 +17,8 @@ env:
 
 jobs:
   build-and-push:
+    # Skip for external contributors (fork PRs don't have access to secrets)
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -228,7 +230,7 @@ jobs:
   summary:
     needs: [build-and-push, update-helm-chart]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Deployment Summary
         run: |
