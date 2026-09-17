@@ -10,6 +10,8 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/Azure/azure-sdk-for-go/sdk/data/aztables v1.2.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.0
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
+	github.com/aliyun/credentials-go v1.4.13
 	github.com/aws/aws-sdk-go-v2 v1.38.1
 	github.com/aws/aws-sdk-go-v2/config v1.31.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.6
@@ -36,6 +38,7 @@ require (
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20250203082807-efaa306e97b4
 	github.com/hashicorp/terraform-json v0.22.1
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
+	github.com/migueleliasweb/go-github-mock v0.0.23
 	github.com/open-policy-agent/opa v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/samber/lo v1.46.0
@@ -44,15 +47,8 @@ require (
 	github.com/zclconf/go-cty v1.14.4
 	golang.org/x/sync v0.16.0
 	golang.org/x/text v0.28.0
-	google.golang.org/grpc v1.71.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
-)
-
-require (
-	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
-	github.com/aliyun/credentials-go v1.4.13
-	github.com/migueleliasweb/go-github-mock v0.0.23
 )
 
 require (
@@ -267,6 +263,7 @@ require (
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
+	google.golang.org/grpc v1.71.1 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
