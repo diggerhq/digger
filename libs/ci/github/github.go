@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -44,51 +45,138 @@ type GithubService struct {
 	Owner    string
 }
 
-func (svc GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
-	var teams []string
+// githubTeamsPageSize is GitHub's maximum page size for the teams connection.
+const githubTeamsPageSize = 100
 
-	// Paginate through all teams
-	opts := &github.ListOptions{PerPage: 100}
+// graphqlTeamNode is one team in the GraphQL teams connection.
+type graphqlTeamNode struct {
+	Slug       string `json:"slug"`
+	Name       string `json:"name"`
+	ParentTeam *struct {
+		Slug string `json:"slug"`
+	} `json:"parentTeam"`
+}
+
+// graphqlTeamsResponse is the shape both team queries return.
+type graphqlTeamsResponse struct {
+	Data struct {
+		Organization struct {
+			Teams struct {
+				Nodes    []graphqlTeamNode `json:"nodes"`
+				PageInfo struct {
+					HasNextPage bool   `json:"hasNextPage"`
+					EndCursor   string `json:"endCursor"`
+				} `json:"pageInfo"`
+			} `json:"teams"`
+		} `json:"organization"`
+	} `json:"data"`
+	Errors []struct {
+		Message string `json:"message"`
+	} `json:"errors"`
+}
+
+// queryTeams runs a paginated teams query and returns every node across all pages.
+func (svc GithubService) queryTeams(query string, variables map[string]interface{}) ([]graphqlTeamNode, error) {
+	var nodes []graphqlTeamNode
+	var after *string
+
 	for {
-		teamsResponse, resp, err := svc.Client.Teams.ListTeams(context.Background(), organisation, opts)
+		vars := make(map[string]interface{}, len(variables)+2)
+		for k, v := range variables {
+			vars[k] = v
+		}
+		vars["first"] = githubTeamsPageSize
+		vars["after"] = after
+
+		req, err := svc.Client.NewRequest("POST", "graphql", map[string]interface{}{
+			"query":     query,
+			"variables": vars,
+		})
 		if err != nil {
+			return nil, fmt.Errorf("failed to build github teams query: %v", err)
+		}
+
+		var response graphqlTeamsResponse
+		if _, err := svc.Client.Do(context.Background(), req, &response); err != nil {
 			return nil, fmt.Errorf("failed to list github teams: %v", err)
 		}
-
-		for _, team := range teamsResponse {
-			// Paginate through all team members
-			memberOpts := &github.TeamListTeamMembersOptions{
-				ListOptions: github.ListOptions{PerPage: 100},
-			}
-		memberLoop:
-			for {
-				teamMembers, memberResp, err := svc.Client.Teams.ListTeamMembersBySlug(
-					context.Background(), organisation, *team.Slug, memberOpts)
-				if err != nil {
-					// Log error but continue with other teams
-					slog.Warn("failed to list team members", "team", *team.Slug, "error", err)
-					break
-				}
-
-				for _, member := range teamMembers {
-					if *member.Login == user {
-						teams = append(teams, *team.Name)
-						break memberLoop // Found user, move to next team
-					}
-				}
-
-				if memberResp.NextPage == 0 {
-					break
-				}
-				memberOpts.Page = memberResp.NextPage
-			}
+		// GraphQL reports failures in the body alongside a 200, so they never reach the error above.
+		if len(response.Errors) > 0 {
+			return nil, fmt.Errorf("failed to list github teams: %v", response.Errors[0].Message)
 		}
 
-		if resp.NextPage == 0 {
-			break
+		nodes = append(nodes, response.Data.Organization.Teams.Nodes...)
+
+		pageInfo := response.Data.Organization.Teams.PageInfo
+		if !pageInfo.HasNextPage {
+			return nodes, nil
 		}
-		opts.Page = resp.NextPage
+		cursor := pageInfo.EndCursor
+		after = &cursor
 	}
+}
+
+// GetUserTeams returns the names of the organisation teams the given user belongs to,
+// including teams the membership is inherited from.
+//
+// Two GraphQL queries replace what REST needs one request per team plus one per page of
+// its members to answer. The userLogins filter only matches direct membership, while the
+// REST members endpoint also lists members inherited from child teams, so the second query
+// builds the parent chain and walks it to keep the two equivalent.
+func (svc GithubService) GetUserTeams(organisation string, user string) ([]string, error) {
+	const userTeamsQuery = `query($org:String!,$login:String!,$first:Int!,$after:String){` +
+		`organization(login:$org){teams(first:$first,after:$after,userLogins:[$login]){` +
+		`nodes{slug name} pageInfo{hasNextPage endCursor}}}}`
+
+	const allTeamsQuery = `query($org:String!,$first:Int!,$after:String){` +
+		`organization(login:$org){teams(first:$first,after:$after){` +
+		`nodes{slug name parentTeam{slug}} pageInfo{hasNextPage endCursor}}}}`
+
+	directTeams, err := svc.queryTeams(userTeamsQuery, map[string]interface{}{
+		"org":   organisation,
+		"login": user,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(directTeams) == 0 {
+		return []string{}, nil
+	}
+
+	allTeams, err := svc.queryTeams(allTeamsQuery, map[string]interface{}{
+		"org": organisation,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	parentOf := make(map[string]string, len(allTeams))
+	nameOf := make(map[string]string, len(allTeams))
+	for _, team := range allTeams {
+		nameOf[team.Slug] = team.Name
+		if team.ParentTeam != nil {
+			parentOf[team.Slug] = team.ParentTeam.Slug
+		}
+	}
+
+	teamSet := make(map[string]bool)
+	for _, team := range directTeams {
+		teamSet[team.Name] = true
+		// Guard the walk with a seen set: a cycle would otherwise hang the request.
+		seen := map[string]bool{team.Slug: true}
+		for parent, ok := parentOf[team.Slug]; ok && !seen[parent]; parent, ok = parentOf[parent] {
+			seen[parent] = true
+			if name, found := nameOf[parent]; found {
+				teamSet[name] = true
+			}
+		}
+	}
+
+	teams := make([]string, 0, len(teamSet))
+	for name := range teamSet {
+		teams = append(teams, name)
+	}
+	sort.Strings(teams)
 
 	return teams, nil
 }
