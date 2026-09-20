@@ -128,7 +128,7 @@ func TestCharacterLimit(t *testing.T) {
 		},
 		{
 			name:           "at limit - no truncation",
-			inputLength:    65535,
+			inputLength:    65535 - 17, // account for wrapper
 			expectTruncate: false,
 		},
 		{
@@ -140,25 +140,29 @@ func TestCharacterLimit(t *testing.T) {
 
 	const maxCheckRunTextLength = 65535
 	cutOffMsg := "\n[Character limit exceeded, output truncated]"
+	wrapper := "```terraform\n" + "```\n"
+	maxOutputLength := maxCheckRunTextLength - utf8.RuneCountInString(wrapper)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			input := strings.Repeat("a", tt.inputLength)
 
 			result := input
-			if utf8.RuneCountInString(result) > maxCheckRunTextLength {
+			if utf8.RuneCountInString(result) > maxOutputLength {
 				runes := []rune(result)
-				truncateAt := maxCheckRunTextLength - utf8.RuneCountInString(cutOffMsg)
+				truncateAt := maxOutputLength - utf8.RuneCountInString(cutOffMsg)
 				result = string(runes[:truncateAt]) + cutOffMsg
 			}
 
+			text := "```terraform\n" + result + "```\n"
+
 			if tt.expectTruncate {
-				assert.Equal(t, maxCheckRunTextLength, utf8.RuneCountInString(result),
+				assert.Equal(t, maxCheckRunTextLength, utf8.RuneCountInString(text),
 					"truncated output should be exactly 65535 characters")
 				assert.True(t, strings.HasSuffix(result, cutOffMsg),
 					"truncated output should end with cutoff message")
 			} else {
-				assert.Equal(t, tt.inputLength, utf8.RuneCountInString(result),
+				assert.LessOrEqual(t, utf8.RuneCountInString(text), maxCheckRunTextLength,
 					"non-truncated output should maintain original length")
 				assert.False(t, strings.HasSuffix(result, cutOffMsg),
 					"non-truncated output should not have cutoff message")

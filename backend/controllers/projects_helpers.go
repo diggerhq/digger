@@ -512,9 +512,12 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob, 
 	// Character limit check - GitHub check run text field has a 65535 character limit
 	const maxCheckRunTextLength = 65535
 	cutOffMsg := "\n[Character limit exceeded, output truncated]"
-	if utf8.RuneCountInString(job.TerraformOutput) > maxCheckRunTextLength {
+	wrapper := "```terraform\n" + "```\n"
+	maxOutputLength := maxCheckRunTextLength - utf8.RuneCountInString(wrapper)
+
+	if utf8.RuneCountInString(job.TerraformOutput) > maxOutputLength {
 		runes := []rune(job.TerraformOutput)
-		truncateAt := maxCheckRunTextLength - utf8.RuneCountInString(cutOffMsg)
+		truncateAt := maxOutputLength - utf8.RuneCountInString(cutOffMsg)
 		job.TerraformOutput = string(runes[:truncateAt]) + cutOffMsg
 	}
 
