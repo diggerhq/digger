@@ -80,6 +80,9 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		os.Setenv("DIGGER_OUT", diggerOutPath)
 	}
 
+	exitCode := 0
+	exitMessage := "Digger finished successfully"
+
 	runningMode := os.Getenv("INPUT_DIGGER_MODE")
 
 	parsedGhActionContext, err := github_models.GetGitHubContext(ghContext)
@@ -141,6 +144,10 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		if command == "" {
 			usage.ReportErrorAndExit(githubActor, "provide 'command' to run in 'manual' mode", 1)
 		}
+		command, failOnChanges, err := digger.ParseFailOnChangesFlag(command)
+		if err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Invalid 'command' input. %s", err), 1)
+		}
 		project := os.Getenv("INPUT_DIGGER_PROJECT")
 		if project == "" {
 			usage.ReportErrorAndExit(githubActor, "provide 'project' to run in 'manual' mode", 2)
@@ -190,10 +197,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			Namespace:                  ghRepository,
 			StateEnvVars:               stateEnvVars,
 			CommandEnvVars:             commandEnvVars,
+			FailOnChanges:              failOnChanges,
 		}
-		err = digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
+		failOnChangesTriggered, err := digger.RunJob(jobs, ghRepository, githubActor, &githubPrService, policyChecker, planStorage, backendApi, nil, currentDir)
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to run commands. %s", err), 8)
+		}
+		if failOnChangesTriggered {
+			exitCode = 9
+			exitMessage = fmt.Sprintf("Digger finished successfully, but project %v has a non-empty plan and --fail-on-changes was requested", project)
 		}
 	} else if runningMode == "drift-detection" {
 		blockFiltersStr := os.Getenv("INPUT_DIGGER_BLOCK_FILTERS")
@@ -267,7 +279,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				CommandRoleArn:             cmdArn,
 			}
 
-			err = digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
+			_, err = digger.RunJob(job, ghRepository, githubActor, &githubPrService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
 				slog.Error("Failed to run commands", "repository", ghRepository, "project", projectConfig.Name, "error", err)
 				notificationErr := notification.SendErrorNotificationForProject(projectConfig.Name, ghRepository, err)
@@ -310,6 +322,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		var jobs []scheduler.Job
 		coversAllImpactedProjects := false
+		failOnChanges := false
 		err = nil
 		if prEvent, ok := ghEvent.(github.PullRequestEvent); ok {
 			jobs, coversAllImpactedProjects, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig, true)
@@ -322,7 +335,12 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			defaultBranch := *commentEvent.Repo.DefaultBranch
 			repoFullName := *commentEvent.Repo.FullName
 			requestedBy := *commentEvent.Sender.Login
-			commentBody := *commentEvent.Comment.Body
+
+			commentBody, commentFailOnChanges, flagErr := digger.ParseFailOnChangesFlag(*commentEvent.Comment.Body)
+			if flagErr != nil {
+				usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", flagErr), 7)
+			}
+			failOnChanges = commentFailOnChanges
 
 			var impactedProjectsForEvent []digger_config.Project
 			if requestedProject != nil {
@@ -338,6 +356,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		if err != nil {
 			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
 		}
+
+		// commands coming from digger.yml may still carry flags such as --fail-on-changes
+		if err := digger.ApplyCommandFlags(jobs); err != nil {
+			usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to convert GitHub event to commands. %s", err), 7)
+		}
+		for i := range jobs {
+			jobs[i].FailOnChanges = jobs[i].FailOnChanges || failOnChanges
+		}
+
 		slog.Info("GitHub event converted to commands successfully")
 		logCommands(jobs)
 
@@ -360,7 +387,7 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 
 		jobs = digger.SortedCommandsByDependency(jobs, &dependencyGraph)
 
-		allAppliesSuccessful, atLeastOneApply, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
+		allAppliesSuccessful, atLeastOneApply, failOnChangesTriggered, err := digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "", false, false, "0", currentDir)
 		if !allAppliesSuccessful || err != nil {
 			// aggregate status checks: failure
 			if scheduler.IsPlanJobs(jobs) {
@@ -385,10 +412,15 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 			}
 		}
 
+		if failOnChangesTriggered {
+			exitCode = 9
+			exitMessage = "Digger finished successfully, but at least one project has a non-empty plan and --fail-on-changes was requested"
+		}
+
 		slog.Info("Commands executed successfully")
 	}
 
-	usage.ReportErrorAndExit(githubActor, "Digger finished successfully", 0)
+	usage.ReportErrorAndExit(githubActor, exitMessage, exitCode)
 }
 
 // Helper function to search for a project in the configuration
