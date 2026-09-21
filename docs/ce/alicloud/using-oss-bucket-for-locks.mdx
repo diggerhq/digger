@@ -1,0 +1,46 @@
+---
+title: "Alibaba Cloud: Backendless OSS lock storage"
+---
+
+This setup is only required for backendless mode (`no-backend: true`).
+
+With the OpenTaco backend/orchestrator, PR locks are stored in the backend database automatically and this bucket setup is not needed.
+
+In backendless mode, you can configure Digger to use an Alibaba Cloud OSS bucket for PR locks. Digger creates one object per locked project and stores the PR number in the object's user metadata. Acquisition uses the `x-oss-forbid-overwrite` header, so two PRs cannot both acquire the same lock.
+
+## Setup
+
+1. Create an OSS bucket. Versioning must never have been enabled on it: OSS ignores `x-oss-forbid-overwrite` on versioned buckets, so locks would not be exclusive, and Digger refuses such a bucket.
+2. Grant the RAM identity used by your workflow `oss:PutObject`, `oss:GetObject`, `oss:DeleteObject` and `oss:GetBucketVersioning` on that bucket.
+3. Configure the workflow:
+
+```
+env:
+  LOCK_PROVIDER: alicloud
+
+with:
+  no-backend: true
+  alicloud-lock-bucket: 'digger-locks-1239123'
+  alicloud-region: 'cn-hangzhou'
+```
+
+The same bucket can also hold plan artifacts, see [Plan artifacts](/ce/howto/plan-artifacts).
+
+## Credentials
+
+Digger resolves credentials in this order:
+
+1. `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` (and optional `OSS_SESSION_TOKEN`) if set.
+2. `ALICLOUD_ACCESS_KEY` / `ALICLOUD_SECRET_KEY` (and optional `ALICLOUD_SECURITY_TOKEN`) if `ALIBABA_CLOUD_ACCESS_KEY_ID` is not set.
+3. Otherwise the Alibaba Cloud default credentials chain, which reads `ALIBABA_CLOUD_ACCESS_KEY_ID` / `ALIBABA_CLOUD_ACCESS_KEY_SECRET` / `ALIBABA_CLOUD_SECURITY_TOKEN`, an OIDC role (`ALIBABA_CLOUD_ROLE_ARN`, `ALIBABA_CLOUD_OIDC_PROVIDER_ARN`, `ALIBABA_CLOUD_OIDC_TOKEN_FILE`) or an ECS RAM role.
+
+If you already authenticate the Terraform alicloud provider through `ALIBABA_CLOUD_*` or `ALICLOUD_*` variables or `aliyun/configure-aliyun-credentials-action`, no extra configuration is needed.
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `LOCK_PROVIDER` | Must be `alicloud` |
+| `ALICLOUD_OSS_LOCK_BUCKET` | Bucket used for locks (set by the `alicloud-lock-bucket` input) |
+| `ALICLOUD_OSS_REGION` | OSS region, e.g. `cn-hangzhou` (set by the `alicloud-region` input). Falls back to `ALICLOUD_REGION` or `ALIBABA_CLOUD_REGION_ID` |
+| `ALICLOUD_OSS_ENDPOINT` | Optional custom endpoint, e.g. an internal VPC endpoint |
