@@ -13,9 +13,11 @@ import (
 )
 
 type fakeOSSClient struct {
-	objects map[string]map[string]string
-	putErr  error
-	headErr error
+	objects       map[string]map[string]string
+	putErr        error
+	headErr       error
+	versioning    *string
+	versioningErr error
 }
 
 func newFakeOSSClient() *fakeOSSClient {
@@ -52,6 +54,13 @@ func (f *fakeOSSClient) GetObject(_ context.Context, _ *oss.GetObjectRequest, _ 
 func (f *fakeOSSClient) DeleteObject(_ context.Context, request *oss.DeleteObjectRequest, _ ...func(*oss.Options)) (*oss.DeleteObjectResult, error) {
 	delete(f.objects, oss.ToString(request.Key))
 	return &oss.DeleteObjectResult{}, nil
+}
+
+func (f *fakeOSSClient) GetBucketVersioning(_ context.Context, _ *oss.GetBucketVersioningRequest, _ ...func(*oss.Options)) (*oss.GetBucketVersioningResult, error) {
+	if f.versioningErr != nil {
+		return nil, f.versioningErr
+	}
+	return &oss.GetBucketVersioningResult{VersionStatus: f.versioning}, nil
 }
 
 func newTestLock(client OSSClient) *OSSLock {
@@ -130,6 +139,13 @@ func TestOSSLock_GetLock(t *testing.T) {
 			errMatch: "parse lockid metadata",
 		},
 		{
+			name:     "missing bucket is an error, not an absent lock",
+			objects:  map[string]map[string]string{},
+			headErr:  &oss.ServiceError{StatusCode: http.StatusNotFound, Code: "NoSuchBucket"},
+			wantErr:  true,
+			errMatch: "NoSuchBucket",
+		},
+		{
 			name:     "non-404 service error is propagated",
 			objects:  map[string]map[string]string{},
 			headErr:  &oss.ServiceError{StatusCode: http.StatusForbidden, Code: "AccessDenied"},
@@ -182,6 +198,88 @@ func TestOSSLock_Unlock(t *testing.T) {
 		released, err := lock.Unlock(resource)
 		require.NoError(t, err)
 		assert.True(t, released)
+	})
+}
+
+func TestOSSLock_EnsureVersioningDisabled(t *testing.T) {
+	tests := []struct {
+		name          string
+		versioning    *string
+		versioningErr error
+		wantErr       string
+	}{
+		{name: "never enabled is accepted"},
+		{name: "enabled is rejected", versioning: oss.Ptr("Enabled"), wantErr: "versioning Enabled"},
+		{name: "suspended is rejected", versioning: oss.Ptr("Suspended"), wantErr: "versioning Suspended"},
+		{name: "check failure only warns", versioningErr: &oss.ServiceError{StatusCode: http.StatusForbidden, Code: "AccessDenied"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newFakeOSSClient()
+			client.versioning = tt.versioning
+			client.versioningErr = tt.versioningErr
+
+			err := newTestLock(client).ensureVersioningDisabled()
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestCredentialsProvider_EnvironmentPrecedence(t *testing.T) {
+	clear := func(t *testing.T) {
+		for _, v := range []string{
+			"OSS_ACCESS_KEY_ID", "OSS_ACCESS_KEY_SECRET", "OSS_SESSION_TOKEN",
+			"ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIBABA_CLOUD_ACCESS_KEY_SECRET", "ALIBABA_CLOUD_SECURITY_TOKEN",
+			"ALICLOUD_ACCESS_KEY", "ALICLOUD_SECRET_KEY", "ALICLOUD_SECURITY_TOKEN",
+		} {
+			t.Setenv(v, "")
+		}
+	}
+	resolve := func(t *testing.T) string {
+		provider, err := credentialsProvider()
+		require.NoError(t, err)
+		creds, err := provider.GetCredentials(context.Background())
+		require.NoError(t, err)
+		return creds.AccessKeyID
+	}
+
+	t.Run("ALICLOUD_* is used when ALIBABA_CLOUD_ACCESS_KEY_ID is unset", func(t *testing.T) {
+		clear(t)
+		t.Setenv("ALICLOUD_ACCESS_KEY", "ak-alicloud")
+		t.Setenv("ALICLOUD_SECRET_KEY", "sk-alicloud")
+		t.Setenv("ALICLOUD_SECURITY_TOKEN", "token-alicloud")
+
+		provider, err := credentialsProvider()
+		require.NoError(t, err)
+		creds, err := provider.GetCredentials(context.Background())
+		require.NoError(t, err)
+		assert.Equal(t, "ak-alicloud", creds.AccessKeyID)
+		assert.Equal(t, "sk-alicloud", creds.AccessKeySecret)
+		assert.Equal(t, "token-alicloud", creds.SecurityToken)
+	})
+
+	t.Run("ALIBABA_CLOUD_* wins over ALICLOUD_*", func(t *testing.T) {
+		clear(t)
+		t.Setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak-alibaba")
+		t.Setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk-alibaba")
+		t.Setenv("ALICLOUD_ACCESS_KEY", "ak-alicloud")
+		t.Setenv("ALICLOUD_SECRET_KEY", "sk-alicloud")
+		assert.Equal(t, "ak-alibaba", resolve(t))
+	})
+
+	t.Run("OSS_* wins over everything", func(t *testing.T) {
+		clear(t)
+		t.Setenv("OSS_ACCESS_KEY_ID", "ak-oss")
+		t.Setenv("OSS_ACCESS_KEY_SECRET", "sk-oss")
+		t.Setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak-alibaba")
+		t.Setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk-alibaba")
+		assert.Equal(t, "ak-oss", resolve(t))
 	})
 }
 

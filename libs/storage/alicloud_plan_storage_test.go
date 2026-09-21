@@ -55,6 +55,10 @@ func (m *emulateOSSClient) DeleteObject(_ context.Context, request *oss.DeleteOb
 	return &oss.DeleteObjectResult{}, nil
 }
 
+func (m *emulateOSSClient) GetBucketVersioning(_ context.Context, _ *oss.GetBucketVersioningRequest, _ ...func(*oss.Options)) (*oss.GetBucketVersioningResult, error) {
+	return &oss.GetBucketVersioningResult{}, nil
+}
+
 func newTestAlicloudStorage(client *emulateOSSClient) *PlanStorageAlicloud {
 	return &PlanStorageAlicloud{Client: client, Bucket: "digger-plans", Context: context.Background()}
 }
@@ -108,4 +112,15 @@ func TestPlanStorageAlicloud_RetrievePlan_MissingObject(t *testing.T) {
 	retrieved, err := storage.RetrievePlan(filepath.Join(t.TempDir(), "plan.tfplan"), "artifact", "missing.tfplan")
 	require.Error(t, err)
 	assert.Nil(t, retrieved)
+}
+
+func TestPlanStorageAlicloud_PlanExists_MissingBucketIsError(t *testing.T) {
+	client := newEmulateOSSClient()
+	client.headErr = &oss.ServiceError{StatusCode: http.StatusNotFound, Code: "NoSuchBucket"}
+	storage := newTestAlicloudStorage(client)
+
+	exists, err := storage.PlanExists("artifact", "missing.tfplan")
+	require.Error(t, err)
+	assert.False(t, exists)
+	assert.Contains(t, err.Error(), "NoSuchBucket")
 }

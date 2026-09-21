@@ -10,8 +10,8 @@ In backendless mode, you can configure Digger to use an Alibaba Cloud OSS bucket
 
 ## Setup
 
-1. Create an OSS bucket in your Alibaba Cloud account (versioning is not required).
-2. Grant the RAM identity used by your workflow `oss:PutObject`, `oss:GetObject` and `oss:DeleteObject` on that bucket.
+1. Create an OSS bucket. Versioning must never have been enabled on it: OSS ignores `x-oss-forbid-overwrite` on versioned buckets, so locks would not be exclusive, and Digger refuses such a bucket.
+2. Grant the RAM identity used by your workflow `oss:PutObject`, `oss:GetObject`, `oss:DeleteObject` and `oss:GetBucketVersioning` on that bucket.
 3. Configure the workflow:
 
 ```
@@ -31,9 +31,10 @@ The same bucket can also hold plan artifacts, see [Plan artifacts](/ce/howto/pla
 Digger resolves credentials in this order:
 
 1. `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` (and optional `OSS_SESSION_TOKEN`) if set.
-2. Otherwise the Alibaba Cloud default credentials chain, which reads `ALIBABA_CLOUD_ACCESS_KEY_ID` / `ALIBABA_CLOUD_ACCESS_KEY_SECRET` / `ALIBABA_CLOUD_SECURITY_TOKEN`, an OIDC role (`ALIBABA_CLOUD_ROLE_ARN`, `ALIBABA_CLOUD_OIDC_PROVIDER_ARN`, `ALIBABA_CLOUD_OIDC_TOKEN_FILE`) or an ECS RAM role.
+2. `ALICLOUD_ACCESS_KEY` / `ALICLOUD_SECRET_KEY` (and optional `ALICLOUD_SECURITY_TOKEN`) if `ALIBABA_CLOUD_ACCESS_KEY_ID` is not set.
+3. Otherwise the Alibaba Cloud default credentials chain, which reads `ALIBABA_CLOUD_ACCESS_KEY_ID` / `ALIBABA_CLOUD_ACCESS_KEY_SECRET` / `ALIBABA_CLOUD_SECURITY_TOKEN`, an OIDC role (`ALIBABA_CLOUD_ROLE_ARN`, `ALIBABA_CLOUD_OIDC_PROVIDER_ARN`, `ALIBABA_CLOUD_OIDC_TOKEN_FILE`) or an ECS RAM role.
 
-If you already authenticate the Terraform alicloud provider through `ALIBABA_CLOUD_*` variables or `aliyun/configure-aliyun-credentials-action`, no extra configuration is needed.
+If you already authenticate the Terraform alicloud provider through `ALIBABA_CLOUD_*` or `ALICLOUD_*` variables or `aliyun/configure-aliyun-credentials-action`, no extra configuration is needed.
 
 ## Environment variables
 

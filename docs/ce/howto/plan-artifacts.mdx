@@ -65,4 +65,4 @@ with:
     alicloud-region: 'cn-hangzhou'
 ```
 
-Credentials are read from the environment: either `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET`, or the standard `ALIBABA_CLOUD_*` variables (access keys, OIDC role or ECS RAM role) that the Terraform alicloud provider already uses. See [Alibaba Cloud: Backendless OSS lock storage](/ce/alicloud/using-oss-bucket-for-locks) for details.
+Credentials are read from the environment: `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET`, the `ALIBABA_CLOUD_*` variables (access keys, OIDC role or ECS RAM role), or the Terraform alicloud provider's `ALICLOUD_ACCESS_KEY` / `ALICLOUD_SECRET_KEY`. See [Alibaba Cloud: Backendless OSS lock storage](/ce/alicloud/using-oss-bucket-for-locks) for details.

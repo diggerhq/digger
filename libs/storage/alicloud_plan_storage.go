@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -27,7 +26,7 @@ func (ps *PlanStorageAlicloud) PlanExists(artifactName string, storedPlanFilePat
 		Key:    oss.Ptr(storedPlanFilePath),
 	})
 	if err != nil {
-		if alicloud.HasStatus(err, http.StatusNotFound) {
+		if alicloud.IsNoSuchKey(err) {
 			slog.Debug("Plan does not exist in OSS",
 				"bucket", ps.Bucket,
 				"key", storedPlanFilePath)

@@ -17,7 +17,11 @@ const (
 	RegionEnv   = "ALICLOUD_OSS_REGION"
 	EndpointEnv = "ALICLOUD_OSS_ENDPOINT"
 
-	ossAccessKeyIDEnv = "OSS_ACCESS_KEY_ID"
+	ossAccessKeyIDEnv        = "OSS_ACCESS_KEY_ID"
+	alibabaAccessKeyIDEnv    = "ALIBABA_CLOUD_ACCESS_KEY_ID"
+	alicloudAccessKeyEnv     = "ALICLOUD_ACCESS_KEY"
+	alicloudSecretKeyEnv     = "ALICLOUD_SECRET_KEY"
+	alicloudSecurityTokenEnv = "ALICLOUD_SECURITY_TOKEN"
 )
 
 // OSSClient is the subset of *oss.Client that digger uses, so tests can substitute a fake.
@@ -26,6 +30,7 @@ type OSSClient interface {
 	HeadObject(ctx context.Context, request *oss.HeadObjectRequest, optFns ...func(*oss.Options)) (*oss.HeadObjectResult, error)
 	GetObject(ctx context.Context, request *oss.GetObjectRequest, optFns ...func(*oss.Options)) (*oss.GetObjectResult, error)
 	DeleteObject(ctx context.Context, request *oss.DeleteObjectRequest, optFns ...func(*oss.Options)) (*oss.DeleteObjectResult, error)
+	GetBucketVersioning(ctx context.Context, request *oss.GetBucketVersioningRequest, optFns ...func(*oss.Options)) (*oss.GetBucketVersioningResult, error)
 }
 
 // NewOSSClient builds an OSS client from ALICLOUD_OSS_REGION (falling back to the region variables
@@ -54,12 +59,21 @@ func NewOSSClient() (*oss.Client, error) {
 	return oss.NewClient(cfg), nil
 }
 
-// credentialsProvider prefers the OSS SDK's own OSS_ACCESS_KEY_* variables and otherwise delegates to the
-// Alibaba Cloud default chain (ALIBABA_CLOUD_* access keys, OIDC role, ECS RAM role, credentials URI).
+// credentialsProvider order: OSS_ACCESS_KEY_*, then ALICLOUD_ACCESS_KEY/ALICLOUD_SECRET_KEY when ALIBABA_CLOUD_ACCESS_KEY_ID
+// is unset, otherwise the Alibaba Cloud default chain (ALIBABA_CLOUD_*, OIDC role, ECS RAM role).
 func credentialsProvider() (credentials.CredentialsProvider, error) {
 	if os.Getenv(ossAccessKeyIDEnv) != "" {
 		slog.Debug("Using OSS access key credentials from environment")
 		return credentials.NewEnvironmentVariableCredentialsProvider(), nil
+	}
+
+	if os.Getenv(alibabaAccessKeyIDEnv) == "" && os.Getenv(alicloudAccessKeyEnv) != "" {
+		slog.Debug("Using ALICLOUD_* access key credentials from environment")
+		return credentials.NewStaticCredentialsProvider(
+			os.Getenv(alicloudAccessKeyEnv),
+			os.Getenv(alicloudSecretKeyEnv),
+			os.Getenv(alicloudSecurityTokenEnv),
+		), nil
 	}
 
 	slog.Debug("Using Alibaba Cloud default credentials chain")
@@ -85,4 +99,10 @@ func credentialsProvider() (credentials.CredentialsProvider, error) {
 func HasStatus(err error, status int) bool {
 	var serviceErr *oss.ServiceError
 	return errors.As(err, &serviceErr) && serviceErr.StatusCode == status
+}
+
+// IsNoSuchKey reports whether err is OSS's NoSuchKey error; a missing bucket is a 404 too but must surface as an error.
+func IsNoSuchKey(err error) bool {
+	var serviceErr *oss.ServiceError
+	return errors.As(err, &serviceErr) && serviceErr.Code == "NoSuchKey"
 }

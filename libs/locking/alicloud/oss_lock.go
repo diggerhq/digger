@@ -39,11 +39,28 @@ func NewOSSLock() (*OSSLock, error) {
 		return nil, err
 	}
 
-	return &OSSLock{
+	lock := &OSSLock{
 		Client:  client,
 		Bucket:  bucket,
 		Context: context.Background(),
-	}, nil
+	}
+	if err := lock.ensureVersioningDisabled(); err != nil {
+		return nil, err
+	}
+	return lock, nil
+}
+
+// ensureVersioningDisabled rejects versioned buckets, where OSS ignores x-oss-forbid-overwrite and locks stop being exclusive.
+func (l *OSSLock) ensureVersioningDisabled() error {
+	result, err := l.Client.GetBucketVersioning(l.Context, &oss.GetBucketVersioningRequest{Bucket: oss.Ptr(l.Bucket)})
+	if err != nil {
+		slog.Warn("Could not verify that versioning is disabled on the lock bucket", "bucket", l.Bucket, "error", err)
+		return nil
+	}
+	if status := oss.ToString(result.VersionStatus); status != "" {
+		return fmt.Errorf("lock bucket %q has versioning %s, PR locks need a bucket where versioning was never enabled", l.Bucket, status)
+	}
+	return nil
 }
 
 func (l *OSSLock) Lock(transactionID int, resource string) (bool, error) {
@@ -91,7 +108,7 @@ func (l *OSSLock) GetLock(resource string) (*int, error) {
 		Key:    oss.Ptr(resource),
 	})
 	if err != nil {
-		if HasStatus(err, http.StatusNotFound) {
+		if IsNoSuchKey(err) {
 			slog.Debug("No lock exists", "resource", resource, "bucket", l.Bucket)
 			return nil, nil
 		}
