@@ -47,6 +47,21 @@ This app is required regardless of where services run (Docker Compose, Kubernete
   </Step>
 </Steps>
 
+## Re-installing or replacing the GitHub App (e.g. blue/green backend deployments)
+
+If you ever install a new GitHub App to point at a redeployed or replacement backend (for
+example a blue/green cutover of the orchestrator), note that each installation has its own
+GitHub App ID. If any repository's branch protection has a required status check pinned to a
+specific app (`required_status_checks.checks[].app_id` via the GitHub API, or "Require status
+checks to pass" → a check tied to a specific app in the GitHub UI) for a Digger-posted
+context such as `digger/plan` or `digger/apply`, that pin will silently start blocking merges
+after the cutover - GitHub rejects the check because it was posted by a different app ID than
+the one the rule expects, even though the check itself passed.
+
+Before or immediately after switching installations, check each repository's required status
+checks and clear the `app_id` pin (set it to "any source" / `-1` via the API) on any
+Digger-posted context, so it isn't tied to one specific app installation.
+
 ## Required backend environment variables
 
 - `PUBLIC_BASE_URL`: reachable public URL for orchestrator callback generation
