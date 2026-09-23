@@ -778,7 +778,7 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		commitSha := batch.CommitSha
 		impactedProjectDb, err := models.DB.GetImpactedProjectSingle(batch.RepoFullName, commitSha, job.ProjectName)
 		if err != nil {
-			slog.Warn("Error fetching impacted project db", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
+			slog.Error("Error fetching impacted project db, auto-merge may not trigger", "jobId", jobId, "projectName", job.ProjectName, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
 		} else if impactedProjectDb == nil && err == nil {
 			slog.Warn("Impacted project entry not found in db (maybe it was not synced in event start)", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
 		} else {
@@ -788,7 +788,15 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			if batch.BatchType == orchestrator_scheduler.DiggerCommandApply {
 				impactedProjectDb.Applied = true
 			}
-			models.DB.GormDB.Save(impactedProjectDb)
+			if err := models.DB.GormDB.Save(impactedProjectDb).Error; err != nil {
+				slog.Error("Failed to persist impacted project status, auto-merge may not trigger",
+					"jobId", jobId,
+					"projectName", job.ProjectName,
+					"commitSha", commitSha,
+					"repoFullName", batch.RepoFullName,
+					"error", err,
+				)
+			}
 		}
 
 		var prCommentId *int64
