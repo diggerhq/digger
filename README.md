@@ -55,7 +55,7 @@ Digger also stores PR-level locks and plan cache in your cloud account (DynamoDB
 
 ## Compared to Atlantis
 
-- No need to host and maintain a server (although you [can](https://docs.digger.dev/self-host/deploy-helm))
+- No need to host and maintain a server (although you [can](https://docs.digger.dev/self-hosting/kubernetes))
 - Secure by design: jobs run in your CI, so sensitive data stays there
 - Scalable compute: jobs can run in parallel
 - RBAC and policies via OPA
