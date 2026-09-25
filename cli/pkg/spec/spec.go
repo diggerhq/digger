@@ -131,9 +131,18 @@ func RunSpec(
 		reportError(spec, backendApi, msg, err)
 		usage.ReportErrorAndExit(spec.VCS.Actor, fmt.Sprintf("could not get variables from provider: %v", err), 1)
 	}
-	job.StateEnvVars = lo.Assign(job.StateEnvVars, variablesMap)
-	job.CommandEnvVars = lo.Assign(job.CommandEnvVars, variablesMap)
-	job.RunEnvVars = lo.Assign(job.RunEnvVars, variablesMap)
+
+	// Merge variables for each stage into the job's environment variables
+	// Each stage has its own set of variables
+	if stateVars, ok := variablesMap["state"]; ok {
+		job.StateEnvVars = lo.Assign(job.StateEnvVars, stateVars)
+	}
+	if commandVars, ok := variablesMap["commands"]; ok {
+		job.CommandEnvVars = lo.Assign(job.CommandEnvVars, commandVars)
+	}
+	if runVars, ok := variablesMap["run"]; ok {
+		job.RunEnvVars = lo.Assign(job.RunEnvVars, runVars)
+	}
 
 	jobs := []scheduler.Job{job}
 
