@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/diggerhq/digger/backend/models"
+	"github.com/diggerhq/digger/libs/ci/github"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
 	utils3 "github.com/diggerhq/digger/libs/git_utils"
 	"log/slog"
@@ -45,7 +46,12 @@ func main() {
 	models.ConnectDatabase()
 
 	slog.Info("refreshing projects from repo", "repoFullName", repoFullName)
-	err := utils3.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
+	ghService, err := github.NewServiceForCloneURL(cloneUrl, token)
+	if err != nil {
+		slog.Error("failed to create GitHub client", "error", err)
+		os.Exit(1)
+	}
+	err = utils3.CloneGitRepoAndDoActionWithConfig(cloneUrl, branch, "", token, "", ghService.ReadRepositoryFile, func(dir string) error {
 		config, _, err := dg_configuration.LoadDiggerConfigYaml(dir, true, nil, nil)
 		if err != nil {
 			slog.Error("failed to load digger.yml: %v", "error", err)
@@ -61,7 +67,7 @@ func main() {
 		return nil
 	})
 	if err != nil {
-		slog.Error("error while cloning repo: %v", err)
+		slog.Error("error while cloning repo", "error", err)
 		os.Exit(1)
 	}
 

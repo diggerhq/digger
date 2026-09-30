@@ -69,7 +69,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	cloneUrl := fmt.Sprintf("https://%v/%v", utils.GetGithubHostname(), repo.RepoFullName)
 	branch := request.Branch
 
-	_, token, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
+	ghService, token, err := utils.GetGithubService(d.GithubClientProvider, installationId, repoFullName, repoOwner, repoName)
 	if err != nil {
 		slog.Error("Could not get GitHub service", "error", err, "repoFullName", repoFullName, "orgId", orgId)
 		c.String(http.StatusInternalServerError, fmt.Sprintf("could not get github service %v %v", repoFullName, orgId))
@@ -83,7 +83,7 @@ func (d DiggerController) UpdateRepoCache(c *gin.Context) {
 	// update the cache here, do it async for immediate response
 	go func(ctx context.Context) {
 		defer logging.InheritRequestLogger(ctx)()
-		err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", *token, "", func(dir string) error {
+		err = git_utils.CloneGitRepoAndDoActionWithConfig(cloneUrl, branch, "", *token, "", ghService.ReadRepositoryFile, func(dir string) error {
 			diggerYmlBytes, err := os.ReadFile(path.Join(dir, "digger.yml"))
 			diggerYmlStr = string(diggerYmlBytes)
 			config, _, _, newAtlantisConfig, err = dg_configuration.LoadDiggerConfig(dir, true, nil, nil)

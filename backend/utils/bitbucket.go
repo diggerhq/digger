@@ -95,7 +95,7 @@ func GetDiggerConfigForBitbucketBranch(bb BitbucketProvider, token string, repoF
 		"changedFilesCount", len(changedFiles),
 	)
 
-	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "x-token-auth", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoActionWithConfig(cloneUrl, branch, "", token, "x-token-auth", service.ReadRepositoryFile, func(dir string) error {
 		diggerYmlPath := path.Join(dir, "digger.yml")
 		diggerYmlBytes, err := os.ReadFile(diggerYmlPath)
 		if err != nil {
