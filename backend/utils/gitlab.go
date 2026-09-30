@@ -114,7 +114,7 @@ func GetDiggerConfigForBranchGitlab(gh GitlabProvider, projectId int, repoFullNa
 		"changedFilesCount", len(changedFiles),
 	)
 
-	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, "", token, "", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoActionWithConfig(cloneUrl, branch, "", token, "", service.ReadRepositoryFile, func(dir string) error {
 		diggerYmlPath := path.Join(dir, "digger.yml")
 		diggerYmlBytes, err := os.ReadFile(diggerYmlPath)
 		if err != nil {

@@ -29,12 +29,24 @@ func CloneGitRepoAndDoAction(repoUrl string, branch string, commitHash string, t
 	return CloneGitRepoAndDoActionWithTimeout(repoUrl, branch, commitHash, token, tokenUsername, defaultGitTimeout, action)
 }
 
-// CloneGitRepoAndDoActionWithTimeout is CloneGitRepoAndDoAction with a per-git-command timeout (digger.yml git_timeout, in seconds)
+// CloneGitRepoAndDoActionWithTimeout overrides the per-command timeout.
+// A non-positive timeout uses the default of 30 seconds.
 func CloneGitRepoAndDoActionWithTimeout(repoUrl string, branch string, commitHash string, token string, tokenUsername string, timeout time.Duration, action action) error {
 	dir, err := createTempDir()
 	if err != nil {
 		slog.Error("Failed to create temporary directory", "error", err)
 		return err
+	}
+	defer func() {
+		slog.Debug("Removing cloned directory", "directory", dir)
+		if err := os.RemoveAll(dir); err != nil {
+			slog.Warn("Failed to remove directory", "directory", dir, "error", err)
+		}
+	}()
+
+	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
+	if timeout > 0 {
+		git.timeout = timeout
 	}
 
 	slog.Debug("Cloning git repository",
@@ -42,12 +54,9 @@ func CloneGitRepoAndDoActionWithTimeout(repoUrl string, branch string, commitHas
 		"branch", branch,
 		"commitHash", commitHash,
 		"directory", dir,
+		"timeout", git.timeout,
 	)
 
-	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
-	if timeout > 0 {
-		git.timeout = timeout
-	}
 	err = git.Clone(repoUrl, branch)
 	if err != nil {
 		slog.Error("Failed to clone repository",
@@ -68,14 +77,6 @@ func CloneGitRepoAndDoActionWithTimeout(repoUrl string, branch string, commitHas
 			return err
 		}
 	}
-
-	defer func() {
-		slog.Debug("Removing cloned directory", "directory", dir)
-		ferr := os.RemoveAll(dir)
-		if ferr != nil {
-			slog.Warn("Failed to remove directory", "directory", dir, "error", ferr)
-		}
-	}()
 
 	err = action(dir)
 	if err != nil {
@@ -176,8 +177,11 @@ func (g *GitShell) runCommand(args ...string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
+		if ctx.Err() != nil {
+			return "", fmt.Errorf("git command timed out after %s: %w: %s", g.timeout, ctx.Err(), stderr.String())
+		}
 		if stderr.Len() > 0 {
-			return "", fmt.Errorf("git command failed: %v: %s", err, stderr.String())
+			return "", fmt.Errorf("git command failed: %w: %s", err, stderr.String())
 		}
 		return "", err
 	}

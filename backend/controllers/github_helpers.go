@@ -863,7 +863,7 @@ func GetDiggerConfigForBranchOrSha(gh utils.GithubClientProvider, installationId
 	var diggerYmlStr string
 	var dependencyGraph graph.Graph[string, digger_config.Project]
 
-	err = git_utils.CloneGitRepoAndDoAction(cloneUrl, branch, commitSha, *token, "", func(dir string) error {
+	err = git_utils.CloneGitRepoAndDoActionWithConfig(cloneUrl, branch, commitSha, *token, "", ghService.ReadRepositoryFile, func(dir string) error {
 		slog.Debug("Reading Digger config from cloned repository", "directory", dir)
 
 		diggerYmlStr, err = digger_config.ReadDiggerYmlFileContents(dir)
