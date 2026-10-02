@@ -45,8 +45,8 @@ spec:
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.digger.postgres.databaseUrlSecretName }}
-              key: {{ .Values.digger.postgres.databaseUrlSecretKey }}
+              name: {{ .Values.digger.postgres.databaseUrlSecretName | quote }}
+              key: {{ .Values.digger.postgres.databaseUrlSecretKey | default "DATABASE_URL" | quote }}
         {{- else }}
         - name: POSTGRES_PASSWORD
         {{- if  and .Values.postgres.enabled .Values.postgres.secret.useExistingSecret }}

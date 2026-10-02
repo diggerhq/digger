@@ -50,6 +50,35 @@ tests:
                 name: digger-db
                 key: connection-string
 
+  - it: should fall back to the DATABASE_URL key when the key value is missing
+    # helm upgrade --reuse-values keeps a pre-0.1.13 release's values, which
+    # don't have databaseUrlSecretKey.
+    set:
+      digger.postgres.databaseUrlSecretName: digger-db
+      digger.postgres.databaseUrlSecretKey: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: digger-db
+                key: DATABASE_URL
+
+  - it: should render a YAML-ambiguous secret name as a string
+    set:
+      digger.postgres.databaseUrlSecretName: "true"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: "true"
+                key: DATABASE_URL
+
   - it: should prefer the DATABASE_URL secret over the built-in postgres
     set:
       postgres.enabled: true
