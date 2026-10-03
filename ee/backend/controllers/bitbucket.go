@@ -109,7 +109,11 @@ func (ee DiggerEEController) BitbucketWebhookHandler(c *gin.Context) {
 		return
 	}
 
-	verifySignature(c, bodyBytes, bitbucketWebhookSecret)
+	if !verifySignature(c, bodyBytes, bitbucketWebhookSecret) {
+		log.Printf("Error validating bitbucket webhook payload: invalid signature")
+		c.String(http.StatusBadRequest, "Error validating bitbucket webhook payload: invalid signature")
+		return
+	}
 
 	switch eventKey {
 	case "pullrequest:comment_created":
