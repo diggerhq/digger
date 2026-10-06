@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
@@ -56,7 +57,6 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 	hostName := os.Getenv("DIGGER_HOSTNAME")
 	token := os.Getenv("DIGGER_TOKEN")
 	orgName := os.Getenv("DIGGER_ORGANISATION")
-	var policyChecker, _ = policyCheckerProvider.Get(hostName, token, orgName)
 
 	ghToken := os.Getenv("GITHUB_TOKEN")
 	if ghToken == "" {
@@ -113,6 +113,16 @@ func GitHubCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to read Digger digger_config. %s", err), 4)
 	}
 	slog.Info("Digger digger_config read successfully")
+
+	var policyChecker core_policy.Checker
+	if provider, ok := policyCheckerProvider.(core_policy.GitTimeoutPolicyCheckerProvider); ok {
+		policyChecker, err = provider.GetWithGitTimeout(hostName, orgName, token, time.Duration(diggerConfig.GitTimeout)*time.Second)
+	} else {
+		policyChecker, err = policyCheckerProvider.Get(hostName, orgName, token)
+	}
+	if err != nil {
+		usage.ReportErrorAndExit(githubActor, fmt.Sprintf("Failed to initialize policy checker. %s", err), 4)
+	}
 
 	if diggerConfig.PrLocks == false {
 		slog.Info("Using noop lock as configured in digger.yml")

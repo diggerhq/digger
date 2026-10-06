@@ -1,5 +1,7 @@
 package policy
 
+import "time"
+
 type Provider interface {
 	GetAccessPolicy(organisation string, repository string, projectname string, projectDir string) (string, error)
 	GetPlanPolicy(organisation string, repository string, projectname string, projectDir string) (string, error)
@@ -18,6 +20,10 @@ type Checker interface {
 
 type PolicyCheckerProvider interface {
 	Get(hostname string, organisationName string, authToken string) (Checker, error)
+}
+
+type GitTimeoutPolicyCheckerProvider interface {
+	GetWithGitTimeout(hostname string, organisationName string, authToken string, gitTimeout time.Duration) (Checker, error)
 }
 
 type AccessPolicyContext struct {
