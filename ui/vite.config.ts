@@ -17,12 +17,24 @@ function requestLoggingPlugin(): Plugin {
           : existingRequestId || `ssr-${Math.random().toString(36).slice(2, 10)}`;
         const requestStart = Date.now();
         
-        const pathname = req.url?.split('?')[0] || '/';
+        const fullUrl = req.url || '/';
+        const pathname = fullUrl.split('?')[0];
         const method = req.method || 'GET';
         
-        // Extract user ID and org ID and log request initialization
-        const { userId, orgId } = await extractUserInfoFromRequest(req);
-        logRequestInit(method, pathname, requestId, userId, orgId);
+        // Skip logging for TanStack Router component split requests and Vite internal requests
+        // Check full URL for query params, pathname for path patterns
+        const isTanStackSplitRequest = fullUrl.includes('tsr-split=component') || pathname.startsWith('/src/routes/');
+        const isViteInternal = pathname.startsWith('/@') || pathname.startsWith('/node_modules/') || pathname.startsWith('/@fs/');
+        
+        if (!isTanStackSplitRequest && !isViteInternal) {
+          // Extract user ID and org ID and log request initialization
+          try {
+            const { userId, orgId } = await extractUserInfoFromRequest(req);
+            logRequestInit(method, pathname, requestId, userId, orgId);
+          } catch (error) {
+            // Silently fail logging for dev server requests
+          }
+        }
         
         // Set request ID header
         req.headers['x-request-id'] = requestId;
@@ -30,8 +42,14 @@ function requestLoggingPlugin(): Plugin {
         // Capture original end function to log response
         const originalEnd = res.end.bind(res);
         res.end = function(...args: any[]) {
-          const latency = Date.now() - requestStart;
-          logResponse(method, pathname, requestId, latency, res.statusCode || 200);
+          if (!isTanStackSplitRequest && !isViteInternal) {
+            try {
+              const latency = Date.now() - requestStart;
+              logResponse(method, pathname, requestId, latency, res.statusCode || 200);
+            } catch (error) {
+              // Silently fail logging for dev server requests
+            }
+          }
           return originalEnd(...args);
         };
         
@@ -50,6 +68,18 @@ export default defineConfig(({ mode }) => {
     .filter(Boolean);
 
   return {
+    base: '/',
+    build: {
+      // Ensure proper asset handling for TanStack Start
+      rollupOptions: {
+        output: {
+          // Ensure consistent asset naming
+          assetFileNames: 'assets/[name]-[hash][extname]',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+        },
+      },
+    },
     ssr: {
       // Force native Node resolution at runtime (no inlining)
       external: ['@workos-inc/node'],
@@ -58,13 +88,18 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3030,
       allowedHosts,
+      // Ensure proper handling of dynamic imports and component splitting
+      hmr: {
+        protocol: 'ws',
+      },
     },
     plugins: [
       tsConfigPaths({
         projects: ['./tsconfig.json'],
       }),
-      requestLoggingPlugin(),
+      // TanStack Start must come before request logging to handle component splitting
       tanstackStart(),
+      requestLoggingPlugin(),
       viteReact(),
       // cloudflare({ viteEnvironment: { name: 'ssr' } }),
     ],
