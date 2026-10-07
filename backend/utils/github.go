@@ -255,7 +255,7 @@ func GetCheckDetailedUrl(checkRunId int64, repoOwner string, repoName string, pr
 
 // Checks are the more modern github way as opposed to "commit status"
 // With checks you also get to set a page representing content of the check
-func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []scheduler.Job, commitSha string, repoName string, repoOwner string) (*CheckRunData, map[string]CheckRunData, error) {
+func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []scheduler.Job, commitSha string, repoName string, repoOwner string, disableApplyStatusCheck bool) (*CheckRunData, map[string]CheckRunData, error) {
 	slog.Info("commitSha", "commitsha", commitSha)
 	slog.Info("Setting PR status for jobs",
 		"prNumber", prNumber,
@@ -334,16 +334,18 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 
 			// Also create the apply check in queued state for plan batches
 			// This will be automatically set to success if plan shows zero changes
-			slog.Debug("Setting aggregate apply status (queued) for plan batch", "prNumber", prNumber)
-			_, err = ghService.CreateCheckRun("digger/apply", "queued", "", "Waiting for plan to complete...", "The apply check will automatically succeed if there are no changes to apply", "", commitSha, nil)
-			if err != nil {
-				slog.Warn("Failed to create aggregate apply check run (queued) for plan batch",
-					"prNumber", prNumber,
-					"error", err,
-				)
-				// Don't fail the entire operation if apply check creation fails
+			if !disableApplyStatusCheck {
+				slog.Debug("Setting aggregate apply status (queued) for plan batch", "prNumber", prNumber)
+				_, err = ghService.CreateCheckRun("digger/apply", "queued", "", "Waiting for plan to complete...", "The apply check will automatically succeed if there are no changes to apply", "", commitSha, nil)
+				if err != nil {
+					slog.Warn("Failed to create aggregate apply check run (queued) for plan batch",
+						"prNumber", prNumber,
+						"error", err,
+					)
+					// Don't fail the entire operation if apply check creation fails
+				}
 			}
-		} else {
+		} else if !disableApplyStatusCheck {
 			slog.Debug("Setting aggregate apply status", "prNumber", prNumber)
 			cr, err = ghService.CreateCheckRun("digger/apply", "in_progress", "", "Pending start...", "", jobsSummaryTable, commitSha, nil)
 			if err != nil {
@@ -366,10 +368,12 @@ func SetPRCheckForJobs(ghService *github2.GithubService, prNumber int, jobs []sc
 			return nil, nil, fmt.Errorf("error setting pr status: %v", err)
 		}
 
-		_, err = ghService.CreateCheckRun("digger/apply", "completed", "success", "No impacted projects", "Check your configuration and files changed if this is unexpected", "digger/apply", commitSha, nil)
-		if err != nil {
-			slog.Error("Failed to set success apply status", "prNumber", prNumber, "error", err)
-			return nil, nil, fmt.Errorf("error setting pr status: %v", err)
+		if !disableApplyStatusCheck {
+			_, err = ghService.CreateCheckRun("digger/apply", "completed", "success", "No impacted projects", "Check your configuration and files changed if this is unexpected", "digger/apply", commitSha, nil)
+			if err != nil {
+				slog.Error("Failed to set success apply status", "prNumber", prNumber, "error", err)
+				return nil, nil, fmt.Errorf("error setting pr status: %v", err)
+			}
 		}
 	}
 
