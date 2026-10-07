@@ -8,6 +8,8 @@
 name: git_timeout e2e (throttled runner)
 
 on:
+  push:
+    branches: [test/git-timeout-e2e]
   workflow_dispatch:
     inputs:
       cli_flavor:
@@ -32,7 +34,7 @@ on:
         description: "git_timeout (seconds) carried in the spec's policy_provider"
         default: "120"
 
-run-name: "git_timeout e2e (${{ inputs.cli_flavor }}): ${{ inputs.shipped_version }} vs ${{ inputs.fixed_repo }}@${{ inputs.fixed_ref }}, rate=${{ inputs.rate_kbit }}kbit, git_timeout=${{ inputs.git_timeout }}s"
+run-name: "git_timeout e2e (${{ (inputs.cli_flavor || 'ee') }}): ${{ (inputs.shipped_version || 'v0.6.152') }} vs ${{ (inputs.fixed_repo || 's1ntaxe770r/digger') }}@${{ (inputs.fixed_ref || 'fix/spec-git-timeout') }}, rate=${{ (inputs.rate_kbit || '150') }}kbit, git_timeout=${{ (inputs.git_timeout || '120') }}s"
 
 permissions:
   contents: read
@@ -54,27 +56,27 @@ jobs:
       - name: Check out the terraform fixture (s1ntaxe770r/terragrun-test)
         run: git clone --depth 1 https://github.com/s1ntaxe770r/terragrun-test.git "$RUNNER_TEMP/fixture"
 
-      - name: Build the fixed ${{ inputs.cli_flavor }} CLI from ${{ inputs.fixed_repo }}@${{ inputs.fixed_ref }}
+      - name: Build the fixed ${{ (inputs.cli_flavor || 'ee') }} CLI from ${{ (inputs.fixed_repo || 's1ntaxe770r/digger') }}@${{ (inputs.fixed_ref || 'fix/spec-git-timeout') }}
         run: |
           set -euo pipefail
-          git clone --depth 1 --branch "${{ inputs.fixed_ref }}" "https://github.com/${{ inputs.fixed_repo }}.git" "$RUNNER_TEMP/digger-src"
-          if [ "${{ inputs.cli_flavor }}" = "ee" ]; then cd "$RUNNER_TEMP/digger-src/ee/cli"; else cd "$RUNNER_TEMP/digger-src/cli"; fi
+          git clone --depth 1 --branch "${{ (inputs.fixed_ref || 'fix/spec-git-timeout') }}" "https://github.com/${{ (inputs.fixed_repo || 's1ntaxe770r/digger') }}.git" "$RUNNER_TEMP/digger-src"
+          if [ "${{ (inputs.cli_flavor || 'ee') }}" = "ee" ]; then cd "$RUNNER_TEMP/digger-src/ee/cli"; else cd "$RUNNER_TEMP/digger-src/cli"; fi
           go build -o "$RUNNER_TEMP/digger-fixed" ./cmd/digger
           echo "fixed CLI built from $(git rev-parse --short HEAD)"
 
-      - name: Download the shipped ${{ inputs.cli_flavor }} CLI ${{ inputs.shipped_version }}
+      - name: Download the shipped ${{ (inputs.cli_flavor || 'ee') }} CLI ${{ (inputs.shipped_version || 'v0.6.152') }}
         run: |
           set -euo pipefail
-          if [ "${{ inputs.cli_flavor }}" = "ee" ]; then asset=digger-ee-cli-linux-amd64; else asset=digger-cli-linux-amd64; fi
+          if [ "${{ (inputs.cli_flavor || 'ee') }}" = "ee" ]; then asset=digger-ee-cli-linux-amd64; else asset=digger-cli-linux-amd64; fi
           curl -fsSL -o "$RUNNER_TEMP/digger-shipped" \
-            "https://github.com/diggerhq/digger/releases/download/${{ inputs.shipped_version }}/$asset"
+            "https://github.com/diggerhq/digger/releases/download/${{ (inputs.shipped_version || 'v0.6.152') }}/$asset"
           chmod +x "$RUNNER_TEMP/digger-shipped"
           echo "downloaded $asset"
 
       - name: Build the drift-shaped spec (what drift/controllers/drift.go dispatches)
         run: |
           set -euo pipefail
-          jq -cn --argjson gt "${{ inputs.git_timeout }}" '{
+          jq -cn --argjson gt "${{ (inputs.git_timeout || '120') }}" '{
             job_id: "git-timeout-e2e", comment_id: "", run_name: "git_timeout e2e",
             job: {
               job_type: "plan", projectName: "dev-my-project", projectDir: "infra/dev/my-project", projectWorkspace: "default",
@@ -100,9 +102,9 @@ jobs:
 
       - name: Throttle git through a bandwidth-limited CONNECT proxy
         id: throttle
-        if: ${{ inputs.rate_kbit != '0' }}
+        if: ${{ (inputs.rate_kbit || '150') != '0' }}
         env:
-          RATE_KBIT: ${{ inputs.rate_kbit }}
+          RATE_KBIT: ${{ (inputs.rate_kbit || '150') }}
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/throttle_proxy.py" <<'PY'
@@ -151,18 +153,18 @@ jobs:
           git config --global http.proxy http://127.0.0.1:8118
           echo "git now downloads through 127.0.0.1:8118 at ${rate_bps} B/s"
           start=$(date +%s)
-          timeout 900 git clone -q --depth 1 --single-branch -b main "${{ inputs.management_repo }}" "$RUNNER_TEMP/probe"
+          timeout 900 git clone -q --depth 1 --single-branch -b main "${{ (inputs.management_repo || 'https://github.com/s1ntaxe770r/digger-small-management-repo') }}" "$RUNNER_TEMP/probe"
           secs=$(( $(date +%s) - start ))
           echo "probe clone of the management repo took ${secs}s (Digger default git_timeout is 30s)"
           echo "seconds=$secs" >> "$GITHUB_OUTPUT"
           rm -rf "$RUNNER_TEMP/probe"
 
-      - name: Run shipped ${{ inputs.shipped_version }} (expected to time out after 30s)
+      - name: Run shipped ${{ (inputs.shipped_version || 'v0.6.152') }} (expected to time out after 30s)
         id: shipped
         continue-on-error: true
         working-directory: ${{ runner.temp }}/fixture
         env:
-          DIGGER_MANAGEMENT_REPO: ${{ inputs.management_repo }}
+          DIGGER_MANAGEMENT_REPO: ${{ (inputs.management_repo || 'https://github.com/s1ntaxe770r/digger-small-management-repo') }}
           DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIGGER_LOG_LEVEL: DEBUG
@@ -183,7 +185,7 @@ jobs:
         continue-on-error: true
         working-directory: ${{ runner.temp }}/fixture
         env:
-          DIGGER_MANAGEMENT_REPO: ${{ inputs.management_repo }}
+          DIGGER_MANAGEMENT_REPO: ${{ (inputs.management_repo || 'https://github.com/s1ntaxe770r/digger-small-management-repo') }}
           DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIGGER_LOG_LEVEL: DEBUG
@@ -213,18 +215,18 @@ jobs:
           shipped_key=$(key "$RUNNER_TEMP/shipped.log")
           fixed_key=$(key "$RUNNER_TEMP/fixed.log")
           {
-            echo "## git_timeout e2e (${{ inputs.cli_flavor }} CLI)"
+            echo "## git_timeout e2e (${{ (inputs.cli_flavor || 'ee') }} CLI)"
             echo ""
-            echo "- management repo: ${{ inputs.management_repo }}; git download rate ${{ inputs.rate_kbit }} kbit/s; probe depth-1 clone took ${PROBE_SECONDS:-n/a}s (default git_timeout is 30s)"
-            echo "- spec policy_provider.git_timeout: ${{ inputs.git_timeout }}s"
+            echo "- management repo: ${{ (inputs.management_repo || 'https://github.com/s1ntaxe770r/digger-small-management-repo') }}; git download rate ${{ (inputs.rate_kbit || '150') }} kbit/s; probe depth-1 clone took ${PROBE_SECONDS:-n/a}s (default git_timeout is 30s)"
+            echo "- spec policy_provider.git_timeout: ${{ (inputs.git_timeout || '120') }}s"
             echo ""
-            echo "| ${{ inputs.cli_flavor }} CLI | outcome | elapsed | git clones attempted | key log line |"
+            echo "| ${{ (inputs.cli_flavor || 'ee') }} CLI | outcome | elapsed | git clones attempted | key log line |"
             echo "|---|---|---|---|---|"
-            echo "| shipped ${{ inputs.shipped_version }} | ${SHIPPED_OUTCOME} | ${SHIPPED_ELAPSED:-?}s | $(grep -c 'Cloning into' "$RUNNER_TEMP/shipped.log" || true) | ${shipped_key} |"
-            echo "| fixed ${{ inputs.fixed_repo }}@${{ inputs.fixed_ref }} | ${FIXED_OUTCOME} | ${FIXED_ELAPSED:-?}s | $(grep -c 'Cloning into' "$RUNNER_TEMP/fixed.log" || true) | ${fixed_key} |"
+            echo "| shipped ${{ (inputs.shipped_version || 'v0.6.152') }} | ${SHIPPED_OUTCOME} | ${SHIPPED_ELAPSED:-?}s | $(grep -c 'Cloning into' "$RUNNER_TEMP/shipped.log" || true) | ${shipped_key} |"
+            echo "| fixed ${{ (inputs.fixed_repo || 's1ntaxe770r/digger') }}@${{ (inputs.fixed_ref || 'fix/spec-git-timeout') }} | ${FIXED_OUTCOME} | ${FIXED_ELAPSED:-?}s | $(grep -c 'Cloning into' "$RUNNER_TEMP/fixed.log" || true) | ${fixed_key} |"
           } >> "$GITHUB_STEP_SUMMARY"
           cat "$GITHUB_STEP_SUMMARY"
-          if [ "${{ inputs.cli_flavor }}" != "ee" ]; then
+          if [ "${{ (inputs.cli_flavor || 'ee') }}" != "ee" ]; then
             echo "oss flavor: no timeout expectations, the table above is the result"; exit 0
           fi
           if [ "$shipped_key" != "git command timed out after 30s" ]; then
