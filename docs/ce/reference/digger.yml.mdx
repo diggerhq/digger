@@ -216,7 +216,7 @@ workflows:
 </ParamField>
 
 <ParamField path="git_timeout" type="integer" default="30">
-  Timeout in seconds for each git command (clone, checkout) Digger runs when loading repository configuration. Increase this for large repositories, for example `git_timeout: 120`. Digger reads this setting through the Git provider API before cloning, using the requested branch or commit. It checks `digger.yml` first, then `digger.yaml`. An omitted, zero, or negative value uses the 30-second default. The initial API lookup has its own 30-second timeout.
+  Timeout in seconds for each git command (clone, checkout) Digger runs when loading repository configuration. Increase this for large repositories, for example `git_timeout: 120`. Digger reads this setting through the Git provider API before cloning, using the requested branch or commit. It checks `digger.yml` first, then `digger.yaml`. An omitted, zero, or negative value uses the 30-second default. The initial API lookup has its own 30-second timeout. The same value applies when a job clones the policy management repository (`DIGGER_MANAGEMENT_REPO`), including drift runs, so increase it if that repository is large.
 </ParamField>
 
 <ParamField path="projects" type="array">

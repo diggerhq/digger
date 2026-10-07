@@ -147,6 +147,23 @@ func getVariablesSpecFromEnvMap(envVars map[string]string) []spec.VariableSpec {
 	return variablesSpec
 }
 
+// gitTimeoutFromBatch returns git_timeout (seconds) from the digger.yml stored on the batch,
+// or 0 when it is absent or unreadable so the CLI keeps its default.
+func gitTimeoutFromBatch(batch *models.DiggerBatch) int {
+	if batch == nil || batch.DiggerConfig == "" {
+		return 0
+	}
+	configYaml, err := digger_config.LoadDiggerConfigYamlFromString(batch.DiggerConfig)
+	if err != nil {
+		slog.Warn("Could not read git_timeout from batch digger config", "batchId", batch.ID, "error", err)
+		return 0
+	}
+	if configYaml.GitTimeout == nil {
+		return 0
+	}
+	return *configYaml.GitTimeout
+}
+
 func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 	var jobSpec scheduler.JobJson
 	err := json.Unmarshal([]byte(job.SerializedJobSpec), &jobSpec)
@@ -212,6 +229,7 @@ func GetSpecFromJob(job models.DiggerJob) (*spec.Spec, error) {
 		Variables: variablesSpec,
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
+			GitTimeout: gitTimeoutFromBatch(batch),
 		},
 		CommentUpdater: spec.CommentUpdaterSpec{
 			CommentUpdaterType: digger_config.CommentRenderModeBasic,
