@@ -8,6 +8,7 @@ import (
 	"github.com/diggerhq/digger/backend/config"
 	ce_controllers "github.com/diggerhq/digger/backend/controllers"
 	"github.com/diggerhq/digger/backend/middleware"
+	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/utils"
 	ci_backends2 "github.com/diggerhq/digger/ee/backend/ci_backends"
 	"github.com/diggerhq/digger/ee/backend/controllers"
@@ -51,7 +52,7 @@ func main() {
 		CiBackendProvider:    ci_backends2.EEBackendProvider{},
 	}
 
-	r.POST("/get-spec", eeController.GetSpec)
+	registerGetSpec(r, eeController.GetSpec)
 	r.POST("/gitlab-webhook", eeController.GitlabWebHookHandler)
 	r.POST("/bitbucket-webhook", eeController.BitbucketWebhookHandler)
 
@@ -110,6 +111,12 @@ func main() {
 
 	port := config.GetPort()
 	r.Run(fmt.Sprintf(":%d", port))
+}
+
+// registerGetSpec adds /get-spec. The handler creates a job token for the
+// caller's organisation, so the route requires an admin caller.
+func registerGetSpec(r gin.IRoutes, handler gin.HandlerFunc) {
+	r.POST("/get-spec", middleware.GetApiMiddleware(), middleware.AccessLevel(models.AdminPolicyType), handler)
 }
 
 func init() {
