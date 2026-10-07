@@ -19,6 +19,7 @@ Exit codes:
 6 - failed to process CI event
 7 - failed to convert event to command
 8 - failed to execute command
+9 - plan is not empty (digger plan --fail-on-changes only)
 10 - No CI detected
 */
 
