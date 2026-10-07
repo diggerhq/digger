@@ -1,0 +1,238 @@
+# Throwaway e2e for "git command timed out after 30s" in the policy check of spec (drift / PR) runs.
+# Lives on a test branch only so it can use this repo's TEST_DIGGER_LICENSE_KEY for the EE CLI.
+#
+# One job, same drift-shaped spec, two binaries back to back on a runner whose git traffic is
+# throttled (bandwidth-limited CONNECT proxy; tc ingress shaping is pre-empted on hosted runners):
+#   shipped <shipped_version>    expected: "git command timed out after 30s" (spec git_timeout ignored)
+#   fixed   <fixed_repo>@<fixed_ref>   expected: clone finishes within git_timeout, policy check passes
+name: git_timeout e2e (throttled runner)
+
+on:
+  workflow_dispatch:
+    inputs:
+      cli_flavor:
+        description: "ee (ee/cli, digger-ee-cli-*) or oss (cli/, digger-cli-*)"
+        default: "ee"
+      shipped_version:
+        description: "Released CLI to compare against"
+        default: "v0.6.152"
+      fixed_repo:
+        description: "Repo to build the fixed CLI from"
+        default: "s1ntaxe770r/digger"
+      fixed_ref:
+        description: "Ref in fixed_repo to build the fixed CLI from"
+        default: "fix/spec-git-timeout"
+      management_repo:
+        description: "DIGGER_MANAGEMENT_REPO the policy check clones"
+        default: "https://github.com/s1ntaxe770r/digger-small-management-repo"
+      rate_kbit:
+        description: "Bandwidth for git downloads in kbit/s (0 = no throttle, e.g. for the heavy repo)"
+        default: "150"
+      git_timeout:
+        description: "git_timeout (seconds) carried in the spec's policy_provider"
+        default: "120"
+
+run-name: "git_timeout e2e (${{ inputs.cli_flavor }}): ${{ inputs.shipped_version }} vs ${{ inputs.fixed_repo }}@${{ inputs.fixed_ref }}, rate=${{ inputs.rate_kbit }}kbit, git_timeout=${{ inputs.git_timeout }}s"
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Check out the terraform fixture (s1ntaxe770r/terragrun-test)
+        run: git clone --depth 1 https://github.com/s1ntaxe770r/terragrun-test.git "$RUNNER_TEMP/fixture"
+
+      - name: Build the fixed ${{ inputs.cli_flavor }} CLI from ${{ inputs.fixed_repo }}@${{ inputs.fixed_ref }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "${{ inputs.fixed_ref }}" "https://github.com/${{ inputs.fixed_repo }}.git" "$RUNNER_TEMP/digger-src"
+          if [ "${{ inputs.cli_flavor }}" = "ee" ]; then cd "$RUNNER_TEMP/digger-src/ee/cli"; else cd "$RUNNER_TEMP/digger-src/cli"; fi
+          go build -o "$RUNNER_TEMP/digger-fixed" ./cmd/digger
+          echo "fixed CLI built from $(git rev-parse --short HEAD)"
+
+      - name: Download the shipped ${{ inputs.cli_flavor }} CLI ${{ inputs.shipped_version }}
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.cli_flavor }}" = "ee" ]; then asset=digger-ee-cli-linux-amd64; else asset=digger-cli-linux-amd64; fi
+          curl -fsSL -o "$RUNNER_TEMP/digger-shipped" \
+            "https://github.com/diggerhq/digger/releases/download/${{ inputs.shipped_version }}/$asset"
+          chmod +x "$RUNNER_TEMP/digger-shipped"
+          echo "downloaded $asset"
+
+      - name: Build the drift-shaped spec (what drift/controllers/drift.go dispatches)
+        run: |
+          set -euo pipefail
+          jq -cn --argjson gt "${{ inputs.git_timeout }}" '{
+            job_id: "git-timeout-e2e", comment_id: "", run_name: "git_timeout e2e",
+            job: {
+              job_type: "plan", projectName: "dev-my-project", projectDir: "infra/dev/my-project", projectWorkspace: "default",
+              terragrunt: false, opentofu: false, pulumi: false,
+              commands: ["digger plan"],
+              applyStage: {steps: [{action: "init"}, {action: "apply"}]},
+              planStage: {steps: [{action: "init"}, {action: "plan"}]},
+              pullRequestNumber: 0, commit: "", branch: "main", eventName: "drift", requestedBy: "digger",
+              namespace: "s1ntaxe770r/terragrun-test",
+              runEnvVars: {DEFAULT_BRANCH: "main", PR_BRANCH: "main", PROJECT_NAME: "dev-my-project", PROJECT_DIR: "infra/dev/my-project"},
+              stateEnvVars: {}, commandEnvVars: {},
+              backend_hostname: "", backend_organisation_hostname: "", backend_job_token: ""
+            },
+            reporter: {reporter_type: "noop", reporting_strategy: "noop", report_terraform_output: true},
+            comment_updater: {comment_updater_type: "noop"},
+            lock: {lock_type: "noop"},
+            backend: {backend_type: "noop"},
+            vcs: {vcs_type: "noop", actor: "digger", repo_full_name: "s1ntaxe770r/terragrun-test", repo_owner: "s1ntaxe770r", repo_name: "terragrun-test", workflow_file: "digger_workflow.yml"},
+            policy_provider: {policy_type: "http", git_timeout: $gt},
+            variables: []
+          }' > "$RUNNER_TEMP/spec.json"
+          echo "DIGGER_RUN_SPEC=$(cat "$RUNNER_TEMP/spec.json")" >> "$GITHUB_ENV"
+
+      - name: Throttle git through a bandwidth-limited CONNECT proxy
+        id: throttle
+        if: ${{ inputs.rate_kbit != '0' }}
+        env:
+          RATE_KBIT: ${{ inputs.rate_kbit }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/throttle_proxy.py" <<'PY'
+          import asyncio, sys
+          PORT, RATE = int(sys.argv[1]), int(sys.argv[2])
+          async def pipe(r, w, rate=0):
+              size = 65536 if rate == 0 else max(1024, rate // 10)
+              try:
+                  while True:
+                      chunk = await r.read(size)
+                      if not chunk:
+                          break
+                      if rate:
+                          await asyncio.sleep(len(chunk) / rate)
+                      w.write(chunk)
+                      await w.drain()
+              except Exception:
+                  pass
+              finally:
+                  try:
+                      w.close()
+                  except Exception:
+                      pass
+          async def handle(cr, cw):
+              req = (await cr.readline()).decode(errors="replace").split()
+              while (await cr.readline()) not in (b"\r\n", b""):
+                  pass
+              if len(req) < 2 or req[0] != "CONNECT":
+                  cw.write(b"HTTP/1.1 405 Method Not Allowed\r\n\r\n"); await cw.drain(); cw.close(); return
+              host, port = req[1].rsplit(":", 1)
+              try:
+                  rr, rw = await asyncio.open_connection(host, int(port))
+              except Exception:
+                  cw.write(b"HTTP/1.1 502 Bad Gateway\r\n\r\n"); await cw.drain(); cw.close(); return
+              cw.write(b"HTTP/1.1 200 Connection established\r\n\r\n"); await cw.drain()
+              await asyncio.gather(pipe(cr, rw), pipe(rr, cw, RATE))
+          async def main():
+              server = await asyncio.start_server(handle, "127.0.0.1", PORT)
+              async with server:
+                  await server.serve_forever()
+          asyncio.run(main())
+          PY
+          rate_bps=$(( RATE_KBIT * 125 ))
+          nohup python3 "$RUNNER_TEMP/throttle_proxy.py" 8118 "$rate_bps" > "$RUNNER_TEMP/proxy.log" 2>&1 &
+          sleep 1
+          git config --global http.proxy http://127.0.0.1:8118
+          echo "git now downloads through 127.0.0.1:8118 at ${rate_bps} B/s"
+          start=$(date +%s)
+          timeout 900 git clone -q --depth 1 --single-branch -b main "${{ inputs.management_repo }}" "$RUNNER_TEMP/probe"
+          secs=$(( $(date +%s) - start ))
+          echo "probe clone of the management repo took ${secs}s (Digger default git_timeout is 30s)"
+          echo "seconds=$secs" >> "$GITHUB_OUTPUT"
+          rm -rf "$RUNNER_TEMP/probe"
+
+      - name: Run shipped ${{ inputs.shipped_version }} (expected to time out after 30s)
+        id: shipped
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/fixture
+        env:
+          DIGGER_MANAGEMENT_REPO: ${{ inputs.management_repo }}
+          DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGGER_LOG_LEVEL: DEBUG
+          TELEMETRY: "false"
+          DIGGER_OUT: ${{ runner.temp }}/digger-out-shipped.log
+        run: |
+          start=$(date +%s)
+          set +e
+          "$RUNNER_TEMP/digger-shipped" default 2>&1 | tee "$RUNNER_TEMP/shipped.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "elapsed=$(( $(date +%s) - start ))" >> "$GITHUB_OUTPUT"
+          echo "shipped CLI exit code: $rc"
+          exit "$rc"
+
+      - name: Run fixed build (expected to clone within git_timeout and pass the policy check)
+        id: fixed
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/fixture
+        env:
+          DIGGER_MANAGEMENT_REPO: ${{ inputs.management_repo }}
+          DIGGER_LICENSE_KEY: ${{ secrets.TEST_DIGGER_LICENSE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGGER_LOG_LEVEL: DEBUG
+          TELEMETRY: "false"
+          DIGGER_OUT: ${{ runner.temp }}/digger-out-fixed.log
+        run: |
+          start=$(date +%s)
+          set +e
+          "$RUNNER_TEMP/digger-fixed" default 2>&1 | tee "$RUNNER_TEMP/fixed.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "elapsed=$(( $(date +%s) - start ))" >> "$GITHUB_OUTPUT"
+          echo "fixed CLI exit code: $rc"
+          exit "$rc"
+
+      - name: Summarize and assert
+        if: always()
+        env:
+          PROBE_SECONDS: ${{ steps.throttle.outputs.seconds }}
+          SHIPPED_OUTCOME: ${{ steps.shipped.outcome }}
+          SHIPPED_ELAPSED: ${{ steps.shipped.outputs.elapsed }}
+          FIXED_OUTCOME: ${{ steps.fixed.outcome }}
+          FIXED_ELAPSED: ${{ steps.fixed.outputs.elapsed }}
+        run: |
+          set -euo pipefail
+          key() { grep -m1 -oE 'git command timed out after [0-9a-z.]+|Access policy allowed action|Access policy denied action|error while fetching access policy[^"]*|unexpected response while fetching [a-z]+ policy[^"]*|No policies will be supported|license key is not valid[^"]*' "$1" 2>/dev/null || echo "none"; }
+          shipped_key=$(key "$RUNNER_TEMP/shipped.log")
+          fixed_key=$(key "$RUNNER_TEMP/fixed.log")
+          {
+            echo "## git_timeout e2e (${{ inputs.cli_flavor }} CLI)"
+            echo ""
+            echo "- management repo: ${{ inputs.management_repo }}; git download rate ${{ inputs.rate_kbit }} kbit/s; probe depth-1 clone took ${PROBE_SECONDS:-n/a}s (default git_timeout is 30s)"
+            echo "- spec policy_provider.git_timeout: ${{ inputs.git_timeout }}s"
+            echo ""
+            echo "| ${{ inputs.cli_flavor }} CLI | outcome | elapsed | git clones attempted | key log line |"
+            echo "|---|---|---|---|---|"
+            echo "| shipped ${{ inputs.shipped_version }} | ${SHIPPED_OUTCOME} | ${SHIPPED_ELAPSED:-?}s | $(grep -c 'Cloning into' "$RUNNER_TEMP/shipped.log" || true) | ${shipped_key} |"
+            echo "| fixed ${{ inputs.fixed_repo }}@${{ inputs.fixed_ref }} | ${FIXED_OUTCOME} | ${FIXED_ELAPSED:-?}s | $(grep -c 'Cloning into' "$RUNNER_TEMP/fixed.log" || true) | ${fixed_key} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
+          if [ "${{ inputs.cli_flavor }}" != "ee" ]; then
+            echo "oss flavor: no timeout expectations, the table above is the result"; exit 0
+          fi
+          if [ "$shipped_key" != "git command timed out after 30s" ]; then
+            echo "::error::expected the shipped CLI to time out after 30s, got: $shipped_key"; exit 1
+          fi
+          if [ "$fixed_key" != "Access policy allowed action" ]; then
+            echo "::error::expected the fixed CLI to clone within git_timeout and pass the policy check, got: $fixed_key"; exit 1
+          fi
+          if [ "$FIXED_OUTCOME" != "success" ]; then
+            echo "::warning::fixed CLI passed the policy check but the rest of the job failed; see its step log"
+          fi
