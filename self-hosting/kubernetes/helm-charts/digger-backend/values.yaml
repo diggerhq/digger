@@ -107,6 +107,17 @@ digger:
   # configure this section if you want to use an external postgres database
 
   postgres:
+    # specify the secret name and key to pull a complete DATABASE_URL from,
+    # for example one written by a database operator. When set, the chart
+    # passes it through unchanged and ignores the user, password, host, port,
+    # database, sslmode and existingSecret* settings below. allow_dirty still
+    # applies. The other options insert the password into the URL without
+    # encoding it, so use this if the password can contain @, / or :, and
+    # percent-encode those characters in the stored URL.
+    # Set sslmode in the stored URL too, because digger.postgres.sslmode isn't used.
+    databaseUrlSecretName: ""
+    databaseUrlSecretKey: "DATABASE_URL"
+
     # specify the secret name and key to pull the existing postgres database password from
     existingSecretName: ""
     existingSecretKey: "postgres-password"

@@ -1,0 +1,100 @@
+suite: test database connection settings
+templates:
+  - backend-deployment.yaml
+tests:
+  - it: should build DATABASE_URL from the connection values by default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            value: "postgres://postgres:$(POSTGRES_PASSWORD)@pg-postgresql.db:5432/digger?sslmode=disable"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-digger-backend-postgres-secret
+                key: postgres-password
+
+  - it: should read DATABASE_URL from an existing secret when configured
+    set:
+      digger.postgres.databaseUrlSecretName: digger-db
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: digger-db
+                key: DATABASE_URL
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+          any: true
+
+  - it: should honor a custom key for the DATABASE_URL secret
+    set:
+      digger.postgres.databaseUrlSecretName: digger-db
+      digger.postgres.databaseUrlSecretKey: connection-string
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: digger-db
+                key: connection-string
+
+  - it: should fall back to the DATABASE_URL key when the key value is missing
+    # helm upgrade --reuse-values keeps a pre-0.1.13 release's values, which
+    # don't have databaseUrlSecretKey.
+    set:
+      digger.postgres.databaseUrlSecretName: digger-db
+      digger.postgres.databaseUrlSecretKey: null
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: digger-db
+                key: DATABASE_URL
+
+  - it: should render a YAML-ambiguous secret name as a string
+    set:
+      digger.postgres.databaseUrlSecretName: "true"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: "true"
+                key: DATABASE_URL
+
+  - it: should prefer the DATABASE_URL secret over the built-in postgres
+    set:
+      postgres.enabled: true
+      digger.postgres.databaseUrlSecretName: digger-db
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: digger-db
+                key: DATABASE_URL
+
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POSTGRES_PASSWORD
+          any: true
