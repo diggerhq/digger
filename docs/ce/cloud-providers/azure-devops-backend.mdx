@@ -1,0 +1,93 @@
+---
+title: "Azure DevOps Pipelines Backend"
+description: "Configure Digger Orchestrator to use Azure DevOps Pipelines as the execution engine using Workload Identity."
+---
+
+# Azure DevOps Pipelines Backend
+
+While Digger officially provides a standalone "backendless" integration for Azure DevOps, you can also configure the **Digger Orchestrator (Backend)** to use Azure DevOps Pipelines as the compute layer. This approach allows you to retain Digger's native OPA policy enforcement, central run history UI, and dependency-aware job batching while running Terraform execution within your existing Azure DevOps agents.
+
+By natively supporting Azure AD Workload Identity (`azidentity`), Digger can securely trigger Azure Pipelines using the Managed Identity of the cluster hosting the Orchestrator (e.g., Azure Kubernetes Service).
+
+## 1. Prerequisites
+
+- A Digger Orchestrator deployment (running on a platform like AKS or GKE).
+- A GitHub App configured and linked to the Digger Orchestrator.
+- An Azure DevOps organization and project.
+- An Azure Pipeline (YAML) defined in your target repository (or centrally) to receive Digger jobs.
+
+## 2. Configure the Digger Orchestrator
+
+Set the following environment variables on the Digger Orchestrator deployment to route jobs to Azure DevOps instead of GitHub Actions:
+
+```env
+DIGGER_CI_BACKEND=azure_devops
+AZURE_DEVOPS_ORG=your-azure-devops-organization
+AZURE_DEVOPS_PROJECT=your-azure-devops-project
+AZURE_DEVOPS_PIPELINE_ID=123 # The ID of the pipeline definition to trigger
+```
+
+### Authentication
+The Orchestrator requires permissions to trigger pipeline runs in Azure DevOps via the REST API. It uses the standard Azure SDK for Go credential chain.
+
+**Option A: Workload Identity (Recommended)**
+If the Orchestrator is running on Azure Kubernetes Service (AKS) with Workload Identity enabled, or on a VM with a Managed Identity, you do not need to provide any explicit credentials. Ensure the underlying identity is granted the **"Queue builds"** permission in the target Azure DevOps project.
+
+**Option B: Personal Access Token (Fallback)**
+If Workload Identity is unavailable or you are testing locally, you can provide an Azure DevOps Personal Access Token (PAT):
+```env
+AZURE_DEVOPS_PAT=your_azure_devops_pat
+```
+
+## 3. Configure the Azure Pipeline
+
+When the Digger Orchestrator triggers an Azure Pipeline, it passes a JSON string containing the job specifications (commands, environment variables, PR details) as a template parameter named `DIGGER_SPEC`.
+
+It also passes `DIGGER_RUN_NAME` to uniquely identify the run context.
+
+Create an `azure-pipelines.yml` file in your repository:
+
+```yaml
+trigger: none # Digger will trigger this pipeline via the API
+
+parameters:
+  - name: DIGGER_SPEC
+    type: string
+    default: ''
+  - name: DIGGER_RUN_NAME
+    type: string
+    default: 'digger-run'
+
+jobs:
+  - job: DiggerExecution
+    displayName: 'Digger Terraform Execution'
+    pool:
+      name: 'Your-Self-Hosted-Agent-Pool' # e.g., the pool with your target Workload Identity
+    steps:
+      - script: |
+          echo "Processing Digger Job: $(DIGGER_RUN_NAME)"
+          
+          # Download the Digger CLI
+          curl -sL -o digger https://github.com/diggerhq/digger/releases/latest/download/digger-cli-linux-amd64
+          chmod +x digger
+          
+          # The Digger CLI expects the spec JSON to be available as an environment variable
+          export DIGGER_JOB_SPEC='${{ parameters.DIGGER_SPEC }}'
+          
+          # Execute Digger
+          ./digger run_spec
+        displayName: 'Run Digger CLI'
+        env:
+          # Ensure any specific variables required by your Terraform provider are passed here,
+          # or rely on the agent's native workload identity.
+          ARM_USE_OIDC: "true" 
+```
+
+## 4. How It Works
+
+1. A developer creates a Pull Request in GitHub.
+2. The GitHub App sends a webhook to the Digger Orchestrator.
+3. The Orchestrator calculates the impacted projects, evaluates OPA policies, and determines the necessary Terraform commands (e.g., `digger plan`).
+4. Instead of triggering a GitHub Action, the Orchestrator uses its Managed Identity to authenticate to the Azure DevOps REST API.
+5. It queues a new run of the specified `AZURE_DEVOPS_PIPELINE_ID`, passing the job specifications into the `DIGGER_SPEC` parameter.
+6. The Azure Pipeline agent executes the `digger run_spec` command, performs the Terraform plan/apply using its own Workload Identity, and reports the status back to the Orchestrator.
