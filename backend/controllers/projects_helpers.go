@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -595,4 +596,18 @@ func UpdateCheckRunForJob(gh utils.GithubClientProvider, job *models.DiggerJob, 
 		}
 	}
 	return nil
+}
+
+// jobTokenMatchesJob reports whether presented is the job token issued for
+// job. It fails closed when no token was presented or the job spec can't be
+// read.
+func jobTokenMatchesJob(presented string, job *models.DiggerJob) bool {
+	if presented == "" {
+		return false
+	}
+	var spec orchestrator_scheduler.JobJson
+	if err := json.Unmarshal(job.SerializedJobSpec, &spec); err != nil {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(spec.BackendJobToken), []byte(presented)) == 1
 }
