@@ -457,9 +457,9 @@ func reportApplyError(r reporting.Reporter, err error) {
 func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOutput string) {
 	var formatter func(string) string
 	if r.SupportsMarkdown() {
-		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Apply output", false)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Apply output for **%v**", projectId), false)
 	} else {
-		formatter = reporting.GetTerraformOutputAsComment("Apply output")
+		formatter = reporting.GetTerraformOutputAsComment(fmt.Sprintf("Apply output for %v", projectId))
 	}
 
 	_, _, commentErr := r.Report(applyOutput, formatter)
