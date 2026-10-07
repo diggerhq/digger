@@ -74,6 +74,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 	exectorResults := make([]execution.DiggerExecutorResult, len(jobs))
 	appliesPerProject := make(map[string]bool)
+	var firstErr error
 
 	for i, job := range jobs {
 		splits := strings.Split(job.Namespace, "/")
@@ -115,6 +116,9 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 			if err != nil {
 				slog.Error("error while running command for project", "command", command, "projectname", job.ProjectName, "error", err)
 				appliesPerProject[job.ProjectName] = false
+				if firstErr == nil {
+					firstErr = fmt.Errorf("project %v command %v: %w", job.ProjectName, command, err)
+				}
 				if executorResult != nil {
 					exectorResults[i] = *executorResult
 				}
@@ -179,7 +183,7 @@ func RunJobs(jobs []orchestrator.Job, prService ci.PullRequestService, orgServic
 
 	atLeastOneApply := len(appliesPerProject) > 0
 
-	return allAppliesSuccess, atLeastOneApply, nil
+	return allAppliesSuccess, atLeastOneApply, firstErr
 }
 
 func reportPolicyError(projectName string, command string, requestedBy string, reporter reporting.Reporter) string {
