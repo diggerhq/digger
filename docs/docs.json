@@ -227,7 +227,8 @@
                   "ce/howto/backendless-mode",
                   "ce/cloud-providers/aws",
                   "ce/gcp/using-gcp-bucket-for-locks",
-                  "ce/azure-specific/azure-devops-locking-connection-methods"
+                  "ce/azure-specific/azure-devops-locking-connection-methods",
+                  "ce/alicloud/using-oss-bucket-for-locks"
                 ]
               }
             ]

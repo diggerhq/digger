@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/diggerhq/digger/libs/locking/alicloud"
 	"github.com/diggerhq/digger/libs/locking/gcp"
 	"github.com/google/go-github/v61/github"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -426,6 +427,23 @@ func NewPlanStorage(ghToken string, ghRepoOwner string, ghRepositoryName string,
 			ServiceClient: client,
 			ContainerName: containerName,
 			Context:       context.Background(),
+		}
+	case uploadDestination == "alicloud":
+		bucketName := strings.ToLower(os.Getenv("ALICLOUD_OSS_PLAN_ARTEFACT_BUCKET"))
+		if bucketName == "" {
+			slog.Error("ALICLOUD_OSS_PLAN_ARTEFACT_BUCKET not defined for Alibaba Cloud plan storage")
+			return nil, fmt.Errorf("ALICLOUD_OSS_PLAN_ARTEFACT_BUCKET is not defined")
+		}
+		client, err := alicloud.NewOSSClient()
+		if err != nil {
+			slog.Error("Failed to create Alibaba Cloud OSS client", "error", err)
+			return nil, fmt.Errorf("error while creating Alibaba Cloud plan storage: %v", err)
+		}
+		slog.Debug("Using Alibaba Cloud OSS for plan storage", "bucket", bucketName)
+		planStorage = &PlanStorageAlicloud{
+			Client:  client,
+			Bucket:  bucketName,
+			Context: context.Background(),
 		}
 	default:
 		slog.Warn("Unknown plan upload destination, using mock storage",
