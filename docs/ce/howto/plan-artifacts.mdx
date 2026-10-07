@@ -5,6 +5,21 @@ title: "Plan artifacts"
 Digger can be used to store plan artifacts during the plan phase and make them available for use during the apply phase. Once plan artifacts are configured and uploaded during the plan phase
 they will automatically be used during the apply phase. Once one of the below artifacts is configured successfully there is no additional configuration needed on your end to achieve apply-time artifact reuse.
 
+### Optional lock file artifact
+
+When plan artifacts are enabled, Digger can also store a dependency lock file alongside the saved plan and restore it before apply-time plan inspection and apply. This is useful when provider caching is enabled and Terraform or OpenTofu may update a lock file in the plan job that is not present in the later apply job.
+
+For Terraform, set `upload-plan-lock-file` to `.terraform.lock.hcl`:
+
+```
+with:
+    upload-plan-destination: 'aws'
+    upload-plan-destination-s3-bucket: 'terraform-plan-output-1239123'
+    upload-plan-lock-file: '.terraform.lock.hcl'
+```
+
+Outside of the GitHub Action input, set `PLAN_UPLOAD_LOCK_FILE` to the lock file path relative to each project directory. The value defaults to empty, so Digger does not store an additional lock artifact unless you opt in. When this is set, the lock file must exist after the plan step and must be available from plan storage during apply.
+
 ### Github 
 Digger can use Github Artifacts to store `terraform plan` outputs. In order to enable it you can set the following argument in digger_workflow.yml:
 
@@ -15,10 +30,6 @@ upload-plan-destination: github
 <Warning>
     Github plan artifacts as a destination is currently deprecated due to a change in Github API. For more information see [this issue](https://github.com/diggerhq/digger/issues/1702).
 </Warning>
-
-<Alert>
-    sadfasdf
-</Alert>
 
 ### GCP 
 You can also configure plan outputs to be uploaded to GCP Buckets instead. This is handy in case you want your plan outputs to stay within your organisation's approved storage providers for security or compliance reasons.
