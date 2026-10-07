@@ -31,6 +31,14 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
     <Warning>
       Do not use the latest docker image tag in production deployments as they can introduce unexpected changes
     </Warning>
+
+    If you pull the image from a private registry, set `digger.image.repository` to that registry and list the pull secrets that already exist in the release namespace:
+
+    ```yaml values.yaml
+    digger:
+      imagePullSecrets:
+        - name: my-registry-credentials
+    ```
   </Step>
 
 
