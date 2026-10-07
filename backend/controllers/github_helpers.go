@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/diggerhq/digger/backend/ci_backends"
+	config2 "github.com/diggerhq/digger/backend/config"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/backend/services"
 	"github.com/diggerhq/digger/backend/utils"
@@ -979,6 +980,13 @@ generate_projects:
 // These values are computed on the backend/webhook side and passed through to the CLI
 func populatePolicyFieldsForJobs(ghService *github2.GithubService, orgService ci.OrgService, jobs []scheduler.Job, repoOwner string, prNumber int) error {
 	if len(jobs) == 0 {
+		return nil
+	}
+
+	if config2.DisablePolicyFieldsLookup() {
+		slog.Debug("Skipping policy fields computation as DIGGER_DISABLE_POLICY_FIELDS_LOOKUP is set",
+			"prNumber", prNumber,
+		)
 		return nil
 	}
 
