@@ -170,11 +170,12 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 
 	githubGroup := r.Group("/github")
 	githubGroup.Use(middleware.GetWebMiddleware())
-	// authless endpoint because we no longer rely on orgId
+	// Auth for these endpoints is handled by the UI layer before proxying, so
+	// they do not require the backend web middleware.
 	r.GET("/github/callback", diggerController.GithubAppCallbackPage)
+	r.GET("/github/setup", controllers.GithubAppSetup)
+	r.GET("/github/exchange-code", diggerController.GithubSetupExchangeCode)
 	githubGroup.GET("/repos", diggerController.GithubReposPage)
-	githubGroup.GET("/setup", controllers.GithubAppSetup)
-	githubGroup.GET("/exchange-code", diggerController.GithubSetupExchangeCode)
 
 	publicPrefix := utils.NormalizePublicPathPrefix(os.Getenv("DIGGER_PUBLIC_PATH_PREFIX"))
 	if publicPrefix != "" {
@@ -185,9 +186,9 @@ func Bootstrap(templates embed.FS, diggerController controllers.DiggerController
 		prefixedGithubGroup := prefixed.Group("/github")
 		prefixedGithubGroup.Use(middleware.GetWebMiddleware())
 		prefixed.GET("/github/callback", diggerController.GithubAppCallbackPage)
+		prefixed.GET("/github/setup", controllers.GithubAppSetup)
+		prefixed.GET("/github/exchange-code", diggerController.GithubSetupExchangeCode)
 		prefixedGithubGroup.GET("/repos", diggerController.GithubReposPage)
-		prefixedGithubGroup.GET("/setup", controllers.GithubAppSetup)
-		prefixedGithubGroup.GET("/exchange-code", diggerController.GithubSetupExchangeCode)
 	}
 
 	authorized := r.Group("/")
