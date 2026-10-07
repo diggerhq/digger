@@ -148,6 +148,7 @@ func (mc MainController) TriggerDriftRunForProject(c *gin.Context) {
 		Variables: make([]spec.VariableSpec, 0),
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
+			GitTimeout: config.GitTimeout,
 		},
 		CommentUpdater: spec.CommentUpdaterSpec{
 			CommentUpdaterType: "noop",

@@ -36,6 +36,7 @@ func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec
 			PolicyProvider: DiggerRepoPolicyProvider{
 				ManagementRepoUrl: managementRepo,
 				GitToken:          token,
+				GitTimeout:        time.Duration(policySpec.GitTimeout) * time.Second,
 			},
 		}, nil
 	}

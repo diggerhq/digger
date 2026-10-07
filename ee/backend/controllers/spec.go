@@ -108,6 +108,7 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 		},
 		Policy: spec.PolicySpec{
 			PolicyType: "http",
+			GitTimeout: config.GitTimeout,
 		},
 	}
 

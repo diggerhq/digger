@@ -38,6 +38,9 @@ type VcsSpec struct {
 
 type PolicySpec struct {
 	PolicyType string `json:"policy_type"`
+	// GitTimeout is digger.yml git_timeout in seconds. The CLI applies it to each git
+	// command when the policy provider clones DIGGER_MANAGEMENT_REPO. Zero means the default.
+	GitTimeout int `json:"git_timeout,omitempty"`
 }
 
 type VariableSpec struct {
