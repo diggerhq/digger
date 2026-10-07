@@ -26,6 +26,7 @@ jobs:
       pull-requests: write # required to post PR comments
       issues: read         # required to check if PR number is an issue or not
       statuses: write      # required to validate combined PR status
+      checks: read         # required to check mergeability if digger/apply is a required status check
 
     steps:
       - name: digger run

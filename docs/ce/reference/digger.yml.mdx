@@ -201,6 +201,25 @@ workflows:
 
 <ParamField path="disable_digger_apply_status_check" type="boolean" default="false">
   Disable the status check that verifies apply was executed.
+
+  This is intended for the [apply-after-merge](/ce/howto/apply-on-merge) flow, where there's
+  no PR left at apply time to carry a status check. If you're using apply-on-comment
+  (applying before merge) and have `digger/apply` configured as a required branch-protection
+  status check, leave this `false` - setting it `true` will leave that check permanently
+  `in_progress` after a real apply, since Digger won't mark it complete, and the PR will
+  never become mergeable.
+
+  Apply-on-comment, with `digger/apply` required (correct):
+  ```yml
+  disable_digger_apply_comment: false
+  disable_digger_apply_status_check: false
+  ```
+
+  Apply-after-merge, no PR left to carry a status check (also correct, but only for this flow):
+  ```yml
+  disable_digger_apply_comment: true
+  disable_digger_apply_status_check: true
+  ```
 </ParamField>
 
 <ParamField path="comment_render_mode" type="string" default="basic">
