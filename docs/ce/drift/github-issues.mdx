@@ -7,12 +7,11 @@ description: "Use GitHub Issues as a drift notification sink in Backendless GitH
 
 Use this integration when drift detection runs in Backendless mode.
 
-You can create a GitHub Issue whenever drift is detected, so remediation follows your normal triage workflow. Another notification path is [Slack](/ce/drift/slack-notifications).
-
+You can create a GitHub Issue whenever drift is detected, so remediation follows your normal triage workflow. Another notification path is [Slack](/ce/drift/backendless-slack-notifications).
 
 ## Enable in GitHub Actions
 
-Add the following to your drift workflow:
+Add the following `env` block to the digger step (or job) in your drift workflow:
 
 ```yml
 env:
@@ -26,3 +25,4 @@ env:
 
 - Ensure the token has permission to create issues in the repository.
 - The issue records the project(s) with drift and links back to context for quick follow-up.
+- The issue also names who last changed the drifted project's directory (from `git log`). This requires full git history — set `fetch-depth: 0` on `actions/checkout` and `configure-checkout: false` on the digger step, as shown in [Backendless: Slack Notifications](/ce/drift/backendless-slack-notifications). On a shallow clone the attribution is skipped.
