@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +19,34 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 )
+
+func extractArtifactBackendIDs(runtimeToken string) (workflowRunBackendID, workflowJobRunBackendID string, err error) {
+	parts := strings.Split(runtimeToken, ".")
+	if len(parts) != 3 {
+		return "", "", fmt.Errorf("invalid ACTIONS_RUNTIME_TOKEN: expected 3 JWT parts, got %d", len(parts))
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", fmt.Errorf("failed to base64-decode JWT payload: %w", err)
+	}
+	var claims struct {
+		Scp string `json:"scp"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return "", "", fmt.Errorf("failed to parse JWT claims: %w", err)
+	}
+	for _, scope := range strings.Split(claims.Scp, " ") {
+		const prefix = "Actions.Results:"
+		if !strings.HasPrefix(scope, prefix) {
+			continue
+		}
+		ids := strings.SplitN(strings.TrimPrefix(scope, prefix), ":", 2)
+		if len(ids) == 2 && ids[0] != "" && ids[1] != "" {
+			return ids[0], ids[1], nil
+		}
+	}
+	return "", "", fmt.Errorf("ACTIONS_RUNTIME_TOKEN has no Actions.Results scope")
+}
 
 type GithubPlanStorage struct {
 	Client            *github.Client
@@ -36,75 +65,84 @@ func (gps *GithubPlanStorage) StorePlanFile(fileContents []byte, artifactName st
 		"size", len(fileContents))
 
 	actionsRuntimeToken := os.Getenv("ACTIONS_RUNTIME_TOKEN")
-	actionsRuntimeURL := os.Getenv("ACTIONS_RUNTIME_URL")
-	githubRunID := os.Getenv("GITHUB_RUN_ID")
-	artifactBase := fmt.Sprintf("%s_apis/pipelines/workflows/%s/artifacts?api-version=6.0-preview", actionsRuntimeURL, githubRunID)
+	actionsResultsURL := os.Getenv("ACTIONS_RESULTS_URL")
 
-	headers := map[string]string{
-		"Accept":        "application/json;api-version=6.0-preview",
+	if actionsResultsURL == "" {
+		return fmt.Errorf("ACTIONS_RESULTS_URL is not set; GitHub Actions Artifacts v4 requires this environment variable")
+	}
+	if actionsRuntimeToken == "" {
+		return fmt.Errorf("ACTIONS_RUNTIME_TOKEN is not set; GitHub Actions Artifacts v4 requires this environment variable")
+	}
+
+	workflowRunBackendID, workflowJobRunBackendID, err := extractArtifactBackendIDs(actionsRuntimeToken)
+	if err != nil {
+		return fmt.Errorf("could not extract artifact backend IDs from ACTIONS_RUNTIME_TOKEN: %w", err)
+	}
+
+	twirpBase := strings.TrimRight(actionsResultsURL, "/") + "/twirp/github.actions.results.api.v1.ArtifactService"
+
+	jsonHeaders := map[string]string{
 		"Authorization": "Bearer " + actionsRuntimeToken,
 		"Content-Type":  "application/json",
 	}
 
-	// Create Artifact
-	createArtifactURL := artifactBase
-	createArtifactData := map[string]string{"type": "actions_storage", "name": artifactName}
-	createArtifactBody, _ := json.Marshal(createArtifactData)
+	// Step 1: CreateArtifact
+	createReqBody, _ := json.Marshal(map[string]interface{}{
+		"workflow_run_backend_id":     workflowRunBackendID,
+		"workflow_job_run_backend_id": workflowJobRunBackendID,
+		"name":                        artifactName,
+		"version":                     4,
+	})
 
-	slog.Debug("Creating GitHub artifact", "url", createArtifactURL, "name", artifactName)
-	createArtifactResponse, err := doRequest("POST", createArtifactURL, headers, createArtifactBody)
-	if createArtifactResponse == nil || err != nil {
-		slog.Error("Failed to create GitHub artifact",
-			"error", err,
-			"artifactName", artifactName)
-		return fmt.Errorf("could not create artifact with github %v", err)
-	}
-	defer createArtifactResponse.Body.Close()
-
-	// Extract Resource URL
-	createArtifactResponseBody, _ := io.ReadAll(createArtifactResponse.Body)
-	var createArtifactResponseMap map[string]interface{}
-	json.Unmarshal(createArtifactResponseBody, &createArtifactResponseMap)
-	resourceURL := createArtifactResponseMap["fileContainerResourceUrl"].(string)
-
-	// Upload Data
-	uploadURL := fmt.Sprintf("%s?itemPath=%s/%s", resourceURL, artifactName, storedPlanFilePath)
-	uploadData := fileContents
-	dataLen := len(uploadData)
-	headers["Content-Type"] = "application/octet-stream"
-	headers["Content-Range"] = fmt.Sprintf("bytes 0-%v/%v", dataLen-1, dataLen)
-
-	slog.Debug("Uploading file to GitHub artifact",
-		"url", uploadURL,
-		"size", dataLen)
-	_, err = doRequest("PUT", uploadURL, headers, uploadData)
+	createURL := twirpBase + "/CreateArtifact"
+	slog.Debug("Creating GitHub artifact (v4)", "url", createURL, "name", artifactName)
+	createResp, err := doRequest("POST", createURL, jsonHeaders, createReqBody)
 	if err != nil {
-		slog.Error("Failed to upload file to GitHub artifact",
-			"error", err,
-			"artifactName", artifactName)
-		return fmt.Errorf("could not upload artifact file %v", err)
+		slog.Error("Failed to create GitHub artifact (v4)", "error", err, "artifactName", artifactName)
+		return fmt.Errorf("could not create artifact with github: %v", err)
+	}
+	defer createResp.Body.Close()
+
+	createRespBody, _ := io.ReadAll(createResp.Body)
+	var createRespMap map[string]interface{}
+	if err := json.Unmarshal(createRespBody, &createRespMap); err != nil {
+		return fmt.Errorf("failed to parse CreateArtifact response: %v", err)
+	}
+	signedUploadURL, ok := createRespMap["signed_upload_url"].(string)
+	if !ok || signedUploadURL == "" {
+		return fmt.Errorf("CreateArtifact response missing signed_upload_url: %s", string(createRespBody))
 	}
 
-	// Update Artifact Size
-	headers = map[string]string{
-		"Accept":        "application/json;api-version=6.0-preview",
-		"Authorization": "Bearer " + actionsRuntimeToken,
-		"Content-Type":  "application/json",
+	// Step 2: Upload file to signed URL (Azure Blob)
+	dataLen := len(fileContents)
+	uploadHeaders := map[string]string{
+		"x-ms-blob-type":         "BlockBlob",
+		"x-ms-blob-content-type": "application/octet-stream",
+		"Content-Length":         fmt.Sprintf("%d", dataLen),
 	}
-	updateArtifactURL := fmt.Sprintf("%s&artifactName=%s", artifactBase, artifactName)
-	updateArtifactData := map[string]int{"size": dataLen}
-	updateArtifactBody, _ := json.Marshal(updateArtifactData)
-
-	slog.Debug("Finalizing GitHub artifact upload",
-		"url", updateArtifactURL,
-		"size", dataLen)
-	_, err = doRequest("PATCH", updateArtifactURL, headers, updateArtifactBody)
+	slog.Debug("Uploading file to signed URL (v4)", "size", dataLen)
+	_, err = doRequest("PUT", signedUploadURL, uploadHeaders, fileContents)
 	if err != nil {
-		slog.Error("Failed to finalize GitHub artifact upload",
-			"error", err,
-			"artifactName", artifactName)
-		return fmt.Errorf("could finalize artifact upload: %v", err)
+		slog.Error("Failed to upload file to signed URL (v4)", "error", err, "artifactName", artifactName)
+		return fmt.Errorf("could not upload artifact file: %v", err)
 	}
+
+	// Step 3: FinalizeArtifact
+	finalizeReqBody, _ := json.Marshal(map[string]interface{}{
+		"workflow_run_backend_id":     workflowRunBackendID,
+		"workflow_job_run_backend_id": workflowJobRunBackendID,
+		"name":                        artifactName,
+		"size":                        fmt.Sprintf("%d", dataLen),
+	})
+
+	finalizeURL := twirpBase + "/FinalizeArtifact"
+	slog.Debug("Finalizing GitHub artifact upload (v4)", "url", finalizeURL, "size", dataLen)
+	finalizeResp, err := doRequest("POST", finalizeURL, jsonHeaders, finalizeReqBody)
+	if err != nil {
+		slog.Error("Failed to finalize GitHub artifact upload (v4)", "error", err, "artifactName", artifactName)
+		return fmt.Errorf("could not finalize artifact upload: %v", err)
+	}
+	defer finalizeResp.Body.Close()
 
 	slog.Info("Successfully stored plan file in GitHub artifacts",
 		"owner", gps.Owner,
