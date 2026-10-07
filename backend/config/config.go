@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/spf13/cast"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"github.com/spf13/viper"
 )
@@ -24,6 +25,12 @@ func New() *Config {
 	v.SetDefault("build_date", "null")
 	v.SetDefault("deployed_at", time.Now().UTC().Format(time.RFC3339))
 	v.SetDefault("max_concurrency_per_batch", "0")
+	// When true, the backend will always trigger CI workflows using the
+	// repository's default branch (instead of using the branch provided in
+	// the job spec). When using OIDC for cloud authentication, this can be
+	// used as a security measure to prevent workflows from untrusted branches
+	// from assuming roles.
+	v.SetDefault("force_trigger_from_default_branch", false)
 	v.BindEnv()
 	return v
 }
