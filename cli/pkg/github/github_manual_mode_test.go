@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/diggerhq/digger/libs/digger_config"
+        "github.com/diggerhq/digger/libs/scheduler"        
 	"github.com/stretchr/testify/assert"
 )
 
@@ -204,4 +205,20 @@ func TestWorkflowValidation(t *testing.T) {
 	project.Workflow = "default"
 	_, workflowExists = diggerConfig.Workflows[project.Workflow]
 	assert.True(t, workflowExists, "default workflow should exist")
+}
+
+func TestFormatCommands(t *testing.T) {
+    jobs := []scheduler.job{
+        {
+            ProjectName: "project-a",
+            Commands:    []string{"terraform init", "terraform plan"},
+        },
+        {
+            ProjectName: "project-b",
+            Commands:    []string{"terraform apply"},
+        },
+    }
+
+    expected := "following commands are going to be executed:\n" + "project: project-a: commands: \"terraform init\", \"terraform plan\"\n" + "project: project-b: commnads: \"terraform apply\""
+    assert.Equal(t, expected, formatCommands(jobs))
 }
