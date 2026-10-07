@@ -1,6 +1,8 @@
 package policy
 
 import (
+	"time"
+
 	"github.com/diggerhq/digger/libs/git_utils"
 	"github.com/samber/lo"
 	"log/slog"
@@ -20,6 +22,7 @@ allow = (count(input.planPolicyViolations) == 0)
 type DiggerRepoPolicyProvider struct {
 	ManagementRepoUrl string
 	GitToken          string
+	GitTimeout        time.Duration
 }
 
 func getContents(filePath string) (string, error) {
@@ -63,7 +66,7 @@ func GetPrefixesForPath(path string, fileName string) []string {
 
 func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName string, projectDir string, fileName string) (string, error) {
 	var contents string
-	err := git_utils.CloneGitRepoAndDoAction(p.ManagementRepoUrl, "main", "", p.GitToken, "", func(basePath string) error {
+	err := git_utils.CloneGitRepoAndDoActionWithTimeout(p.ManagementRepoUrl, "main", "", p.GitToken, "", p.gitTimeout(), func(basePath string) error {
 		// we start with the project directory path prefixes as the highest priority
 		prefixes := GetPrefixesForPath(path.Join(basePath, projectDir), fileName)
 
@@ -94,6 +97,13 @@ func (p DiggerRepoPolicyProvider) getPolicyFileContents(repo string, projectName
 		return "", err
 	}
 	return contents, nil
+}
+
+func (p DiggerRepoPolicyProvider) gitTimeout() time.Duration {
+	if p.GitTimeout <= 0 {
+		return 30 * time.Second
+	}
+	return p.GitTimeout
 }
 
 // GetPolicy fetches policy for particular project,  if not found then it will fallback to org level policy

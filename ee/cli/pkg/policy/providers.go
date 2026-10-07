@@ -6,6 +6,7 @@ import (
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"log"
 	"os"
+	"time"
 )
 
 type AdvancedPolicyProvider struct{}
@@ -46,6 +47,10 @@ func (p AdvancedPolicyProvider) GetPolicyProvider(policySpec lib_spec.PolicySpec
 type PolicyCheckerProviderAdvanced struct{}
 
 func (p PolicyCheckerProviderAdvanced) Get(hostname string, organisationName string, authToken string) (policy.Checker, error) {
+	return p.GetWithGitTimeout(hostname, organisationName, authToken, 0)
+}
+
+func (p PolicyCheckerProviderAdvanced) GetWithGitTimeout(hostname string, organisationName string, authToken string, gitTimeout time.Duration) (policy.Checker, error) {
 	managementRepo := os.Getenv("DIGGER_MANAGEMENT_REPO")
 	if managementRepo != "" {
 		token := os.Getenv("GITHUB_TOKEN")
@@ -56,6 +61,7 @@ func (p PolicyCheckerProviderAdvanced) Get(hostname string, organisationName str
 			PolicyProvider: DiggerRepoPolicyProvider{
 				ManagementRepoUrl: managementRepo,
 				GitToken:          token,
+				GitTimeout:        gitTimeout,
 			},
 		}, nil
 	}
