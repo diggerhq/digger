@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -21,6 +23,40 @@ import (
 
 // just a wrapper around github client to be able to use mocks
 type DiggerGithubRealClientProvider struct {
+}
+
+type installationTransportKey struct {
+	appID, installationID int64
+	privateKeyHash        [32]byte
+}
+
+var installationTransports sync.Map
+
+type cachedInstallationTransport struct {
+	*ghinstallation.Transport
+	key installationTransportKey
+}
+
+func (t *cachedInstallationTransport) RoundTrip(request *net.Request) (*net.Response, error) {
+	response, err := t.Transport.RoundTrip(request)
+	if response != nil && response.StatusCode == net.StatusUnauthorized {
+		installationTransports.CompareAndDelete(t.key, t)
+	}
+	return response, err
+}
+
+func getInstallationTransport(appID, installationID int64, privateKey []byte) (*cachedInstallationTransport, error) {
+	key := installationTransportKey{appID, installationID, sha256.Sum256(privateKey)}
+	if transport, ok := installationTransports.Load(key); ok {
+		return transport.(*cachedInstallationTransport), nil
+	}
+	transport, err := ghinstallation.New(net.DefaultTransport, appID, installationID, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	// Sharing the transport preserves ghinstallation's synchronized token refresh.
+	cached, _ := installationTransports.LoadOrStore(key, &cachedInstallationTransport{transport, key})
+	return cached.(*cachedInstallationTransport), nil
 }
 
 type DiggerGithubClientMockProvider struct {
@@ -63,8 +99,7 @@ func (gh DiggerGithubRealClientProvider) Get(githubAppId int64, installationId i
 		}
 	}
 
-	tr := net.DefaultTransport
-	itr, err := ghinstallation.New(tr, githubAppId, installationId, []byte(githubAppPrivateKey))
+	itr, err := getInstallationTransport(githubAppId, installationId, []byte(githubAppPrivateKey))
 	if err != nil {
 		slog.Error("Failed to initialize GitHub app installation",
 			"githubAppId", githubAppId,
