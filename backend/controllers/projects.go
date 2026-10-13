@@ -776,19 +776,29 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		}
 
 		commitSha := batch.CommitSha
-		impactedProjectDb, err := models.DB.GetImpactedProjectSingle(batch.RepoFullName, commitSha, job.ProjectName)
-		if err != nil {
-			slog.Warn("Error fetching impacted project db", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
-		} else if impactedProjectDb == nil && err == nil {
-			slog.Warn("Impacted project entry not found in db (maybe it was not synced in event start)", "jobId", jobId, "error", err, "commitSha", commitSha, "repoFullName", batch.RepoFullName)
-		} else {
-			if batch.BatchType == orchestrator_scheduler.DiggerCommandPlan {
-				impactedProjectDb.Planned = true
+		logImpactedProjectMark := func(marked int64, markErr error) {
+			if markErr != nil {
+				slog.Error("Failed to record impacted project status, auto-merge may not trigger",
+					"jobId", job.DiggerJobID,
+					"projectName", job.ProjectName,
+					"commitSha", commitSha,
+					"repoFullName", batch.RepoFullName,
+					"error", markErr,
+				)
+			} else if marked == 0 {
+				slog.Warn("Impacted project entry not found in db (maybe it was not synced in event start)",
+					"jobId", job.DiggerJobID,
+					"projectName", job.ProjectName,
+					"commitSha", commitSha,
+					"repoFullName", batch.RepoFullName,
+				)
 			}
-			if batch.BatchType == orchestrator_scheduler.DiggerCommandApply {
-				impactedProjectDb.Applied = true
-			}
-			models.DB.GormDB.Save(impactedProjectDb)
+		}
+		switch batch.BatchType {
+		case orchestrator_scheduler.DiggerCommandPlan:
+			logImpactedProjectMark(models.DB.MarkImpactedProjectPlanned(batch.RepoFullName, commitSha, job.ProjectName))
+		case orchestrator_scheduler.DiggerCommandApply:
+			logImpactedProjectMark(models.DB.MarkImpactedProjectApplied(batch.RepoFullName, commitSha, job.ProjectName))
 		}
 
 		var prCommentId *int64
