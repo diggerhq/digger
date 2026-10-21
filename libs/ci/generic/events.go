@@ -143,59 +143,61 @@ func CreateJobsForProjects(projects []digger_config.Project, command string, eve
 		if !ok {
 			return nil, fmt.Errorf("failed to find workflow config '%s' for project '%s'", project.Workflow, project.Name)
 		}
-
-		var skipMerge bool
-		if workflow.Configuration != nil {
-			skipMerge = workflow.Configuration.SkipMergeCheck
-		} else if !lo.Contains(project.ApplyRequirements, digger_config.ApplyRequirementsMergeable) {
-			// if mergeable isn't present in apply requirements we also skip merge check for it
-			skipMerge = true
-		} else {
-			skipMerge = false
-		}
-
-		stateRole, cmdRole := "", ""
-		if project.AwsRoleToAssume != nil {
-			if project.AwsRoleToAssume.State != "" {
-				stateRole = project.AwsRoleToAssume.State
-			}
-
-			if project.AwsRoleToAssume.Command != "" {
-				cmdRole = project.AwsRoleToAssume.Command
-			}
-		}
-
-		runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
-		stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarsInterpolations)
-		StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
-		workspace := project.Workspace
-		jobs = append(jobs, scheduler.Job{
-			ProjectName:                project.Name,
-			ProjectAlias:               project.Alias,
-			ProjectDir:                 project.Dir,
-			ProjectWorkspace:           workspace,
-			ProjectWorkflow:            project.Workflow,
-			Terragrunt:                 project.Terragrunt,
-			DriftTerragruntParallelism: project.DriftTerragruntParallelism,
-			OpenTofu:                   project.OpenTofu,
-			Pulumi:                     project.Pulumi,
-			Commands:                   []string{command},
-			ApplyStage:                 scheduler.ToConfigStage(workflow.Apply),
-			PlanStage:                  scheduler.ToConfigStage(workflow.Plan),
-			RunEnvVars:                 runEnvVars,
-			CommandEnvVars:             commandEnvVars,
-			StateEnvVars:               stateEnvVars,
-			PullRequestNumber:          issueNumber,
-			EventName:                  event, //"issue_comment",
-			Namespace:                  repoFullName,
-			RequestedBy:                requestedBy,
-			StateEnvProvider:           StateEnvProvider,
-			CommandEnvProvider:         CommandEnvProvider,
-			CommandRoleArn:             cmdRole,
-			StateRoleArn:               stateRole,
-			CognitoOidcConfig:          project.AwsCognitoOidcConfig,
-			SkipMergeCheck:             skipMerge,
-		})
+		jobs = append(jobs, CreateJobForProject(project, workflow, []string{command}, event, repoFullName, requestedBy, issueNumber, defaultBranch, prBranch, performEnvVarsInterpolations))
 	}
 	return jobs, nil
+}
+
+func CreateJobForProject(project digger_config.Project, workflow digger_config.Workflow, commands []string, event string, repoFullName string, requestedBy string, issueNumber *int, defaultBranch string, prBranch string, performEnvVarsInterpolations bool) scheduler.Job {
+	var skipMerge bool
+	if workflow.Configuration != nil {
+		skipMerge = workflow.Configuration.SkipMergeCheck
+	} else if !lo.Contains(project.ApplyRequirements, digger_config.ApplyRequirementsMergeable) {
+		// if mergeable isn't present in apply requirements we also skip merge check for it
+		skipMerge = true
+	} else {
+		skipMerge = false
+	}
+
+	stateRole, cmdRole := "", ""
+	if project.AwsRoleToAssume != nil {
+		if project.AwsRoleToAssume.State != "" {
+			stateRole = project.AwsRoleToAssume.State
+		}
+
+		if project.AwsRoleToAssume.Command != "" {
+			cmdRole = project.AwsRoleToAssume.Command
+		}
+	}
+
+	runEnvVars := GetRunEnvVars(defaultBranch, prBranch, project.Name, project.Dir)
+	stateEnvVars, commandEnvVars := digger_config.CollectTerraformEnvConfig(workflow.EnvVars, performEnvVarsInterpolations)
+	StateEnvProvider, CommandEnvProvider := scheduler.GetStateAndCommandProviders(project)
+	return scheduler.Job{
+		ProjectName:                project.Name,
+		ProjectAlias:               project.Alias,
+		ProjectDir:                 project.Dir,
+		ProjectWorkspace:           project.Workspace,
+		ProjectWorkflow:            project.Workflow,
+		Terragrunt:                 project.Terragrunt,
+		DriftTerragruntParallelism: project.DriftTerragruntParallelism,
+		OpenTofu:                   project.OpenTofu,
+		Pulumi:                     project.Pulumi,
+		Commands:                   commands,
+		ApplyStage:                 scheduler.ToConfigStage(workflow.Apply),
+		PlanStage:                  scheduler.ToConfigStage(workflow.Plan),
+		RunEnvVars:                 runEnvVars,
+		CommandEnvVars:             commandEnvVars,
+		StateEnvVars:               stateEnvVars,
+		PullRequestNumber:          issueNumber,
+		EventName:                  event,
+		Namespace:                  repoFullName,
+		RequestedBy:                requestedBy,
+		StateEnvProvider:           StateEnvProvider,
+		CommandEnvProvider:         CommandEnvProvider,
+		CommandRoleArn:             cmdRole,
+		StateRoleArn:               stateRole,
+		CognitoOidcConfig:          project.AwsCognitoOidcConfig,
+		SkipMergeCheck:             skipMerge,
+	}
 }

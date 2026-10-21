@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
+	"github.com/diggerhq/digger/cli/pkg/forgejo"
 	"github.com/diggerhq/digger/cli/pkg/github"
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
@@ -18,6 +19,7 @@ import (
 	"github.com/diggerhq/digger/ee/cli/pkg/gitlab"
 	"github.com/diggerhq/digger/ee/cli/pkg/policy"
 	"github.com/diggerhq/digger/ee/cli/pkg/vcs"
+	dg_forgejo "github.com/diggerhq/digger/libs/ci/forgejo"
 	comment_summary "github.com/diggerhq/digger/libs/comment_utils/summary"
 	lib_spec "github.com/diggerhq/digger/libs/spec"
 	"github.com/spf13/cobra"
@@ -90,6 +92,9 @@ var defaultCmd = &cobra.Command{
 		case digger.GitLab:
 			slog.Info("gitlab CI detected")
 			gitlab.GitLabCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, github2.GithubServiceProviderAdvanced{}, comment_updater.CommentUpdaterProviderAdvanced{}, drift.DriftNotificationProviderAdvanced{})
+		case digger.Forgejo:
+			logLeader = os.Getenv("GITHUB_ACTOR")
+			forgejo.ForgejoCI(lock, policy.PolicyCheckerProviderAdvanced{}, BackendApi, ReportStrategy, dg_forgejo.ForgejoServiceProviderBasic{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)

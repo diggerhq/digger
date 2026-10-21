@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/diggerhq/digger/libs/ci/generic"
 	configuration "github.com/diggerhq/digger/libs/digger_config"
 	"log/slog"
 	"net/http"
@@ -88,6 +89,9 @@ func init() {
 
 	if notEmpty("GITHUB_ACTIONS") {
 		source = "github"
+	}
+	if generic.IsForgejoActions() {
+		source = "forgejo"
 	}
 	if notEmpty("GITLAB_CI") {
 		source = "gitlab"

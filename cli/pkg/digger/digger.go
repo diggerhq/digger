@@ -12,6 +12,7 @@ import (
 
 	"github.com/diggerhq/digger/libs/backendapi"
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/ci/generic"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/execution"
 	locking2 "github.com/diggerhq/digger/libs/locking"
@@ -37,6 +38,7 @@ const (
 	GitLab    = CIName("gitlab")
 	BitBucket = CIName("bitbucket")
 	Azure     = CIName("azure")
+	Forgejo   = CIName("forgejo")
 )
 
 func (ci CIName) String() string {
@@ -49,6 +51,9 @@ func DetectCI() CIName {
 		return os.Getenv(key) != ""
 	}
 
+	if generic.IsForgejoActions() {
+		return Forgejo
+	}
 	if notEmpty("GITHUB_ACTIONS") {
 		return GitHub
 	}

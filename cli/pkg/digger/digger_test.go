@@ -515,3 +515,20 @@ func TestParseWorkspace(t *testing.T) {
 	}
 
 }
+
+func TestDetectCIPrefersForgejoOverGitHub(t *testing.T) {
+	for _, key := range []string{"GITHUB_ACTIONS", "FORGEJO_ACTIONS", "GITEA_ACTIONS", "GITLAB_CI", "BITBUCKET_BUILD_NUMBER", "AZURE_CI"} {
+		t.Setenv(key, "")
+	}
+	assert.Equal(t, None, DetectCI())
+
+	t.Setenv("GITHUB_ACTIONS", "true")
+	assert.Equal(t, GitHub, DetectCI())
+
+	t.Setenv("FORGEJO_ACTIONS", "true")
+	assert.Equal(t, Forgejo, DetectCI())
+
+	t.Setenv("FORGEJO_ACTIONS", "")
+	t.Setenv("GITEA_ACTIONS", "true")
+	assert.Equal(t, Forgejo, DetectCI())
+}

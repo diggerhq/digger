@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"strconv"
 	"strings"
 
@@ -807,20 +806,7 @@ func (svc GithubService) IsClosed(prNumber int) (bool, error) {
 }
 
 func (svc GithubService) SetOutput(prNumber int, key string, value string) error {
-	gout := os.Getenv("GITHUB_ENV")
-	if gout == "" {
-		return fmt.Errorf("GITHUB_ENV not set, could not set the output in digger step")
-	}
-	f, err := os.OpenFile(gout, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("could not open file for writing during digger step")
-	}
-	_, err = f.WriteString(fmt.Sprintf("%v=%v", key, value))
-	if err != nil {
-		return fmt.Errorf("could not write digger file step")
-	}
-	f.Close()
-	return nil
+	return generic.AppendToEnvFile(key, value)
 }
 
 func (svc GithubService) GetBranchName(prNumber int) (string, string, string, string, error) {

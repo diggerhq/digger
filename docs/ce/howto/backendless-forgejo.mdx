@@ -1,0 +1,85 @@
+---
+title: "Forgejo and Gitea"
+description: "Run Digger in backendless mode from Forgejo Actions or Gitea Actions"
+---
+
+Digger can run as a step inside a Forgejo Actions or Gitea Actions workflow without the orchestrator backend. The CLI reads the `pull_request` or `issue_comment` event that triggered the workflow, runs the matching commands, and reports back on the pull request with comments and commit statuses.
+
+This is the same [backendless mode](/ce/howto/backendless-mode) that exists for GitHub Actions, with the same limitations: no concurrency, no queueing, and a cloud resource is needed for PR-level locks.
+
+## Prerequisites
+
+- A Forgejo 7 or Gitea 1.22 (or later) instance with Actions enabled and a registered runner. Digger recognises the runner by the `FORGEJO_ACTIONS` or `GITEA_ACTIONS` environment variable it sets.
+- A repository with a `digger.yml` at its root
+- For PR-level locks: an AWS, GCP or Azure account for the lock table or bucket, or `DISABLE_LOCKING=true`
+
+## Workflow
+
+Run the Digger CLI binary directly. The Digger GitHub Action depends on nested actions such as `actions/github-script` and `hashicorp/setup-terraform` that Forgejo resolves against its default actions host (`data.forgejo.org` by default), where they do not exist. The action does adapt itself to Forgejo and Gitea runners (it checks out `refs/pull/<number>/head` on comment runs and skips its `actions/github-script` step), so it can be used on instances configured to resolve bare action names from github.com, referenced as `uses: https://github.com/diggerhq/digger@vLatest`.
+
+Create `.forgejo/workflows/digger.yml` (or `.gitea/workflows/digger.yml` on Gitea):
+
+```yaml
+name: Digger
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  issue_comment:
+    types: [created]
+
+jobs:
+  digger:
+    runs-on: docker
+    if: github.event_name != 'issue_comment' || startsWith(github.event.comment.body, 'digger')
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'issue_comment'
+      - uses: actions/checkout@v4
+        if: github.event_name == 'issue_comment'
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+      - name: Install OpenTofu
+        run: |
+          curl -sSL https://github.com/opentofu/opentofu/releases/download/v1.9.1/tofu_1.9.1_linux_amd64.zip -o /tmp/tofu.zip
+          cd /tmp && unzip -o -q tofu.zip && mv tofu /usr/local/bin/tofu
+      - name: Install Digger
+        run: |
+          curl -sSL https://github.com/diggerhq/digger/releases/latest/download/digger-cli-linux-amd64 -o /usr/local/bin/digger
+          chmod +x /usr/local/bin/digger
+      - run: digger
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NO_BACKEND: "true"
+          DISABLE_LOCKING: "true"
+          REPORTING_STRATEGY: comments_per_run
+```
+
+The job-level `if` keeps comments that are not Digger commands from starting a run. Comment-triggered runs check out `refs/pull/<number>/head`, which is the ref Forgejo keeps for a pull request. The `issue_comment` workflow must exist on the default branch before it runs, because Forgejo only runs comment-triggered workflows from the default branch.
+
+Replace `DISABLE_LOCKING` with a lock provider once you want PR-level locks. See [AWS](/ce/cloud-providers/aws), [GCP](/ce/gcp/using-gcp-bucket-for-locks) or [Azure](/ce/azure-specific/azure-devops-locking-connection-methods) for the environment variables each one needs.
+
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `GITHUB_TOKEN` | Token used to comment, set statuses and merge. Pass `${{ secrets.GITHUB_TOKEN }}` as in the example above. |
+| `DIGGER_FORGEJO_TOKEN` | Overrides `GITHUB_TOKEN`. Use a personal access token when you need team-based access control, since the automatic token has no organisation membership. |
+
+Digger talks to the API at `GITHUB_SERVER_URL`, which the runner sets. All other backendless settings (`REPORTING_STRATEGY`, `LOCK_PROVIDER`, `PLAN_UPLOAD_DESTINATION`, and so on) work the same as on GitHub Actions. `PLAN_UPLOAD_DESTINATION=github` fails on Forgejo because it talks to the GitHub artifact API; use `aws`, `gcp` or `azure`.
+
+Before `digger apply`, Digger checks that the pull request is open, has no conflicts, and meets the base branch's required approvals and required status checks. Protection rules the API does not expose per branch, such as blocking on rejected reviews or an outdated branch, are only enforced by Forgejo at merge time.
+
+## Supported events
+
+| Event | Commands run |
+|---|---|
+| Pull request opened, synchronized or reopened | `on_pull_request_pushed` (default: `digger plan`) |
+| Pull request merged into the default branch | `on_commit_to_default` (default: `digger unlock`) |
+| Pull request closed, or merged into another branch | `on_pull_request_closed` (default: `digger unlock`) |
+| Comment `digger plan`, `digger apply`, `digger lock`, `digger unlock` | The commented command, optionally limited to one project with `-p <name>` |
+| Comment `digger help` | Lists the available commands |
+
+## Fork pull requests
+
+The automatic token is read-only for pull requests from forks, so Digger cannot post comments or statuses on them. Use `pull_request_target` or restrict the workflow to branches in the same repository.

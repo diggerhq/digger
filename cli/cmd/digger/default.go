@@ -9,9 +9,11 @@ import (
 
 	"github.com/diggerhq/digger/cli/pkg/digger"
 	"github.com/diggerhq/digger/cli/pkg/drift"
+	"github.com/diggerhq/digger/cli/pkg/forgejo"
 	"github.com/diggerhq/digger/cli/pkg/github"
 	spec2 "github.com/diggerhq/digger/cli/pkg/spec"
 	"github.com/diggerhq/digger/cli/pkg/usage"
+	dg_forgejo "github.com/diggerhq/digger/libs/ci/forgejo"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/summary"
 	"github.com/diggerhq/digger/libs/policy"
@@ -82,6 +84,9 @@ var defaultCmd = &cobra.Command{
 		case digger.GitHub:
 			logLeader = os.Getenv("GITHUB_ACTOR")
 			github.GitHubCI(lock, policy.PolicyCheckerProviderBasic{}, BackendApi, ReportStrategy, dg_github.GithubServiceProviderBasic{}, comment_updater.CommentUpdaterProviderBasic{}, drift.DriftNotificationProviderBasic{})
+		case digger.Forgejo:
+			logLeader = os.Getenv("GITHUB_ACTOR")
+			forgejo.ForgejoCI(lock, policy.PolicyCheckerProviderBasic{}, BackendApi, ReportStrategy, dg_forgejo.ForgejoServiceProviderBasic{})
 		case digger.None:
 			print("No CI detected.")
 			os.Exit(10)

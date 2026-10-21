@@ -220,6 +220,7 @@
             "group": "Backendless PR Automation",
             "pages": [
               "ce/howto/backendless-mode",
+              "ce/howto/backendless-forgejo",
               "ce/cloud-providers/aws",
               "ce/gcp/using-gcp-bucket-for-locks",
               "ce/azure-specific/azure-devops-locking-connection-methods"
