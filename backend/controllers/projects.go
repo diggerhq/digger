@@ -1595,11 +1595,24 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		"batchType", batch.BatchType,
 	)
 
-	allApplied, _, err := models.DB.AllImpactedProjectApplied(batch.RepoFullName, batch.CommitSha)
+	allApplied, impactedProjects, err := models.DB.AllImpactedProjectApplied(batch.RepoFullName, batch.CommitSha)
 	if err != nil {
 		slog.Error("Error fetching all applied projects", "batchId", batch.ID, "error", err)
 		slog.Warn("falling back to using batch entry")
 		allApplied = batch.CoverAllImpactedProjects
+	} else if !allApplied {
+		var notApplied []string
+		for _, p := range impactedProjects {
+			if !p.Applied {
+				notApplied = append(notApplied, p.ProjectName)
+			}
+		}
+		slog.Info("Not all impacted projects applied yet, auto-merge will not proceed",
+			"batchId", batch.ID,
+			"prNumber", batch.PrNumber,
+			"commitSha", batch.CommitSha,
+			"notAppliedProjects", notApplied,
+		)
 	}
 
 	if batch.Status == orchestrator_scheduler.BatchJobSucceeded &&

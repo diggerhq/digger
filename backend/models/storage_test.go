@@ -268,3 +268,42 @@ func TestDiggerLockFunctionalities(t *testing.T) {
 	assert.Equal(t, "org/repo2#dev", existingLocksAfterDeletion[0].Resource)
 	assert.Equal(t, "org/repo2#prod", existingLocksAfterDeletion[1].Resource)
 }
+
+func TestGetImpactedProjectSingleMatchesProjectName(t *testing.T) {
+	// separate db: ImpactedProject and Repo both declare index idx_org_repo, which sqlite rejects in one schema
+	gdb, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, gdb.AutoMigrate(&ImpactedProject{}))
+	DB = &Database{GormDB: gdb}
+
+	repoFullName := "org/repo"
+	commitSha := "abc123"
+	branch := "feature"
+	prNumber := 1
+	projectNames := []string{"keystone-api", "keystone-web", "studio-mcp-server"}
+	for _, name := range projectNames {
+		_, err := DB.CreateImpactedProject(repoFullName, commitSha, name, &branch, &prNumber)
+		assert.NoError(t, err)
+	}
+
+	// simulate apply jobs reporting in an order different from creation order
+	for _, name := range []string{"keystone-web", "studio-mcp-server", "keystone-api"} {
+		ip, err := DB.GetImpactedProjectSingle(repoFullName, commitSha, name)
+		assert.NoError(t, err)
+		assert.NotNil(t, ip)
+		assert.Equal(t, name, ip.ProjectName)
+		ip.Applied = true
+		assert.NoError(t, DB.GormDB.Save(ip).Error)
+	}
+
+	allApplied, impactedProjects, err := DB.AllImpactedProjectApplied(repoFullName, commitSha)
+	assert.NoError(t, err)
+	assert.True(t, allApplied)
+	assert.Equal(t, len(projectNames), len(impactedProjects))
+
+	ip, err := DB.GetImpactedProjectSingle(repoFullName, commitSha, "unknown-project")
+	assert.NoError(t, err)
+	assert.Nil(t, ip)
+}
