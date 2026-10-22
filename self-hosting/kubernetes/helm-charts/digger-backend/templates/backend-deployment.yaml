@@ -12,6 +12,10 @@ spec:
       labels:
         app: {{ include "digger-backend.name" . }}-web
     spec:
+      {{- with .Values.digger.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if $.Values.digger.nodeSelector }}
       nodeSelector:
         {{- toYaml $.Values.digger.nodeSelector | nindent 8 }}
