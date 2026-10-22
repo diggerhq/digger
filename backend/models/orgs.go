@@ -23,6 +23,7 @@ type Organisation struct {
 	ExternalId                  string `gorm:"uniqueIndex:idx_external_source"`
 	DriftEnabled                bool   `gorm:"default:false"`
 	DriftWebhookUrl             string
+	DriftTeamsWebhookUrl        string
 	DriftCronTab                string      `gorm:"default:'0 0 * * *'"`
 	BillingPlan                 BillingPlan `gorm:"default:'free'"`
 	BillingStripeSubscriptionId string
