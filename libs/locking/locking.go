@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/diggerhq/digger/libs/ci"
+	"github.com/diggerhq/digger/libs/locking/alicloud"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/azure"
 	"github.com/diggerhq/digger/libs/locking/gcp"
@@ -297,6 +298,9 @@ func GetLock() (Lock, error) {
 	} else if lockProvider == "azure" {
 		slog.Info("Using Azure lock provider")
 		return azure.NewStorageAccountLock()
+	} else if lockProvider == "alicloud" {
+		slog.Info("Using Alibaba Cloud lock provider")
+		return alicloud.NewOSSLock()
 	}
 
 	return nil, errors.New("failed to find lock provider")

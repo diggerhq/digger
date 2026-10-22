@@ -52,3 +52,17 @@ with:
     upload-plan-destination: 'azure'
     upload-plan-destination-azure-storage-account: 'account_name'
     upload-plan-destination-azure-container: 'container_name'
+
+### Alibaba Cloud
+You can also use Alibaba Cloud OSS buckets to store plan outputs.
+
+To change digger to upload the plan to OSS set the following arguments in the digger_workflow.yaml
+
+```
+with:
+    upload-plan-destination: 'alicloud'
+    upload-plan-destination-alicloud-bucket: 'terraform-plan-output-1239123'
+    alicloud-region: 'cn-hangzhou'
+```
+
+Credentials are read from the environment: `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET`, the `ALIBABA_CLOUD_*` variables (access keys, OIDC role or ECS RAM role), or the Terraform alicloud provider's `ALICLOUD_ACCESS_KEY` / `ALICLOUD_SECRET_KEY`. See [Alibaba Cloud: Backendless OSS lock storage](/ce/alicloud/using-oss-bucket-for-locks) for details.

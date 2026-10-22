@@ -42,6 +42,12 @@ inputs:
   google-lock-bucket:
     description: The GCP bucket to use for PR locks in backendless mode (`no-backend: true`)
     required: false
+  alicloud-lock-bucket:
+    description: The Alibaba Cloud OSS bucket to use for PR locks in backendless mode (`no-backend: true`). Requires `LOCK_PROVIDER: alicloud`
+    required: false
+  alicloud-region:
+    description: Alibaba Cloud region of the OSS buckets used for locks and plan artifacts, e.g. cn-hangzhou
+    required: false
   setup-azure:
     description: Setup Azure
     required: false
@@ -84,7 +90,7 @@ inputs:
     required: false
     default: 'true'
   upload-plan-destination:
-    description: Destination to upload the plan to. azure, gcp, github and aws are currently supported.
+    description: Destination to upload the plan to. azure, gcp, github, aws and alicloud are currently supported.
     required: false
   upload-plan-destination-s3-bucket:
     description: Name of the destination bucket for AWS S3. Should be provided if destination == aws
@@ -97,6 +103,9 @@ inputs:
     required: false
   upload-plan-destination-gcp-bucket:
     description: Name of the destination bucket for a GCP bucket. Should be provided if destination == gcp
+    required: false
+  upload-plan-destination-alicloud-bucket:
+    description: Name of the destination Alibaba Cloud OSS bucket. Should be provided if destination == alicloud
     required: false
   setup-checkov:
     description: Setup Checkov
