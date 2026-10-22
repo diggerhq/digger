@@ -17,3 +17,14 @@ title: "CommentOps"
 `digger apply/plan`
 
 * **\-p** enables user to run the command for a particular project, e.g. `digger plan -p staging`
+
+#### Large plan outputs
+
+Version control providers limit the size of a comment body (GitHub: 65,536 characters). When a plan or apply output exceeds the limit, Digger splits it into a chain of comments instead of failing:
+
+* Each comment stays under the provider's limit and renders as valid markdown on its own: code blocks and collapsible sections are closed at the end of one comment and reopened at the start of the next.
+* Each continuation comment links back to the previous one, so you can follow the chain even when other comments land in between.
+* With `reporting-strategy: comments_per_run` or `latest_run_comment`, a shared comment that runs out of space is left intact and later project reports continue in new comments under the same title.
+* A single report is split into at most 10 comments. Beyond that, the beginning of the output is dropped with a warning, and the end — including the plan summary, warnings and errors — is kept. The full output is always available in the job logs.
+
+Comment size limits per provider: GitHub 65,536 characters, GitLab 1,000,000, Bitbucket 32,768, Azure DevOps 150,000.

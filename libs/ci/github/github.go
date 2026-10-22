@@ -186,6 +186,16 @@ func (svc GithubService) UpdateIssue(ID int64, title string, body string) (int64
 	return *githubissue.ID, err
 }
 
+// CommentMaxLength implements ci.CommentMaxLengthProvider. GitHub rejects
+// comment bodies over 65,536 characters ("422 Validation Failed: body is
+// too long (maximum is 65536 characters)"), which corresponds to up to
+// 262,144 bytes of UTF-8, see
+// https://github.com/dead-claudia/github-limits#issue-comments
+// Byte-length checks against this value are therefore conservative.
+func (svc GithubService) CommentMaxLength() int {
+	return 65536
+}
+
 func (svc GithubService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	githubComment, _, err := svc.Client.Issues.CreateComment(context.Background(), svc.Owner, svc.RepoName, prNumber, &github.IssueComment{Body: &comment})
 	if err != nil {

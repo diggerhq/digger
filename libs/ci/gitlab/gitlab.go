@@ -3,6 +3,7 @@ package gitlab
 import (
 	"fmt"
 	"log/slog"
+	"path"
 	"strconv"
 	"strings"
 
@@ -183,6 +184,49 @@ func (gitlabService GitLabService) GetUserTeams(organisation string, user string
 	return make([]string, 0), nil
 }
 
+// CommentMaxLength implements ci.CommentMaxLengthProvider. GitLab limits
+// comment bodies to ~1 million characters, see "Size of comments and
+// descriptions of issues, merge requests, and epics" in
+// https://docs.gitlab.com/ee/administration/instance_limits.html
+func (gitlabService GitLabService) CommentMaxLength() int {
+	return 1000000
+}
+
+// noteWebURL builds the web URL of a merge request note, e.g.
+// https://gitlab.com/group/subgroup/project/-/merge_requests/7#note_42.
+// Returns "" when the pipeline context lacks the required fields.
+func (gitlabService GitLabService) noteWebURL(
+	mergeRequestIID int,
+	noteID int,
+) string {
+	namespace := gitlabService.Context.ProjectNamespace
+	projectName := gitlabService.Context.ProjectName
+
+	if namespace == "" || projectName == "" {
+		return ""
+	}
+
+	base := *gitlabService.Client.BaseURL() // Copy; don't mutate client state.
+
+	base.RawQuery = ""
+	base.Fragment = fmt.Sprintf("note_%d", noteID)
+
+	// Preserve a possible self-hosted GitLab prefix while removing the API path.
+	webRoot := strings.TrimSuffix(base.Path, "/")
+	webRoot = strings.TrimSuffix(webRoot, "/api/v4")
+
+	base.Path = path.Join(
+		webRoot,
+		namespace,
+		projectName,
+		"-",
+		"merge_requests",
+		strconv.Itoa(mergeRequestIID),
+	)
+
+	return base.String()
+}
+
 func (gitlabService GitLabService) PublishComment(prNumber int, comment string) (*ci.Comment, error) {
 	discussionId := gitlabService.Context.DiscussionID
 	projectId := *gitlabService.Context.ProjectId
@@ -203,14 +247,14 @@ func (gitlabService GitLabService) PublishComment(prNumber int, comment string) 
 		}
 		discussionId = discussion.ID
 		note := discussion.Notes[0]
-		return &ci.Comment{Id: strconv.Itoa(note.ID), DiscussionId: discussionId, Body: &note.Body}, err
+		return &ci.Comment{Id: strconv.Itoa(note.ID), DiscussionId: discussionId, Body: &note.Body, Url: gitlabService.noteWebURL(mergeRequestIID, note.ID)}, err
 	} else {
 		note, _, err := gitlabService.Client.Discussions.AddMergeRequestDiscussionNote(projectId, mergeRequestIID, discussionId, commentOpt)
 		if err != nil {
 			slog.Error("failed to publish comment", "error", err, "mergeRequestIID", mergeRequestIID, "discussionId", discussionId)
 			print(err.Error())
 		}
-		return &ci.Comment{Id: strconv.Itoa(note.ID), DiscussionId: discussionId, Body: &note.Body}, err
+		return &ci.Comment{Id: strconv.Itoa(note.ID), DiscussionId: discussionId, Body: &note.Body, Url: gitlabService.noteWebURL(mergeRequestIID, note.ID)}, err
 	}
 }
 

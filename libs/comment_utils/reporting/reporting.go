@@ -129,8 +129,58 @@ func (strategy CommentPerRunStrategy) Report(ciService ci.PullRequestService, Pr
 	return commentId, commentUrl, err
 }
 
+// CommentMaxSize returns the comment body size limit for the VCS behind
+// ciService, falling back to GitHub's limit when the service does not say.
+func CommentMaxSize(ciService ci.PullRequestService) int {
+	if provider, ok := ciService.(ci.CommentMaxLengthProvider); ok {
+		return provider.CommentMaxLength()
+	}
+	return defaultCommentMaxSize
+}
+
+// publishWrappedChunks splits report so that each chunk still fits the size
+// limit after being wrapped with the report title, then publishes one comment
+// per chunk. Returns the id and url of the last published comment, which
+// holds the tail of the report (plan summary, warnings, errors).
+func publishWrappedChunks(ciService ci.PullRequestService, PrNumber int, report string, wrap func(string) string, maxSize int) (string, string, error) {
+	chunks := SplitComment(report, reserveUrlRoom(maxSize)-len(wrap("")), maxCommentsPerReport)
+	var lastComment *ci.Comment
+	for i, chunk := range chunks {
+		if i > 0 {
+			prevUrl := ""
+			if lastComment != nil {
+				prevUrl = lastComment.Url
+			}
+			chunk = fillPreviousCommentUrl(chunk, prevUrl)
+		}
+		comment, err := ciService.PublishComment(PrNumber, wrap(chunk))
+		if err != nil {
+			slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
+			return "", "", fmt.Errorf("error publishing comment: %v", err)
+		}
+		lastComment = comment
+	}
+	// some PullRequestService implementations do not return the created comment
+	if lastComment == nil {
+		return "", "", nil
+	}
+	return fmt.Sprintf("%v", lastComment.Id), lastComment.Url, nil
+}
+
 func upsertComment(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, comments []ci.Comment, reportTitle string, supportsCollapsible bool) (string, string, error) {
 	report = reportFormatter(report)
+	maxSize := CommentMaxSize(ciService)
+
+	var wrap func(string) string
+	if !supportsCollapsible {
+		wrap = AsComment(reportTitle)
+	} else {
+		wrap = AsCollapsibleComment(reportTitle, false)
+	}
+
+	// target the newest comment carrying the report title, so that once a
+	// comment overflows and a continuation is created, subsequent reports
+	// append to the continuation rather than the full older comment
 	commentIdForThisRun := ""
 	var commentBody string
 	var commentUrl string
@@ -139,23 +189,11 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 			commentIdForThisRun = comment.Id
 			commentBody = *comment.Body
 			commentUrl = comment.Url
-			break
 		}
 	}
 
 	if commentIdForThisRun == "" {
-		var commentMessage string
-		if !supportsCollapsible {
-			commentMessage = AsComment(reportTitle)(report)
-		} else {
-			commentMessage = AsCollapsibleComment(reportTitle, false)(report)
-		}
-		comment, err := ciService.PublishComment(PrNumber, commentMessage)
-		if err != nil {
-			slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
-			return "", "", fmt.Errorf("error publishing comment: %v", err)
-		}
-		return fmt.Sprintf("%v", comment.Id), comment.Url, nil
+		return publishWrappedChunks(ciService, PrNumber, report, wrap, maxSize)
 	}
 
 	// strip first and last lines
@@ -165,11 +203,15 @@ func upsertComment(ciService ci.PullRequestService, PrNumber int, report string,
 
 	commentBody = commentBody + "\n\n" + report + "\n"
 
-	var completeComment string
-	if !supportsCollapsible {
-		completeComment = AsComment(reportTitle)(commentBody)
-	} else {
-		completeComment = AsCollapsibleComment(reportTitle, false)(commentBody)
+	completeComment := wrap(commentBody)
+
+	if len(completeComment) > maxSize {
+		// the merged comment would exceed the VCS limit: leave the existing
+		// comment untouched and publish the new report as continuation
+		// comment(s) under the same title
+		slog.Info("comment size limit reached, publishing report as new comment",
+			"commentId", commentIdForThisRun, "prNumber", PrNumber, "size", len(completeComment), "maxSize", maxSize)
+		return publishWrappedChunks(ciService, PrNumber, report, wrap, maxSize)
 	}
 
 	err := ciService.EditComment(PrNumber, commentIdForThisRun, completeComment)
@@ -200,10 +242,26 @@ func (strategy LatestRunCommentStrategy) Report(ciService ci.PullRequestService,
 type MultipleCommentsStrategy struct{}
 
 func (strategy MultipleCommentsStrategy) Report(ciService ci.PullRequestService, PrNumber int, report string, reportFormatter func(report string) string, supportsCollapsibleComment bool) (string, string, error) {
-	comment, err := ciService.PublishComment(PrNumber, reportFormatter(report))
-	if err != nil {
-		slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
-		return "", "", err
+	chunks := SplitComment(reportFormatter(report), reserveUrlRoom(CommentMaxSize(ciService)), maxCommentsPerReport)
+	var lastComment *ci.Comment
+	for i, chunk := range chunks {
+		if i > 0 {
+			prevUrl := ""
+			if lastComment != nil {
+				prevUrl = lastComment.Url
+			}
+			chunk = fillPreviousCommentUrl(chunk, prevUrl)
+		}
+		comment, err := ciService.PublishComment(PrNumber, chunk)
+		if err != nil {
+			slog.Error("error publishing comment", "error", err, "prNumber", PrNumber)
+			return "", "", err
+		}
+		lastComment = comment
 	}
-	return comment.Id, comment.Url, nil
+	// some PullRequestService implementations do not return the created comment
+	if lastComment == nil {
+		return "", "", nil
+	}
+	return lastComment.Id, lastComment.Url, nil
 }

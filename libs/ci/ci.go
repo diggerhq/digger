@@ -28,6 +28,13 @@ type PullRequestService interface {
 	SetOutput(prNumber int, key string, value string) error
 }
 
+// CommentMaxLengthProvider is optionally implemented by PullRequestService
+// implementations whose VCS enforces a maximum comment body size. Callers
+// fall back to GitHub's 65,536-character limit when it is not implemented.
+type CommentMaxLengthProvider interface {
+	CommentMaxLength() int
+}
+
 type OrgService interface {
 	GetUserTeams(organisation string, user string) ([]string, error)
 }
