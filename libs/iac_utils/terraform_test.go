@@ -1,10 +1,49 @@
 package iac_utils
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func planWithResourceChange(mode string, actions string) string {
+	return fmt.Sprintf(`{
+  "format_version": "1.2",
+  "resource_changes": [{
+    "address": "example.test",
+    "mode": %q,
+    "type": "example",
+    "name": "test",
+    "change": {"actions": %s}
+  }]
+}`, mode, actions)
+}
+
+func TestPlanOutputDataReadIsEmpty(t *testing.T) {
+	isEmpty, _, err := TerraformUtils{}.GetSummaryFromPlanJson(planWithResourceChange("data", `["read"]`))
+
+	assert.NoError(t, err)
+	assert.True(t, isEmpty)
+}
+
+func TestPlanOutputManagedActionsAreNotEmpty(t *testing.T) {
+	for _, action := range []string{"create", "update", "delete"} {
+		t.Run(action, func(t *testing.T) {
+			isEmpty, _, err := TerraformUtils{}.GetSummaryFromPlanJson(planWithResourceChange("managed", fmt.Sprintf(`["%s"]`, action)))
+
+			assert.NoError(t, err)
+			assert.False(t, isEmpty)
+		})
+	}
+}
+
+func TestPlanOutputUnknownResourceModeIsNotEmpty(t *testing.T) {
+	isEmpty, _, err := TerraformUtils{}.GetSummaryFromPlanJson(planWithResourceChange("future", `["create"]`))
+
+	assert.NoError(t, err)
+	assert.False(t, isEmpty)
+}
 
 func TestPlanOutputEmpty(t *testing.T) {
 	emptyTerraformPlanJson := "{\"format_version\":\"1.1\",\"terraform_version\":\"1.4.6\",\"planned_values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}},\"resource_changes\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"change\":{\"actions\":[\"no-op\"],\"before\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"after_unknown\":{},\"before_sensitive\":{},\"after_sensitive\":{}}}],\"prior_state\":{\"format_version\":\"1.0\",\"terraform_version\":\"1.4.6\",\"values\":{\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_name\":\"registry.terraform.io/hashicorp/null\",\"schema_version\":0,\"values\":{\"id\":\"7587790946951100994\",\"triggers\":null},\"sensitive_values\":{}}]}}},\"configuration\":{\"provider_config\":{\"null\":{\"name\":\"null\",\"full_name\":\"registry.terraform.io/hashicorp/null\"}},\"root_module\":{\"resources\":[{\"address\":\"null_resource.test\",\"mode\":\"managed\",\"type\":\"null_resource\",\"name\":\"test\",\"provider_config_key\":\"null\",\"schema_version\":0}]}}}\n"

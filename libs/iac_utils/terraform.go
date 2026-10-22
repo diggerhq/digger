@@ -33,6 +33,10 @@ func (tu TerraformUtils) GetSummaryFromPlanJson(planJson string) (bool, *IacSumm
 	isPlanEmpty := true
 
 	for _, change := range tfplan.ResourceChanges {
+		if change.Mode == tfjson.DataResourceMode && len(change.Change.Actions) == 1 && change.Change.Actions[0] == "read" {
+			continue
+		}
+
 		if len(change.Change.Actions) != 1 || change.Change.Actions[0] != "no-op" {
 			isPlanEmpty = false
 			break
