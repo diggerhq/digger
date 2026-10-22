@@ -125,6 +125,7 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
           pull-requests: write # required to post PR comments
           issues: read         # required to check if PR number is an issue or not
           statuses: write      # required to validate combined PR status
+          checks: read         # required to check mergeability if digger/apply is a required status check
 
         steps:
           - uses: actions/checkout@v4
@@ -169,6 +170,7 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
           pull-requests: write # required to post PR comments
           issues: read         # required to check if PR number is an issue or not
           statuses: write      # required to validate combined PR status
+          checks: read         # required to check mergeability if digger/apply is a required status check
         steps:
         - uses: actions/checkout@v4
         - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
@@ -224,6 +226,7 @@ Place it at `.github/workflows/digger_workflow.yml` (name is important!)
           pull-requests: write # required to post PR comments
           issues: read         # required to check if PR number is an issue or not
           statuses: write      # required to validate combined PR status
+          checks: read         # required to check mergeability if digger/apply is a required status check
 
         steps:
           - uses: actions/checkout@v4
