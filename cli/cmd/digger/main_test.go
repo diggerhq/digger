@@ -901,7 +901,7 @@ func TestGitHubNewPullRequestContext(t *testing.T) {
 
 	event := context.Event.(github.PullRequestEvent)
 	jobs, _, err := dggithub.ConvertGithubPullRequestEventToJobs(&event, impactedProjects, requestedProject, diggerConfig, false)
-	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "dir")
+	_, _, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "dir")
 
 	assert.NoError(t, err)
 	if err != nil {
@@ -931,7 +931,7 @@ func TestGitHubNewCommentContext(t *testing.T) {
 	backendApi := backendapi.MockBackendApi{}
 
 	jobs, _, err := generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, map[string]configuration.Workflow{}, "prbranch", "", false)
-	_, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
+	_, _, _, err = digger.RunJobs(jobs, &prManager, prManager, lock, reporter, &planStorage, policyChecker, comment_updater.NoopCommentUpdater{}, backendApi, "123", false, false, "1", "")
 	assert.NoError(t, err)
 	if err != nil {
 		log.Println(err)

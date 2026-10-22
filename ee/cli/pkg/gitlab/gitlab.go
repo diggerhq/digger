@@ -115,7 +115,7 @@ func GitLabCI(lock core_locking.Lock, policyCheckerProvider core_policy.PolicyCh
 				usage.ReportErrorAndExit(repoFullName, fmt.Sprintf("could not get drift notification type: %v", err), 8)
 			}
 
-			err = digger.RunJob(job, repoFullName, actor, prService, policyChecker, nil, backendApi, &notification, currentDir)
+			_, err = digger.RunJob(job, repoFullName, actor, prService, policyChecker, nil, backendApi, &notification, currentDir)
 			if err != nil {
 				usage.ReportErrorAndExit(repoOwner, fmt.Sprintf("Failed to run commands. %s", err), 8)
 			}

@@ -113,7 +113,7 @@ func init() {
 }
 
 func ReportErrorAndExit(repoOwner string, message string, exitCode int) {
-	if exitCode == 0 {
+	if exitCode == 0 || exitCode == 9 {
 		slog.Info(message)
 	} else {
 		slog.Error(message)
