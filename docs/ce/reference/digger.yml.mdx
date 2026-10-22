@@ -7,6 +7,14 @@ description: "Reference for configuring Digger via the digger.yml configuration 
   Fields marked as **Required** must be set. Optional fields have sensible defaults shown below.
 </Note>
 
+<Tip>
+  **IDE Support**: Add this to the top of your `digger.yml` for autocomplete and validation:
+  ```yaml
+  # yaml-language-server: $schema=https://docs.opentaco.dev/schemas/digger.yml.json
+  ```
+  The [JSON Schema](https://docs.opentaco.dev/schemas/digger.yml.json) is automatically generated from the codebase and is the authoritative source for validation.
+</Tip>
+
 You can configure Digger by dropping a `digger.yml` file at the root level of your repo.
 
 ```yml
@@ -204,7 +212,7 @@ workflows:
 </ParamField>
 
 <ParamField path="comment_render_mode" type="string" default="basic">
-  How to render plan output in comments. Options: `basic`, `detailed`.
+  How to render plan output in comments. Options: `basic`, `group_by_module`.
 </ParamField>
 
 <ParamField path="mention_drifted_projects_in_pr" type="boolean" default="false">
