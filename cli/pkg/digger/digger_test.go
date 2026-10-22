@@ -214,17 +214,23 @@ func (m *MockZipper) GetFileFromZip(zipFile string, filename string) (string, er
 }
 
 type MockPlanStorage struct {
-	Commands []RunInfo
+	Commands          []RunInfo
+	RetrievePlanPaths map[string]string
 }
 
 func (m *MockPlanStorage) StorePlanFile(fileContents []byte, artifactName string, fileName string) error {
-	m.Commands = append(m.Commands, RunInfo{"StorePlanFile", artifactName, time.Now()})
+	m.Commands = append(m.Commands, RunInfo{"StorePlanFile", artifactName + " " + fileName, time.Now()})
 	return nil
 }
 
 func (m *MockPlanStorage) RetrievePlan(localPlanFilePath string, artifactName string, storedPlanFilePath string) (*string, error) {
-	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", localPlanFilePath, time.Now()})
-	return nil, nil
+	m.Commands = append(m.Commands, RunInfo{"RetrievePlan", artifactName + " " + storedPlanFilePath, time.Now()})
+	if m.RetrievePlanPaths != nil {
+		if retrievedPlanPath, ok := m.RetrievePlanPaths[storedPlanFilePath]; ok {
+			return &retrievedPlanPath, nil
+		}
+	}
+	return &localPlanFilePath, nil
 }
 
 func (m *MockPlanStorage) DeleteStoredPlan(artifactName string, storedPlanFilePath string) error {
@@ -242,18 +248,23 @@ type MockPlanPathProvider struct {
 }
 
 func (m MockPlanPathProvider) ArtifactName() string {
-	m.Commands = append(m.Commands, RunInfo{"ArtifactName", "", time.Now()})
 	return "plan"
 }
 
 func (m MockPlanPathProvider) StoredPlanFilePath() string {
-	m.Commands = append(m.Commands, RunInfo{"StoredPlanFilePath", "", time.Now()})
 	return "plan"
 }
 
 func (m MockPlanPathProvider) LocalPlanFilePath() string {
-	m.Commands = append(m.Commands, RunInfo{"LocalPlanFilePath", "", time.Now()})
 	return "plan"
+}
+
+func (m MockPlanPathProvider) LocalPlanLockFilePath(lockFilePath string) string {
+	return lockFilePath
+}
+
+func (m MockPlanPathProvider) StoredPlanLockFilePath(lockFilePath string) string {
+	return "plan." + strings.TrimPrefix(lockFilePath, ".")
 }
 
 func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
@@ -303,7 +314,74 @@ func TestCorrectCommandExecutionWhenApplying(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"RetrievePlan plan", "Init ", "Apply ", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"RetrievePlan plan plan", "Init ", "Apply plan", "PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>", "Run   echo"}, commandStrings)
+}
+
+func TestCorrectCommandExecutionWhenApplyingWithPlanLockFile(t *testing.T) {
+	t.Setenv("PLAN_UPLOAD_LOCK_FILE", ".terraform.lock.hcl")
+
+	commandRunner := &MockCommandRunner{}
+	terraformExecutor := &MockTerraformExecutor{}
+	prManager := &MockPRManager{}
+	lock := &MockProjectLock{}
+	retrievedLockFile, err := os.CreateTemp("", "digger-lock-*")
+	assert.NoError(t, err)
+	defer os.Remove(retrievedLockFile.Name())
+	_, err = retrievedLockFile.WriteString("lock file contents")
+	assert.NoError(t, err)
+	assert.NoError(t, retrievedLockFile.Close())
+	defer os.Remove(".terraform.lock.hcl")
+
+	planStorage := &MockPlanStorage{
+		RetrievePlanPaths: map[string]string{
+			"plan.terraform.lock.hcl": retrievedLockFile.Name(),
+		},
+	}
+	reporter := &reporting.CiReporter{
+		CiService:         prManager,
+		PrNumber:          1,
+		ReportStrategy:    &reporting.MultipleCommentsStrategy{},
+		IsSupportMarkdown: true,
+	}
+	planPathProvider := &MockPlanPathProvider{}
+	executor := execution.DiggerExecutor{
+		ApplyStage: &orchestrator.Stage{
+			Steps: []orchestrator.Step{
+				{
+					Action:    "init",
+					ExtraArgs: nil,
+					Value:     "",
+				},
+				{
+					Action:    "apply",
+					ExtraArgs: nil,
+					Value:     "",
+				},
+			},
+		},
+		PlanStage:         &orchestrator.Stage{},
+		CommandRunner:     commandRunner,
+		TerraformExecutor: terraformExecutor,
+		Reporter:          reporter,
+		PlanStorage:       planStorage,
+		PlanPathProvider:  planPathProvider,
+		IacUtils:          iac_utils.TerraformUtils{},
+	}
+
+	executor.Apply()
+	restoredLockFile, err := os.ReadFile(".terraform.lock.hcl")
+	assert.NoError(t, err)
+	assert.Equal(t, "lock file contents", string(restoredLockFile))
+
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
+
+	assert.Equal(t, []string{
+		"RetrievePlan plan plan",
+		"RetrievePlan plan.terraform.lock.hcl plan.terraform.lock.hcl",
+		"Init ",
+		"Apply plan",
+		"PublishComment 1 <details ><summary>Apply output</summary>\n\n```terraform\n\n```\n</details>",
+	}, commandStrings)
 }
 
 func TestCorrectCommandExecutionWhenDestroying(t *testing.T) {
@@ -396,7 +474,63 @@ func TestCorrectCommandExecutionWhenPlanning(t *testing.T) {
 
 	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
 
-	assert.Equal(t, []string{"Init ", "Plan ", "Show ", "StorePlanFile plan", "Run   echo"}, commandStrings)
+	assert.Equal(t, []string{"Init ", "Plan ", "Show ", "StorePlanFile plan plan", "Run   echo"}, commandStrings)
+}
+
+func TestCorrectCommandExecutionWhenPlanningWithPlanLockFile(t *testing.T) {
+	t.Setenv("PLAN_UPLOAD_LOCK_FILE", ".terraform.lock.hcl")
+
+	commandRunner := &MockCommandRunner{}
+	terraformExecutor := &MockTerraformExecutor{}
+	prManager := &MockPRManager{}
+	lock := &MockProjectLock{}
+	planStorage := &MockPlanStorage{}
+	reporter := &reporting.CiReporter{
+		CiService: prManager,
+		PrNumber:  1,
+	}
+	planPathProvider := &MockPlanPathProvider{}
+
+	executor := execution.DiggerExecutor{
+		ApplyStage: &orchestrator.Stage{},
+		PlanStage: &orchestrator.Stage{
+			Steps: []orchestrator.Step{
+				{
+					Action:    "init",
+					ExtraArgs: nil,
+					Value:     "",
+				},
+				{
+					Action:    "plan",
+					ExtraArgs: nil,
+					Value:     "",
+				},
+			},
+		},
+		CommandRunner:     commandRunner,
+		TerraformExecutor: terraformExecutor,
+		Reporter:          reporter,
+		PlanStorage:       planStorage,
+		PlanPathProvider:  planPathProvider,
+		IacUtils:          iac_utils.TerraformUtils{},
+	}
+
+	os.WriteFile(planPathProvider.LocalPlanFilePath(), []byte{123}, 0644)
+	defer os.Remove(planPathProvider.LocalPlanFilePath())
+	os.WriteFile(planPathProvider.LocalPlanLockFilePath(".terraform.lock.hcl"), []byte{123}, 0644)
+	defer os.Remove(planPathProvider.LocalPlanLockFilePath(".terraform.lock.hcl"))
+
+	executor.Plan()
+
+	commandStrings := allCommandsInOrderWithParams(terraformExecutor, commandRunner, prManager, lock, planStorage, planPathProvider)
+
+	assert.Equal(t, []string{
+		"Init ",
+		"Plan ",
+		"Show ",
+		"StorePlanFile plan plan",
+		"StorePlanFile plan.terraform.lock.hcl plan.terraform.lock.hcl",
+	}, commandStrings)
 }
 
 func allCommandsInOrderWithParams(terraformExecutor *MockTerraformExecutor, commandRunner *MockCommandRunner, prManager *MockPRManager, lock *MockProjectLock, planStorage *MockPlanStorage, planPathProvider *MockPlanPathProvider) []string {
