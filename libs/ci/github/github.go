@@ -725,6 +725,8 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 
 	// When the PR is blocked solely because digger/apply is a required check that hasn't
 	// passed yet, allow the apply to proceed — it's the only way to satisfy that check.
+	slog.Info("PR is not in a mergeable state", "prNumber", prNumber, "mergeable", pr.GetMergeable(), "mergeableState", pr.GetMergeableState())
+
 	if strings.ToLower(pr.GetMergeableState()) == "blocked" {
 		return svc.isBlockedOnlyByDiggerApply(pr.GetHead().GetSHA())
 	}
@@ -733,7 +735,7 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 }
 
 // isBlockedOnlyByDiggerApply returns true if the only non-successful check runs on the
-// commit are digger/apply checks. This breaks the chicken-and-egg problem where digger/apply
+// commit are digger's own apply checks. This breaks the chicken-and-egg problem where digger/apply
 // is a required branch protection check: the apply must run to pass the check, but the
 // mergeability gate would otherwise prevent it from running.
 func (svc GithubService) isBlockedOnlyByDiggerApply(headSHA string) (bool, error) {
@@ -742,18 +744,44 @@ func (svc GithubService) isBlockedOnlyByDiggerApply(headSHA string) (bool, error
 		return false, fmt.Errorf("could not get check runs for commit %v: %v", headSHA, err)
 	}
 
+	return onlyDiggerApplyChecksPending(checkRuns, os.Getenv("GITHUB_RUN_ID")), nil
+}
+
+// onlyDiggerApplyChecksPending ignores, besides digger/apply:
+//   - the per-project <project>/apply checks created by the same app as the digger/* checks
+//   - the check of the GitHub Actions job running this apply (identified by currentRunID),
+//     along with the same job's runs from earlier attempts on this commit
+func onlyDiggerApplyChecksPending(checkRuns []*github.CheckRun, currentRunID string) bool {
+	diggerAppIDs := make(map[int64]bool)
+	currentJobName := ""
 	for _, run := range checkRuns {
+		if strings.HasPrefix(run.GetName(), "digger/") {
+			diggerAppIDs[run.GetApp().GetID()] = true
+		}
+		if currentRunID != "" && strings.Contains(run.GetDetailsURL(), "/actions/runs/"+currentRunID+"/") {
+			currentJobName = run.GetName()
+		}
+	}
+
+	for _, run := range checkRuns {
+		name := run.GetName()
 		if run.GetConclusion() == "success" {
 			continue
 		}
-		if strings.HasPrefix(run.GetName(), "digger/apply") {
+		if strings.HasPrefix(name, "digger/apply") {
 			continue
 		}
-		slog.Debug("PR blocked by non-digger check", "check", run.GetName(), "conclusion", run.GetConclusion())
-		return false, nil
+		if strings.HasSuffix(name, "/apply") && diggerAppIDs[run.GetApp().GetID()] {
+			continue
+		}
+		if currentJobName != "" && name == currentJobName {
+			continue
+		}
+		slog.Debug("PR blocked by non-digger check", "check", name, "conclusion", run.GetConclusion())
+		return false
 	}
 
-	return true, nil
+	return true
 }
 
 func (svc GithubService) IsMerged(prNumber int) (bool, error) {
