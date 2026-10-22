@@ -25,3 +25,9 @@ func MaxImpactedProjectsPerChange() int {
 		return v
 	}
 }
+
+func DisablePolicyFieldsLookup() bool {
+	// if this flag is set, teams, approvals and approval_teams are not computed for plan/access policies.
+	// Computing them scans every team of the GitHub organisation, which can take minutes on large orgs
+	return os.Getenv("DIGGER_DISABLE_POLICY_FIELDS_LOOKUP") == "1"
+}

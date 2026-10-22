@@ -85,7 +85,7 @@ These are local service behavior toggles and paths.
 
 | Variable(s) | Used by | Purpose |
 | --- | --- | --- |
-| `BACKGROUND_JOBS_CLIENT_TYPE`, `DIGGER_ENABLE_API_ENDPOINTS`, `DIGGER_ENABLE_INTERNAL_ENDPOINTS`, `DIGGER_LOAD_PROJECTS_ON_PUSH`, `DIGGER_IGNORE_PULL_REQUEST_EVENTS`, `PROJECTS_REFRESH_BIN`, `INTERNAL_BASE_URL` | `orchestrator` | Orchestrator runtime behavior and internal routing. Set `DIGGER_IGNORE_PULL_REQUEST_EVENTS=1` to ignore pull request events by default and only react to explicit `digger plan` / `digger apply` comments. |
+| `BACKGROUND_JOBS_CLIENT_TYPE`, `DIGGER_ENABLE_API_ENDPOINTS`, `DIGGER_ENABLE_INTERNAL_ENDPOINTS`, `DIGGER_LOAD_PROJECTS_ON_PUSH`, `DIGGER_IGNORE_PULL_REQUEST_EVENTS`, `DIGGER_DISABLE_POLICY_FIELDS_LOOKUP`, `PROJECTS_REFRESH_BIN`, `INTERNAL_BASE_URL` | `orchestrator` | Orchestrator runtime behavior and internal routing. Set `DIGGER_IGNORE_PULL_REQUEST_EVENTS=1` to ignore pull request events by default and only react to explicit `digger plan` / `digger apply` comments. Set `DIGGER_DISABLE_POLICY_FIELDS_LOOKUP=1` to skip computing `teams`, `approvals` and `approval_teams` for plan/access policies; this lookup scans every team of the GitHub organisation and can add minutes of latency per event on large organisations. |
 | `DIGGER_DRIFT_REPORTER_HOSTNAME`, `DIGGER_HOSTNAME`, `DIGGER_ENABLE_API_ENDPOINTS`, `DIGGER_ENABLE_INTERNAL_ENDPOINTS`, `INTERNAL_BASE_URL` | `drift` | Drift runtime behavior and callback/internal routing. |
 | `ALLOWED_HOSTS` | `ui` | Host validation allowlist for UI ingress hostnames. |
 | `NODE_ENV`, `PORT`, `SANDBOX_RUNNER` | `sidecar` | Sidecar runtime mode and provider selection. |
