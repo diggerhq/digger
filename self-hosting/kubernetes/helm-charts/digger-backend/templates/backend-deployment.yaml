@@ -41,6 +41,13 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         env:
+        {{- if .Values.digger.postgres.databaseUrlSecretName }}
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.digger.postgres.databaseUrlSecretName | quote }}
+              key: {{ .Values.digger.postgres.databaseUrlSecretKey | default "DATABASE_URL" | quote }}
+        {{- else }}
         - name: POSTGRES_PASSWORD
         {{- if  and .Values.postgres.enabled .Values.postgres.secret.useExistingSecret }}
           valueFrom:
@@ -65,6 +72,7 @@ spec:
           {{- $pg := .Values.digger.postgres }}
           value: "postgres://{{ $pg.user }}:$(POSTGRES_PASSWORD)@{{ $pg.host }}:{{ $pg.port }}/{{ $pg.database }}?sslmode={{ $pg.sslmode }}"
         {{- end }}
+        {{- end }}{{/* databaseUrlSecretName */}}
         - name: ALLOW_DIRTY
           value: "{{ .Values.digger.postgres.allow_dirty }}"
         - name: DIGGER_LOG_LEVEL
