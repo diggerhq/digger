@@ -268,3 +268,41 @@ func TestDiggerLockFunctionalities(t *testing.T) {
 	assert.Equal(t, "org/repo2#dev", existingLocksAfterDeletion[0].Resource)
 	assert.Equal(t, "org/repo2#prod", existingLocksAfterDeletion[1].Resource)
 }
+
+func TestGetImpactedProjectSingleFiltersByProjectName(t *testing.T) {
+	// dedicated in-memory DB: sqlite index names are global and ImpactedProject
+	// shares "idx_org_repo" with other models migrated by setupSuite
+	gdb, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, gdb.AutoMigrate(&ImpactedProject{}))
+	database := &Database{GormDB: gdb}
+
+	repo, sha := "org/repo", "abc123"
+	_, err = database.CreateImpactedProject(repo, sha, "project-a", nil, nil)
+	assert.NoError(t, err)
+	_, err = database.CreateImpactedProject(repo, sha, "project-b", nil, nil)
+	assert.NoError(t, err)
+
+	for _, name := range []string{"project-a", "project-b"} {
+		ip, err := database.GetImpactedProjectSingle(repo, sha, name)
+		assert.NoError(t, err)
+		if assert.NotNil(t, ip) {
+			assert.Equal(t, name, ip.ProjectName)
+		}
+	}
+
+	// updating one project must not mark the other as applied
+	ipB, _ := database.GetImpactedProjectSingle(repo, sha, "project-b")
+	ipB.Applied = true
+	assert.NoError(t, database.GormDB.Save(ipB).Error)
+	applied, _, err := database.AllImpactedProjectApplied(repo, sha)
+	assert.NoError(t, err)
+	assert.False(t, applied)
+
+	// unknown project: not found, not a zero-value record
+	ip, err := database.GetImpactedProjectSingle(repo, sha, "missing")
+	assert.NoError(t, err)
+	assert.Nil(t, ip)
+}
