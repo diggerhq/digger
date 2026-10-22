@@ -221,7 +221,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 			// This one is for aggregate reporting
 			commentReporterManager.UpdateComment(":construction_worker: No projects impacted")
 		}
-		_, _, err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha, repoName, repoOwner)
+		_, _, err = utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha, repoName, repoOwner, config.DisableDiggerApplyStatusCheck)
 		return nil
 	}
 
@@ -407,7 +407,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 	}
 
 	//err = utils.SetPRCommitStatusForJobs(ghService, prNumber, jobsForImpactedProjects)
-	batchCheckRunData, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha, repoName, repoOwner)
+	batchCheckRunData, jobsCheckRunIdsMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobsForImpactedProjects, commitSha, repoName, repoOwner, config.DisableDiggerApplyStatusCheck)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"prNumber", prNumber,
