@@ -658,6 +658,22 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 		return
 	}
 
+	// GetDiggerJob returns an empty job rather than an error when the ID is
+	// unknown.
+	if job.BatchID == nil {
+		c.String(http.StatusNotFound, "Job not found")
+		return
+	}
+
+	// Each job token is created for one job and embedded in that job's spec,
+	// so a caller authenticated with a job token may only update that job.
+	presentedJobToken := c.GetString(middleware.JOB_TOKEN_KEY)
+	if c.GetString(middleware.ACCESS_LEVEL_KEY) == models.CliJobAccessType && !jobTokenMatchesJob(presentedJobToken, job) {
+		slog.Warn("Job token does not belong to the job being updated", "jobId", jobId)
+		c.String(http.StatusForbidden, "Not allowed to access this resource")
+		return
+	}
+
 	batchId := *job.BatchID
 
 	slog.Debug("Fetching organization", "orgId", orgId, "jobId", jobId)
