@@ -36,6 +36,17 @@ For authentication-specific setup details, see [WorkOS Setup](/self-hosting/work
 | --- | --- | --- | --- | --- |
 | `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, `WORKOS_COOKIE_PASSWORD`, `WORKOS_WEBHOOK_SECRET`, `WORKOS_REDIRECT_URI` | `ui` | WorkOS | Before first login | Required to authenticate into the app UI. `WORKOS_REDIRECT_URI` must match your public app URL callback route. See [WorkOS Setup](/self-hosting/workos-setup). |
 
+#### Static auth mode (no WorkOS)
+
+For single-tenant self-hosted deployments where access to the UI is already controlled in front of it (network perimeter, VPN, or an authenticating reverse proxy), the UI can run as one fixed identity instead of WorkOS. WorkOS remains the default; set `DIGGER_UI_AUTH_MODE=static` to opt in — no `WORKOS_*` variables are required in this mode.
+
+| Variable(s) | Used by | Source system | When required | Notes |
+| --- | --- | --- | --- | --- |
+| `DIGGER_UI_AUTH_MODE` | `ui` | — | Opt-in | Set to `static` to enable static auth mode; unset (or any other value) keeps WorkOS auth. |
+| `DIGGER_STATIC_ORG_ID` | `ui` | Your backend | Static mode only | Required. The backend organisation's external id, used for all backend requests. |
+| `DIGGER_ORG_SOURCE` | `ui` | Your backend | Static mode only | Organisation external source sent to the backend; defaults to `workos`. Set it to match how your organisation was created (e.g. `digger` for the GitHub OAuth path). |
+| `DIGGER_STATIC_USER_ID`, `DIGGER_STATIC_USER_EMAIL`, `DIGGER_STATIC_USER_FIRST_NAME`, `DIGGER_STATIC_USER_LAST_NAME`, `DIGGER_STATIC_ORG_NAME` | `ui` | — | Optional | Identity and organisation name shown in the UI; sensible defaults are provided. |
+
 ### GitHub
 
 For the self-hosted GitHub App flow, see [GitHub App Setup](/self-hosting/github-app-setup).
