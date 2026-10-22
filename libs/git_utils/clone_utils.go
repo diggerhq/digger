@@ -87,6 +87,53 @@ func CloneGitRepoAndDoActionWithTimeout(repoUrl string, branch string, commitHas
 	return nil
 }
 
+// CloneGitRepoSparseWithTimeout clones repoUrl at branch into a new temporary
+// directory and returns its path. Only blobs matching sparsePatterns
+// (gitignore-style, matched at any depth) are fetched, so a large repository
+// costs little more than its tree objects. If the sparse clone fails the
+// repository is cloned the ordinary shallow way instead. The caller owns the
+// returned directory.
+func CloneGitRepoSparseWithTimeout(repoUrl string, branch string, token string, tokenUsername string, timeout time.Duration, sparsePatterns []string) (string, error) {
+	dir, err := createTempDir()
+	if err != nil {
+		return "", err
+	}
+
+	git := NewGitShellWithTokenAuth(dir, token, tokenUsername)
+	if timeout > 0 {
+		git.timeout = timeout
+	}
+
+	err = git.CloneSparse(repoUrl, branch, sparsePatterns)
+	if err == nil {
+		return dir, nil
+	}
+
+	slog.Warn("Sparse clone failed, falling back to full shallow clone",
+		"repoUrl", repoUrl,
+		"branch", branch,
+		"error", err,
+	)
+	if err := os.RemoveAll(dir); err != nil {
+		slog.Warn("Failed to remove directory", "directory", dir, "error", err)
+	}
+	dir, err = createTempDir()
+	if err != nil {
+		return "", err
+	}
+	git = NewGitShellWithTokenAuth(dir, token, tokenUsername)
+	if timeout > 0 {
+		git.timeout = timeout
+	}
+	if err := git.Clone(repoUrl, branch); err != nil {
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			slog.Warn("Failed to remove directory", "directory", dir, "error", rmErr)
+		}
+		return "", err
+	}
+	return dir, nil
+}
+
 type GitAuth struct {
 	Username      string
 	Password      string // Can be either password or access token
@@ -211,5 +258,31 @@ func (g *GitShell) Clone(repoURL, branch string) error {
 	args = append(args, "--single-branch", authURL, g.workDir)
 
 	_, err = g.runCommand(args...)
+	return err
+}
+
+// CloneSparse clones only the files matching patterns (gitignore-style,
+// matched at any depth). Blobs outside the patterns are never downloaded.
+func (g *GitShell) CloneSparse(repoURL, branch string, patterns []string) error {
+	authURL, err := g.formatAuthURL(repoURL)
+	if err != nil {
+		return err
+	}
+
+	args := []string{"clone"}
+	if branch != "" {
+		args = append(args, "-b", branch)
+	}
+	args = append(args, "--depth", "1", "--single-branch", "--filter=blob:none", "--no-checkout", authURL, g.workDir)
+	if _, err = g.runCommand(args...); err != nil {
+		return err
+	}
+
+	args = append([]string{"sparse-checkout", "set", "--no-cone"}, patterns...)
+	if _, err = g.runCommand(args...); err != nil {
+		return err
+	}
+
+	_, err = g.runCommand("checkout")
 	return err
 }
