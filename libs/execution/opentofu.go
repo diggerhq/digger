@@ -142,10 +142,11 @@ func (tf OpenTofu) runOpentofuCommand(command string, printOutputToStdout bool, 
 	}
 
 	cmd := exec.Command("tofu", expandedArgs...)
+
 	slog.Info("Running OpenTofu command",
 		slog.Group("command",
 			"binary", "tofu",
-			"args", expandedArgs,
+			"args", RedactSecrets(expandedArgs),
 			"workingDir", tf.WorkingDir,
 		),
 	)
@@ -166,7 +167,7 @@ func (tf OpenTofu) runOpentofuCommand(command string, printOutputToStdout bool, 
 	if err != nil && cmd.ProcessState.ExitCode() != 2 {
 		slog.Error("Command execution failed",
 			"command", "tofu",
-			"args", expandedArgs,
+			"args", RedactSecrets(expandedArgs),
 			"exitCode", cmd.ProcessState.ExitCode(),
 			"error", err,
 		)
