@@ -97,6 +97,7 @@ type DriftStatus string
 const DriftStatusNewDrift DriftStatus = "new drift"
 const DriftStatusNoDrift DriftStatus = "no drift"
 const DriftStatusAcknowledgeDrift DriftStatus = "acknowledged drift"
+const DriftStatusCheckFailed DriftStatus = "check failed"
 
 type Project struct {
 	gorm.Model

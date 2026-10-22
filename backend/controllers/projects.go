@@ -990,6 +990,20 @@ func (d DiggerController) SetJobStatusForProject(c *gin.Context) {
 			"batchId", batchId,
 		)
 
+		// Record drift-check failure so a failed check is distinguishable from "no drift"
+		// (otherwise the project silently stays at its default "no drift" / never-checked).
+		if isDriftJob, dErr := IsDriftStatusJob(job); dErr != nil {
+			slog.Warn("Could not determine if failed job is a drift job", "jobId", jobId, "error", dErr)
+		} else if isDriftJob {
+			if project, pErr := models.DB.GetProjectByName(orgId, job.Batch.RepoFullName, job.ProjectName); pErr != nil {
+				slog.Warn("Could not load project for drift check-failed update",
+					"jobId", jobId, "projectName", job.ProjectName, "error", pErr)
+			} else if sErr := ProjectDriftCheckFailed(*project, request.TerraformOutput); sErr != nil {
+				slog.Warn("Could not update project drift check-failed state",
+					"jobId", jobId, "projectName", job.ProjectName, "error", sErr)
+			}
+		}
+
 		// Update PR comment with real-time status for failed job
 		go func(ctx context.Context) {
 			defer logging.InheritRequestLogger(ctx)()
