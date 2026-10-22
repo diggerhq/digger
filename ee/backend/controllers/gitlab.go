@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -38,6 +39,21 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	log.Printf("GitlabWebhook")
 
+	// Check the token before anything else. An unset secret must not match a
+	// request that omits the header, and the comparison runs in constant time.
+	gitlabWebhookSecret := os.Getenv("DIGGER_GITLAB_WEBHOOK_SECRET")
+	if gitlabWebhookSecret == "" {
+		log.Printf("Error validating gitlab webhook payload: DIGGER_GITLAB_WEBHOOK_SECRET is not set")
+		c.String(http.StatusBadRequest, "Error validating gitlab webhook payload: invalid signature")
+		return
+	}
+	secret := c.GetHeader("X-Gitlab-Token")
+	if subtle.ConstantTimeCompare([]byte(gitlabWebhookSecret), []byte(secret)) != 1 {
+		log.Printf("Error validating gitlab webhook payload: invalid signature")
+		c.String(http.StatusBadRequest, "Error validating gitlab webhook payload: invalid signature")
+		return
+	}
+
 	//temp  to get orgID TODO: fetch from db
 	organisation, err := models.DB.GetOrganisation(models.DEFAULT_ORG_NAME)
 	if err != nil {
@@ -45,14 +61,6 @@ func (d DiggerEEController) GitlabWebHookHandler(c *gin.Context) {
 		return
 	}
 	organisationId := organisation.ID
-
-	gitlabWebhookSecret := os.Getenv("DIGGER_GITLAB_WEBHOOK_SECRET")
-	secret := c.GetHeader("X-Gitlab-Token")
-	if gitlabWebhookSecret != secret {
-		log.Printf("Error validating gitlab webhook payload: invalid signature")
-		c.String(http.StatusBadRequest, "Error validating gitlab webhook payload: invalid signature")
-		return
-	}
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
