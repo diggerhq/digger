@@ -8,6 +8,13 @@ By default, Digger ignores Draft pull requests. You can enable support of draft 
   allow_draft_prs: true
 ```
 
+## Planning when a draft is marked ready for review
+
+When a GitHub PR changes status from "draft" to "ready for review":
+
+- if `allow_draft_prs` is `false`, digger will run `on_pull_request_pushed` (`digger plan` by default), as if the PR had just been opened. With PR locks enabled, this takes the locks that converting to draft released.
+- if `allow_draft_prs` is `true`, digger will not plan again (because pushes to the draft were already planned)
+
 ## Unlocking on changing back to draft
 
 When a PR changes status from "ready to review" back to "draft":

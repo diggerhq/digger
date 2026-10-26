@@ -101,7 +101,7 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		return fmt.Errorf("error getting ghService to post error comment")
 	}
 
-	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft"}, action) {
+	if !slices.Contains([]string{"closed", "opened", "reopened", "synchronize", "converted_to_draft", "ready_for_review"}, action) {
 		slog.Info("Ignoring event with action not requiring processing", "action", action, "prNumber", prNumber)
 		return nil
 	}
@@ -172,6 +172,19 @@ func handlePullRequestEvent(gh utils.GithubClientProvider, payload *github.PullR
 		"repoFullName", repoFullName,
 		"configLength", len(diggerYmlStr),
 	)
+
+	// ConvertGithubPullRequestEventToJobs would build no jobs for this, but
+	// returning now skips impacted-project detection and the check updates
+	// that follow an empty job list.
+	if action == "ready_for_review" && config.AllowDraftPRs {
+		slog.Info("Ignoring ready_for_review, draft PRs are planned on push",
+			"prNumber", prNumber,
+		)
+		if os.Getenv("DIGGER_REPORT_BEFORE_LOADING_CONFIG") == "1" {
+			commentReporterManager.UpdateComment(":construction_worker: Ignoring ready for review, as draft PRs were already planned")
+		}
+		return nil
+	}
 
 	impactedProjects, impactedProjectsSourceMapping, _, err := github2.ProcessGitHubPullRequestEvent(payload, config, projectsGraph, ghService)
 	if err != nil {
