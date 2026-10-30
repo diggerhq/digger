@@ -454,6 +454,35 @@ generate_projects:
 	assert.Equal(t, 2, len(dg.Projects))
 }
 
+func TestDiggerGenerateProjectsWithTofuFiles(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  include: dev/*
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	filesToCreate := map[string]string{
+		"dev/tf":    "main.tf",
+		"dev/tofu":  "main.tofu",
+		"dev/other": "README.md",
+	}
+	for dir, file := range filesToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		assert.NoError(t, err, "expected error to be nil")
+		defer createFile(path.Join(tempDir, dir, file), "")()
+	}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, nil, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+	assert.Equal(t, 2, len(dg.Projects))
+	assert.Equal(t, "dev/tf", dg.Projects[0].Dir)
+	assert.Equal(t, "dev/tofu", dg.Projects[1].Dir)
+}
+
 func TestDiggerGenerateProjectsWithSubDirs(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
