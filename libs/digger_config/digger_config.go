@@ -117,7 +117,10 @@ func (walker *FileSystemTopLevelTerraformDirWalker) GetDirs(workingDir string, c
 					return filepath.SkipDir
 				}
 				terraformFiles, _ := GetFilesWithExtension(path, ".tf")
-				if len(terraformFiles) > 0 {
+				// OpenTofu reads .tofu files as well, so a directory with only
+				// .tofu files is a project too.
+				tofuFiles, _ := GetFilesWithExtension(path, ".tofu")
+				if len(terraformFiles) > 0 || len(tofuFiles) > 0 {
 					relPath := strings.ReplaceAll(path, workingDir+string(os.PathSeparator), "")
 					dirs = append(dirs, relPath)
 					slog.Debug("found terraform directory", "path", relPath)
