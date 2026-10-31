@@ -27,8 +27,13 @@ func getEnvs() map[string]string {
 	m := make(map[string]string)
 
 	for _, env := range envs {
-		results := strings.Split(env, "=")
-		m[results[0]] = results[1]
+		// Split on the first "=" only: values may contain "=" themselves
+		// (base64 padding, URLs with query strings, KEY=VALUE lists).
+		key, value, found := strings.Cut(env, "=")
+		if !found {
+			continue
+		}
+		m[key] = value
 	}
 
 	return m

@@ -135,3 +135,15 @@ func TestModulesWithNoTerraformSourceDefinitions(t *testing.T) {
 func TestInfrastructureMutliAccountsVPCRoute53TGWCascading(t *testing.T) {
 	runTest(t, "golden/multi_accounts_vpc_route53_tgw.yaml", "test_examples/multi_accounts_vpc_route53_tgw", false, "", false, true, true, false, true, "_")
 }
+
+func TestGetEnvsKeepsEqualsInValues(t *testing.T) {
+	t.Setenv("DIGGER_TAC_TEST_ENV_WITH_EQUALS", "token=abc==")
+	t.Setenv("DIGGER_TAC_TEST_ENV_EMPTY", "")
+
+	envs := getEnvs()
+
+	assert.Equal(t, "token=abc==", envs["DIGGER_TAC_TEST_ENV_WITH_EQUALS"])
+	value, ok := envs["DIGGER_TAC_TEST_ENV_EMPTY"]
+	assert.True(t, ok)
+	assert.Equal(t, "", value)
+}
