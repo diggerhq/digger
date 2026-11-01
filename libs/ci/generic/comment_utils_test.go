@@ -72,3 +72,19 @@ func TestParseDiggerCommentFlags(t *testing.T) {
 	assert.Error(t, err)
 
 }
+
+func TestParseDiggerCommentFlagsForce(t *testing.T) {
+	parts, _, err := ParseDiggerCommentFlags("digger plan -p a")
+	assert.NoError(t, err)
+	assert.False(t, parts.Force)
+
+	parts, _, err = ParseDiggerCommentFlags("digger plan -p a --force")
+	assert.NoError(t, err)
+	assert.True(t, parts.Force)
+	assert.Equal(t, []string{"a"}, parts.Projects)
+
+	parts, _, err = ParseDiggerCommentFlags("digger apply --force -p a")
+	assert.NoError(t, err)
+	assert.True(t, parts.Force)
+	assert.Equal(t, []string{"a"}, parts.Projects)
+}

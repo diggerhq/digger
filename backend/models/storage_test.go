@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/stretchr/testify/assert"
@@ -267,4 +268,56 @@ func TestDiggerLockFunctionalities(t *testing.T) {
 	assert.Equal(t, 2, len(existingLocksAfterDeletion))
 	assert.Equal(t, "org/repo2#dev", existingLocksAfterDeletion[0].Resource)
 	assert.Equal(t, "org/repo2#prod", existingLocksAfterDeletion[1].Resource)
+}
+
+func TestGetRunningProjectsForCommit(t *testing.T) {
+	teardownSuite, _, _ := setupSuite(t)
+	defer teardownSuite(t)
+
+	newBatch := func(command scheduler.DiggerCommand, sha string, jobs map[string]scheduler.DiggerJobStatus) map[string]string {
+		batch, err := DB.CreateDiggerBatch(DiggerVCSGithub, 1, "o", "r", "o/r", 7, "", "b", command, nil, 0, "", false, true, nil, sha, nil, nil)
+		assert.NoError(t, err)
+		ids := map[string]string{}
+		for name, status := range jobs {
+			job, err := DB.CreateDiggerJob(batch.ID, []byte("{}"), "w.yml", nil, nil, "lazy", name)
+			assert.NoError(t, err)
+			job.Status = status
+			assert.NoError(t, DB.UpdateDiggerJob(job))
+			ids[name] = job.DiggerJobID
+		}
+		return ids
+	}
+	link := func(ids map[string]string, parent, child string) {
+		assert.NoError(t, DB.CreateDiggerJobParentLink(ids[parent], ids[child]))
+	}
+
+	newBatch(scheduler.DiggerCommandPlan, "abc", map[string]scheduler.DiggerJobStatus{
+		"started": scheduler.DiggerJobStarted, "done": scheduler.DiggerJobSucceeded})
+	ids := newBatch(scheduler.DiggerCommandPlan, "abc", map[string]scheduler.DiggerJobStatus{
+		"failed":   scheduler.DiggerJobFailed,
+		"child":    scheduler.DiggerJobCreated,
+		"grandkid": scheduler.DiggerJobCreated,
+		"running":  scheduler.DiggerJobStarted,
+		"waiting":  scheduler.DiggerJobCreated,
+	})
+	link(ids, "failed", "child")
+	link(ids, "child", "grandkid")
+	link(ids, "running", "waiting")
+	newBatch(scheduler.DiggerCommandApply, "abc", map[string]scheduler.DiggerJobStatus{
+		"applying": scheduler.DiggerJobTriggered})
+	newBatch(scheduler.DiggerCommandPlan, "def", map[string]scheduler.DiggerJobStatus{
+		"othersha": scheduler.DiggerJobQueuedForRun})
+
+	since := time.Now().Add(-time.Hour)
+	projects, err := DB.GetRunningProjectsForCommit(DiggerVCSGithub, "o/r", 7, "abc", scheduler.DiggerCommandPlan, since)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"started", "running", "waiting"}, projects, "jobs downstream of a failure don't count; others in that batch do")
+
+	projects, err = DB.GetRunningProjectsForCommit(DiggerVCSGithub, "o/r", 7, "abc", scheduler.DiggerCommandApply, since)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"applying"}, projects)
+
+	projects, err = DB.GetRunningProjectsForCommit(DiggerVCSGithub, "o/r", 7, "abc", scheduler.DiggerCommandPlan, time.Now().Add(time.Hour))
+	assert.NoError(t, err)
+	assert.Empty(t, projects)
 }

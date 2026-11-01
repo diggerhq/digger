@@ -2044,3 +2044,47 @@ func (db *Database) GetDiggerBatchesForPR(repoFullName string, prNumber int) ([]
 	return batches, nil
 
 }
+
+// GetRunningProjectsForCommit returns the projects with a job still in flight
+// in a command batch for this PR and commit, created after since.
+// A job downstream of a failed job doesn't count: it stays created and never
+// runs.
+func (db *Database) GetRunningProjectsForCommit(vcs DiggerVCSType, repoFullName string, prNumber int, commitSha string, command scheduler.DiggerCommand, since time.Time) ([]string, error) {
+	const query = `
+		WITH RECURSIVE jobs AS (
+			SELECT j.digger_job_id, j.project_name, j.status, j.created_at FROM digger_jobs j
+			JOIN digger_batches b ON b.id = j.batch_id
+			WHERE b.vcs = @vcs AND b.repo_full_name = @repo AND b.pr_number = @pr AND b.commit_sha = @sha AND b.batch_type = @command
+				AND j.deleted_at IS NULL AND b.deleted_at IS NULL
+		), dead(digger_job_id) AS (
+			SELECT digger_job_id FROM jobs WHERE status = @failed
+			UNION
+			SELECT l.digger_job_id FROM digger_job_parent_links l
+			JOIN dead ON l.parent_digger_job_id = dead.digger_job_id
+			WHERE l.deleted_at IS NULL
+		)
+		SELECT DISTINCT project_name FROM jobs
+		WHERE status IN @inFlight AND created_at > @since
+			AND NOT EXISTS (SELECT 1 FROM dead WHERE dead.digger_job_id = jobs.digger_job_id)`
+	var projects []string
+	err := db.GormDB.Raw(query, map[string]any{
+		"vcs": vcs, "repo": repoFullName, "pr": prNumber, "sha": commitSha, "command": command, "since": since,
+		"failed": scheduler.DiggerJobFailed,
+		"inFlight": []scheduler.DiggerJobStatus{
+			scheduler.DiggerJobCreated,
+			scheduler.DiggerJobTriggered,
+			scheduler.DiggerJobStarted,
+			scheduler.DiggerJobQueuedForRun,
+		},
+	}).Scan(&projects).Error
+	if err != nil {
+		slog.Error("error fetching running projects for commit",
+			"repoFullName", repoFullName,
+			"prNumber", prNumber,
+			"commitSha", commitSha,
+			"command", command,
+			"error", err)
+		return nil, err
+	}
+	return projects, nil
+}

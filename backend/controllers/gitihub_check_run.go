@@ -103,6 +103,15 @@ func handleCheckRunActionEvent(gh utils.GithubClientProvider, identifier string,
 		})
 	})
 
+	duplicateMsg, releaseCommandLock := guardDuplicateCommand(scheduler.DiggerCommandApply, false, repoFullName, prNumber, commitSha, selectedProjects)
+	defer releaseCommandLock()
+	if duplicateMsg != "" {
+		if _, err := ghService.PublishComment(prNumber, duplicateMsg); err != nil {
+			slog.Error("Error posting duplicate apply comment", "prNumber", prNumber, "error", err)
+		}
+		return nil
+	}
+
 	jobs, err := generic.CreateJobsForProjects(selectedProjects, "digger apply", "check_run_action", repoFullName, actor, config.Workflows, &prNumber, &commitSha, "", checkRunBatch.BranchName, false)
 
 
@@ -161,6 +170,7 @@ func handleCheckRunActionEvent(gh utils.GithubClientProvider, identifier string,
 		)
 		return fmt.Errorf("error converting jobs")
 	}
+	releaseCommandLock()
 
 	ciBackend, err := ciBackendProvider.GetCiBackend(
 		ci_backends.CiBackendOptions{

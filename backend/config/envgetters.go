@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cast"
 	"log/slog"
 	"os"
+	"time"
 )
 
 func LimitByNumOfFilesChanged() bool {
@@ -24,4 +25,20 @@ func MaxImpactedProjectsPerChange() int {
 		}
 		return v
 	}
+}
+
+// DuplicateCommandWindow is how far back to look for a running plan or apply
+// of the same commit. Zero disables the check.
+func DuplicateCommandWindow() time.Duration {
+	const def = 2 * time.Hour // the job token's lifetime
+	v := os.Getenv("DIGGER_DUPLICATE_COMMAND_WINDOW")
+	if v == "" {
+		return def
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil || d < 0 {
+		slog.Warn("invalid DIGGER_DUPLICATE_COMMAND_WINDOW, using the default", "value", v, "default", def)
+		return def
+	}
+	return d
 }

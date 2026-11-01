@@ -15,6 +15,8 @@ Digger comments such as `digger plan` and `digger apply` accept the following fl
     	project (long form)
   -layer value (only for layering)
     	layer to plan or apply (default -1)
+  -force
+    	run even if the same command is already running for this commit
 ```
 
 The -p and -d flags can be specified multiple times. In the case of projects they will select the projects from the flags.
@@ -43,3 +45,26 @@ digger plan -p dev_vpc -p staging_vpc
 ```
 digger plan -p dev_vpc -d staging/vpc
 ```
+
+## Repeated plan and apply comments
+
+With the Digger backend on GitHub, Digger skips a `digger plan` or `digger apply` comment that repeats a run still in progress on the PR's current commit, and replies with the projects it found running. That includes the plan Digger starts on its own when a PR is opened or updated.
+
+- A plan is skipped only when every project it asks for is already being planned. A second plan of the same commit would only repeat the first.
+- An apply is skipped when any project it asks for is already being applied, because two applies of one project compete for its state.
+
+The Apply button on a check run counts as an apply and gets the same check; Digger posts its reply as a PR comment. The button has no `--force`, so comment `digger apply --force` instead.
+
+A comment still runs if the PR has a new commit. Projects stuck behind a failed job in an earlier run don't count either, since they never start.
+
+Add `--force` to run the command anyway. You need it if a run was cancelled in your CI, or never started, because Digger still counts it as running:
+
+```
+digger apply --force
+```
+
+Plan and apply comments on the same PR are checked one at a time. A comment that arrives while another is still starting waits for up to a minute; if it's still waiting then, Digger skips it and asks you to try again. Digger also skips a comment, and says so, if it can't run the check at all. Try again, or add `--force`.
+
+The check only counts runs Digger queued in the last 2 hours. To change that, set `DIGGER_DUPLICATE_COMMAND_WINDOW` on the backend to a Go duration such as `30m`, or `0` to turn the check off. An invalid or negative value logs a warning and uses the default.
+
+Backendless mode and the GitLab and Bitbucket integrations don't check for repeated comments, and they ignore `--force`. In backendless mode, a GitHub Actions `concurrency` group on the workflow keeps two runs from overlapping.

@@ -26,7 +26,7 @@ type ImpactedProject struct {
 type DiggerJobParentLink struct {
 	gorm.Model
 	DiggerJobId       string `gorm:"size:50,index:idx_digger_job_id"`
-	ParentDiggerJobId string `gorm:"size:50,index:idx_parent_digger_job_id"`
+	ParentDiggerJobId string `gorm:"index:idx_parent_digger_job_id"`
 }
 
 type DiggerVCSType string
@@ -41,8 +41,8 @@ type DiggerBatch struct {
 	DiggerBatchID            string    `gorm:"size:20,index:idx_digger_batch_id"` // shorter version of the ID to be able to use in check run
 	Layer                    uint
 	VCS                      DiggerVCSType
-	PrNumber                 int
-	CommitSha                string
+	PrNumber                 int    `gorm:"index:idx_digger_batches_pr_commit,priority:2"`
+	CommitSha                string `gorm:"index:idx_digger_batches_pr_commit,priority:3"`
 	CommentId                *int64
 	CheckRunId               *string
 	CheckRunUrl              *string
@@ -52,7 +52,7 @@ type DiggerBatch struct {
 	DiggerConfig             string
 	GithubInstallationId     int64
 	GitlabProjectId          int
-	RepoFullName             string
+	RepoFullName             string `gorm:"index:idx_digger_batches_pr_commit,priority:1"`
 	RepoOwner                string
 	RepoName                 string
 	BatchType                orchestrator_scheduler.DiggerCommand

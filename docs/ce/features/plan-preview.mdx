@@ -8,7 +8,7 @@ Digger runs `terraform plan` whenever a pull request is raised, and appends outp
 
 Digger run report also contains other useful info e.g. results of policy checks.
 
-You can also re-plan by commenting `digger plan` (see [CommentOps](/features/commentops))
+You can also re-plan by commenting `digger plan` (see [CommentOps](/ce/features/commentops)). Digger skips it while the same projects are still being planned on that commit; add `--force` to run it anyway (see [Repeated plan and apply comments](/ce/reference/comment-args#repeated-plan-and-apply-comments)).
 
 
 * The default way of working with digger is creating a pull request, previewing the plan within the PR as a comment, approving and applying the change within the change and then merging the pull request to the default branch

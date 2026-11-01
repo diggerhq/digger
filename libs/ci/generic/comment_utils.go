@@ -12,6 +12,7 @@ type CommentParts struct {
 	Projects    []string
 	Layer       int
 	Directories []string
+	Force       bool
 }
 
 type multiFlag []string
@@ -76,6 +77,8 @@ func ParseDiggerCommentFlags(comment string) (*CommentParts, bool, error) {
 
 	fs.Var(layer, "layer", "layer to plan or apply")
 
+	force := fs.Bool("force", false, "run even if the same command is already running for this commit")
+
 	err = fs.Parse(args[2:])
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to parse input %v", comment)
@@ -90,5 +93,6 @@ func ParseDiggerCommentFlags(comment string) (*CommentParts, bool, error) {
 		Projects:    projects,
 		Layer:       layer.val,
 		Directories: directories,
+		Force:       *force,
 	}, true, nil
 }

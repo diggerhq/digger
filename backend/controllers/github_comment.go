@@ -438,6 +438,15 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		return nil
 	}
 
+	commentParts, _, _ := generic.ParseDiggerCommentFlags(commentBody)
+	force := commentParts != nil && commentParts.Force
+	duplicateMsg, releaseCommandLock := guardDuplicateCommand(*diggerCommand, force, repoFullName, issueNumber, *commitSha, impactedProjectsForComment)
+	defer releaseCommandLock()
+	if duplicateMsg != "" {
+		commentReporterManager.UpdateComment(duplicateMsg)
+		return nil
+	}
+
 	// perform unlocking in backend
 	if config.PrLocks {
 		slog.Info("Processing PR locks for impacted projects",
@@ -616,6 +625,7 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 		commentReporterManager.UpdateComment(fmt.Sprintf(":x: ConvertJobsToDiggerJobs error: %v", err))
 		return fmt.Errorf("error converting jobs")
 	}
+	releaseCommandLock()
 
 	slog.Info("Successfully created batch for jobs",
 		"issueNumber", issueNumber,
