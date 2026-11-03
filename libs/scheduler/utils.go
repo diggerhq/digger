@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 func ParseProjectName(comment string) string {
@@ -23,6 +24,14 @@ const DiggerCommandApply DiggerCommand = "apply"
 const DiggerCommandLock DiggerCommand = "lock"
 const DiggerCommandUnlock DiggerCommand = "unlock"
 
+// IsCommentCommand reports whether a PR comment invokes command: "digger apply -p x"
+// matches "digger apply", but "digger applyt" or "lgtm, digger apply" do not.
+func IsCommentCommand(comment string, command string) bool {
+	comment = strings.ToLower(strings.TrimSpace(comment))
+	rest, found := strings.CutPrefix(comment, command)
+	return found && (rest == "" || unicode.IsSpace(rune(rest[0])))
+}
+
 func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 	supportedCommands := map[string]DiggerCommand{
 		"digger noop":   DiggerCommandNoop,
@@ -34,7 +43,7 @@ func GetCommandFromComment(comment string) (*DiggerCommand, error) {
 	diggerCommand := strings.ToLower(comment)
 	diggerCommand = strings.TrimSpace(diggerCommand)
 	for command, value := range supportedCommands {
-		if strings.HasPrefix(diggerCommand, command) {
+		if IsCommentCommand(diggerCommand, command) {
 			return &value, nil
 		}
 	}

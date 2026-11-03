@@ -117,7 +117,7 @@ func ConvertIssueCommentEventToJobs(repoFullName string, requestedBy string, prN
 	var commandToRun string
 	isSupportedCommand := false
 	for _, command := range supportedCommands {
-		if strings.HasPrefix(diggerCommand, command) {
+		if scheduler.IsCommentCommand(diggerCommand, command) {
 			isSupportedCommand = true
 			commandToRun = command
 		}
