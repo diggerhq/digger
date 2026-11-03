@@ -560,7 +560,7 @@ func ConvertGitLabEventToCommands(event GitLabEvent, gitLabContext *GitLabContex
 		slog.Debug("processing digger command", "command", diggerCommand)
 
 		for _, command := range supportedCommands {
-			if strings.Contains(diggerCommand, command) {
+			if scheduler.IsCommentCommand(diggerCommand, command) {
 				slog.Info("matched command", "command", command)
 
 				for _, project := range runForProjects {
