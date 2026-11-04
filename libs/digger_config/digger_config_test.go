@@ -1670,3 +1670,28 @@ func TestValidateApplyRequirements(t *testing.T) {
 		})
 	}
 }
+
+// ConvertDiggerYamlToConfig must reject depends_on references to projects that
+// do not exist, while ConvertDiggerYamlToConfigWithoutDependencyValidation
+// tolerates them (for callers that parse a raw digger.yml without running
+// generate_projects, where generated projects are not present yet).
+func TestConvertDiggerYamlToConfigDependencyValidation(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: static-project
+  dir: static
+  depends_on: [terragrunt_generated_project]
+`
+	configYaml, err := LoadDiggerConfigYamlFromString(diggerCfg)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, configYaml, "expected config yaml to be not nil")
+
+	_, _, err = ConvertDiggerYamlToConfig(configYaml)
+	assert.Error(t, err, "expected strict conversion to fail on missing dependency project")
+	assert.Contains(t, err.Error(), "which does not exist")
+
+	config, _, err := ConvertDiggerYamlToConfigWithoutDependencyValidation(configYaml)
+	assert.NoError(t, err, "expected lenient conversion to succeed")
+	assert.NotNil(t, config, "expected config to be not nil")
+	assert.Len(t, config.Projects, 1, "expected the static project to be converted")
+}
