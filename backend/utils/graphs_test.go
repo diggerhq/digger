@@ -215,3 +215,42 @@ func TestTraverseGraphVisitAllParentsFirst(t *testing.T) {
 		t.Errorf("Expected root4 to be visited before child4")
 	}
 }
+
+// Regression test: a child with multiple impacted predecessors must keep an
+// incoming edge from EVERY one of them in the collapsed graph. Previously
+// CollapsedGraph returned early when the child vertex already existed, so
+// only one (traversal-order dependent) parent edge survived.
+func TestImpactedProjectsOnlyGraphMultiParentChildKeepsAllParentEdges(t *testing.T) {
+	p1 := configuration.Project{Name: "p1"}
+	p2 := configuration.Project{Name: "p2"}
+	p3 := configuration.Project{Name: "p3"}
+	child := configuration.Project{Name: "child", DependencyProjects: []string{"p1", "p2", "p3"}}
+	projects := []configuration.Project{p1, p2, p3, child}
+
+	impactedProjects := map[string]configuration.Project{"p1": p1, "p2": p2, "p3": p3, "child": child}
+
+	dg, err := configuration.CreateProjectDependencyGraph(projects)
+	if err != nil {
+		t.Errorf("Error creating dependency graph: %v", err)
+	}
+
+	newGraph, err := ImpactedProjectsOnlyGraph(dg, impactedProjects)
+	if err != nil {
+		t.Errorf("Error creating impacted projects only graph: %v", err)
+	}
+
+	predMap, err := newGraph.PredecessorMap()
+	if err != nil {
+		t.Errorf("Error getting predecessor map: %v", err)
+	}
+
+	childPredecessors := predMap["child"]
+	if len(childPredecessors) != 3 {
+		t.Errorf("Expected child to have 3 predecessors, got %d", len(childPredecessors))
+	}
+	for _, parent := range []string{"p1", "p2", "p3"} {
+		if _, ok := childPredecessors[parent]; !ok {
+			t.Errorf("Expected edge %s -> child to be present in the collapsed graph", parent)
+		}
+	}
+}

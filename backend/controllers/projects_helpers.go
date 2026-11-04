@@ -210,7 +210,7 @@ func UpdateCheckRunForBatch(gh utils.GithubClientProvider, batch *models.DiggerB
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	config, _, err := digger_config.ConvertDiggerYamlToConfigWithoutDependencyValidation(diggerConfigYml)
 	if err != nil {
 		slog.Warn("Check Run update failed - could not convert Digger YAML to config",
 			"batchId", batch.ID,

@@ -1387,7 +1387,7 @@ func CreateTerraformOutputsSummary(gh utils.GithubClientProvider, batch *models.
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	config, _, err := digger_config.ConvertDiggerYamlToConfigWithoutDependencyValidation(diggerConfigYml)
 	if err != nil {
 		slog.Error("Error converting Digger YAML to config",
 			"batchId", batch.ID,
@@ -1576,7 +1576,7 @@ func AutomergePRforBatchIfEnabled(gh utils.GithubClientProvider, batch *models.D
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	config, _, err := digger_config.ConvertDiggerYamlToConfigWithoutDependencyValidation(diggerConfigYml)
 	if err != nil {
 		slog.Error("Error converting Digger YAML to config",
 			"batchId", batch.ID,
@@ -1677,7 +1677,7 @@ func DeleteOlderPRCommentsIfEnabled(gh utils.GithubClientProvider, batch *models
 		return fmt.Errorf("error loading digger config from batch: %v", err)
 	}
 
-	config, _, err := digger_config.ConvertDiggerYamlToConfig(diggerConfigYml)
+	config, _, err := digger_config.ConvertDiggerYamlToConfigWithoutDependencyValidation(diggerConfigYml)
 	if err != nil {
 		slog.Error("Error converting Digger YAML to config",
 			"batchId", batch.ID,
