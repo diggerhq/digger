@@ -9,10 +9,11 @@ import (
 
 type BackendDBLock struct {
 	OrgId uint
+	DB    *models.Database
 }
 
 func (lock BackendDBLock) Lock(lockId int, resource string) (bool, error) {
-	_, err := models.DB.CreateDiggerLock(resource, lockId, lock.OrgId)
+	_, err := lock.DB.CreateDiggerLock(resource, lockId, lock.OrgId)
 	if err != nil {
 		return false, fmt.Errorf("could not create lock record: %v", err)
 	}
@@ -22,7 +23,7 @@ func (lock BackendDBLock) Lock(lockId int, resource string) (bool, error) {
 func (lock BackendDBLock) Unlock(resource string) (bool, error) {
 	// delete all locks that match this resource
 	l := models.DiggerLock{}
-	err := models.DB.GormDB.Where("resource=?", resource).Delete(&l).Error
+	err := lock.DB.GormDB.Where("resource=?", resource).Delete(&l).Error
 	if err != nil {
 		return false, fmt.Errorf("could not delete all locks: %v", err)
 	}
@@ -30,7 +31,7 @@ func (lock BackendDBLock) Unlock(resource string) (bool, error) {
 }
 
 func (lock BackendDBLock) GetLock(resource string) (*int, error) {
-	theLock, err := models.DB.GetDiggerLock(resource)
+	theLock, err := lock.DB.GetDiggerLock(resource)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

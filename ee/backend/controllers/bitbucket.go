@@ -24,7 +24,6 @@ import (
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	dg_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 )
@@ -233,24 +232,9 @@ func handleIssueCommentEventBB(bitbucketProvider utils.BitbucketProvider, payloa
 	}
 
 	// perform unlocking in backend
-	if config.PrLocks {
-		for _, project := range impactedProjectsForComment {
-			prLock := dg_locking.PullRequestLock{
-				InternalLock: locking.BackendDBLock{
-					OrgId: organisationId,
-				},
-				CIService:        bbService,
-				Reporter:         comment_updater.NoopReporter{},
-				ProjectName:      project.Name,
-				ProjectNamespace: repoFullName,
-				PrNumber:         issueNumber,
-			}
-			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-			if err != nil {
-				utils.InitCommentReporter(bbService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
-			}
-		}
+	if err := locking.PerformPRLockingAction(config, organisationId, bbService, repoFullName, issueNumber, impactedProjectsForComment, *diggerCommand); err != nil {
+		utils.InitCommentReporter(bbService, issueNumber, locking.LockFailureComment(err))
+		return fmt.Errorf("failed perform lock action: %v", err)
 	}
 
 	// if commands are locking or unlocking we don't need to trigger any jobs

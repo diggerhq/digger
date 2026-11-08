@@ -4,13 +4,13 @@ title: "CommentOps"
 
 #### Supported commands
 
-`digger apply` \- will check RP locks, run terraform apply on all projects affected in the current PR, unlock projects when necessary and possibly merge PR depending on configuration.
+`digger apply` \- will lock every impacted project, all or none (see [PR-level locks](/ce/features/pr-level-locks)), run terraform apply on all projects affected in the current PR, unlock projects when necessary and possibly merge PR depending on configuration.
 
-`digger plan` \- will lock and check RP locks, run terraform plan on all projects affected in the current PR
+`digger plan` \- will lock every impacted project, all or none (see [PR-level locks](/ce/features/pr-level-locks)), and run terraform plan on all projects affected in the current PR
 
 `digger lock` \- will lock projects in current PR
 
-`digger unlock` \- will unlock projects in current PR. It's useful to circumvent any trouble related to locking of projects.
+`digger unlock` \- will unlock projects in current PR. It's useful to circumvent any trouble related to locking of projects. It only releases this PR's own locks, not another PR's.
 
 #### Supported flags
 

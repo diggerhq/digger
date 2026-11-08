@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/diggerhq/digger/libs/ci"
@@ -22,6 +21,9 @@ import (
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
 )
+
+// ErrLockedByAnotherPR marks a project another open PR holds.
+var ErrLockedByAnotherPR = errors.New("locked by another PR")
 
 type PullRequestLock struct {
 	InternalLock     Lock
@@ -51,31 +53,12 @@ func (projectLock *PullRequestLock) Lock() (bool, error) {
 	lockId := projectLock.LockId()
 	slog.Info("Attempting to acquire lock", "lockId", lockId)
 
-	noHangingLocks, err := projectLock.verifyNoHangingLocks()
+	holder, err := projectLock.currentHolder()
 	if err != nil {
 		return false, err
 	}
-
-	if !noHangingLocks {
-		return false, nil
-	}
-
-	existingLockTransactionId, err := projectLock.InternalLock.GetLock(lockId)
-	if err != nil {
-		slog.Error("Failed to get lock", "lockId", lockId, "error", err)
-		return false, err
-	}
-
-	if existingLockTransactionId != nil {
-		if *existingLockTransactionId == projectLock.PrNumber {
-			return true, nil
-		} else {
-			transactionIdStr := strconv.Itoa(*existingLockTransactionId)
-			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + " (failed to acquire lock " + projectLock.ProjectNamespace + "). The locking plan must be applied or discarded before future plans can execute"
-
-			reportLockingFailed(projectLock.Reporter, comment)
-			return false, fmt.Errorf("%s", comment)
-		}
+	if holder != nil {
+		return true, nil
 	}
 
 	lockAcquired, err := projectLock.InternalLock.Lock(projectLock.PrNumber, lockId)
@@ -107,39 +90,38 @@ func reportLockingFailed(r reporting.Reporter, comment string) {
 	}
 }
 
-func (projectLock *PullRequestLock) verifyNoHangingLocks() (bool, error) {
+// currentHolder returns nil if the project is free, or this PR's number if
+// it already holds the lock. A lock held by a closed PR is released and
+// treated as free. A lock held by another open PR is reported and returned
+// as an error.
+func (projectLock *PullRequestLock) currentHolder() (*int, error) {
 	// TODO: Also include CI type (github, gitlab etc. into this lockID in order to avoid collision across VCS)
 	lockId := projectLock.LockId()
 	transactionId, err := projectLock.InternalLock.GetLock(lockId)
-
 	if err != nil {
-		return false, err
+		return nil, err
+	}
+	if transactionId == nil || *transactionId == projectLock.PrNumber {
+		return transactionId, nil
 	}
 
-	if transactionId != nil {
-		if *transactionId != projectLock.PrNumber {
-			isPrClosed, err := projectLock.CIService.IsClosed(*transactionId)
-			if err != nil {
-				return false, fmt.Errorf("failed to check if PR holding a lock is closed: %w", err)
-			}
-			if isPrClosed {
-				slog.Info("Releasing lock held by closed PR",
-					"lockId", lockId,
-					"prNumber", *transactionId)
-				_, err := projectLock.InternalLock.Unlock(lockId)
-				if err != nil {
-					return false, fmt.Errorf("failed to unlock a lock acquired by closed PR %v: %w", transactionId, err)
-				}
-				return true, nil
-			}
-			transactionIdStr := strconv.Itoa(*transactionId)
-			comment := "Project " + projectLock.projectId() + " locked by another PR #" + transactionIdStr + "(failed to acquire lock " + projectLock.ProjectName + "). The locking plan must be applied or discarded before future plans can execute"
-			reportLockingFailed(projectLock.Reporter, comment)
-			return false, fmt.Errorf("%s", comment)
-		}
-		return true, nil
+	isPrClosed, err := projectLock.CIService.IsClosed(*transactionId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if PR holding a lock is closed: %w", err)
 	}
-	return true, nil
+	if isPrClosed {
+		slog.Info("Releasing lock held by closed PR",
+			"lockId", lockId,
+			"prNumber", *transactionId)
+		if _, err := projectLock.InternalLock.Unlock(lockId); err != nil {
+			return nil, fmt.Errorf("failed to unlock a lock acquired by closed PR %v: %w", *transactionId, err)
+		}
+		return nil, nil
+	}
+	err = fmt.Errorf("Project %s %w #%d(failed to acquire lock %s). The locking plan must be applied or discarded before future plans can execute",
+		projectLock.projectId(), ErrLockedByAnotherPR, *transactionId, projectLock.ProjectName)
+	reportLockingFailed(projectLock.Reporter, err.Error())
+	return nil, err
 }
 
 func (projectLock *PullRequestLock) Unlock() (bool, error) {

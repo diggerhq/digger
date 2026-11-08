@@ -21,7 +21,6 @@ import (
 	github2 "github.com/diggerhq/digger/libs/ci/github"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
-	"github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
@@ -439,37 +438,14 @@ func handleIssueCommentEvent(gh utils.GithubClientProvider, payload *github.Issu
 	}
 
 	// perform unlocking in backend
-	if config.PrLocks {
-		slog.Info("Processing PR locks for impacted projects",
+	if err := locking2.PerformPRLockingAction(config, orgId, ghService, repoFullName, issueNumber, impactedProjectsForComment, *diggerCommand); err != nil {
+		slog.Error("Failed to perform lock action",
 			"issueNumber", issueNumber,
-			"projectCount", len(impactedProjectsForComment),
 			"command", *diggerCommand,
+			"error", err,
 		)
-
-		for _, project := range impactedProjectsForComment {
-			prLock := locking.PullRequestLock{
-				InternalLock: locking2.BackendDBLock{
-					OrgId: orgId,
-				},
-				CIService:        ghService,
-				Reporter:         reporting.NoopReporter{},
-				ProjectName:      project.Name,
-				ProjectNamespace: repoFullName,
-				PrNumber:         issueNumber,
-			}
-
-			err = locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-			if err != nil {
-				slog.Error("Failed to perform lock action on project",
-					"issueNumber", issueNumber,
-					"projectName", project.Name,
-					"command", *diggerCommand,
-					"error", err,
-				)
-				commentReporterManager.UpdateComment(fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
-			}
-		}
+		commentReporterManager.UpdateComment(locking2.LockFailureComment(err))
+		return fmt.Errorf("failed perform lock action: %v", err)
 	}
 
 	// remove any dangling locks which are no longer in the list of impacted projects
