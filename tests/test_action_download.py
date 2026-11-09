@@ -33,7 +33,7 @@ def download_script(ee="false", fips="false"):
 class DownloadTest(unittest.TestCase):
     def run_download(self, *, failures=None, body=PAYLOAD, digest=None,
                      assets=None, ee="false", fips="false", platform=("Linux", "X64"),
-                     command="digger plan", failure_mode="http"):
+                     command="digger plan", failure_mode="http", request_headers=None):
         counts = {"metadata": 0, "binary": 0}
         name = ("digger-ee-cli" if ee == "true" else "digger-cli")
         name += "-" + "-".join(platform) + ("-fips" if fips == "true" else "")
@@ -45,6 +45,8 @@ class DownloadTest(unittest.TestCase):
             def do_GET(self):
                 kind = "metadata" if self.path.startswith("/repos/") else "binary"
                 counts[kind] += 1
+                if request_headers is not None:
+                    request_headers.append((kind, self.headers.get("Authorization")))
                 if counts[kind] <= (failures or {}).get(kind, 0):
                     if failure_mode == "partial":
                         self.send_response(200)
@@ -108,6 +110,17 @@ class DownloadTest(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join()
+
+    def test_empty_release_token_omits_authorization(self):
+        self.assertIn(
+            "DIGGER_RELEASE_TOKEN: ${{ github.server_url == 'https://github.com' && github.token || '' }}",
+            (ROOT / "action.yml").read_text(),
+        )
+        headers = []
+        result, _, executed = self.run_download(request_headers=headers)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(executed, "digger plan")
+        self.assertEqual(headers, [("metadata", None), ("binary", None)])
 
     def test_verified_binary_runs_for_both_commands_and_asset_variants(self):
         for command in ("digger plan", "digger apply"):

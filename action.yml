@@ -599,7 +599,7 @@ runs:
     - name: download, install, and run digger
       if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'prebuilt' }}
       env:
-        DIGGER_RELEASE_TOKEN: ${{ github.token }}
+        DIGGER_RELEASE_TOKEN: ${{ github.server_url == 'https://github.com' && github.token || '' }}
         DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
         DIGGER_OS: ${{ inputs.digger-os }}
         DIGGER_ARCH: ${{ inputs.digger-arch }}
