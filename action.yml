@@ -599,6 +599,7 @@ runs:
     - name: download, install, and run digger
       if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'prebuilt' }}
       env:
+        DIGGER_RELEASE_TOKEN: ${{ github.token }}
         DIGGER_VERSION: ${{ inputs.digger-version || github.action_ref }}
         DIGGER_OS: ${{ inputs.digger-os }}
         DIGGER_ARCH: ${{ inputs.digger-arch }}
@@ -653,7 +654,30 @@ runs:
 
         echo "Downloading from: $DOWNLOAD_URL"
 
-        if ! curl -sL --fail "$DOWNLOAD_URL" -o digger; then
+        DOWNLOAD_DIR=$(mktemp -d)
+        trap 'rm -rf "$DOWNLOAD_DIR"' EXIT
+        BINARY="$DOWNLOAD_DIR/digger"
+        CURL_OPTIONS=(--fail --show-error --silent --location --retry 5 --retry-all-errors
+          --connect-timeout 10 --max-time 120 --retry-max-time 300)
+        AUTH_HEADERS=(-H "Accept: application/vnd.github+json")
+        if [[ -n "${DIGGER_RELEASE_TOKEN:-}" ]]; then
+          AUTH_HEADERS+=(-H "Authorization: Bearer $DIGGER_RELEASE_TOKEN")
+        fi
+        RELEASE_URL="https://api.github.com/repos/diggerhq/digger/releases/tags/${DIGGER_VERSION}"
+        if ! curl "${CURL_OPTIONS[@]}" "${AUTH_HEADERS[@]}" \
+          "$RELEASE_URL" -o "$DOWNLOAD_DIR/release.json"; then
+          echo "::error::Failed to fetch release metadata for ${DIGGER_VERSION} from $RELEASE_URL"
+          exit 1
+        fi
+        ASSET_NAME="${DOWNLOAD_URL##*/}"
+        if ! DIGEST=$(jq -er --arg name "$ASSET_NAME" \
+          '[.assets[] | select(.name == $name) | .digest] | select(length == 1) | .[0]' \
+          "$DOWNLOAD_DIR/release.json") || [[ ! "$DIGEST" =~ ^sha256:[a-fA-F0-9]{64}$ ]]; then
+          echo "::error::Missing or invalid SHA-256 digest for ${DIGGER_VERSION}/$ASSET_NAME"
+          exit 1
+        fi
+
+        if ! curl "${CURL_OPTIONS[@]}" "$DOWNLOAD_URL" -o "$BINARY"; then
           echo "Failed to download Digger CLI from $DOWNLOAD_URL"
           echo ""
           echo "Possible reasons:"
@@ -668,22 +692,32 @@ runs:
           exit 1
         fi
 
-        if [[ ! -f digger || ! -s digger ]]; then
+        if [[ ! -f "$BINARY" || ! -s "$BINARY" ]]; then
           echo "Downloaded file is empty or doesn't exist"
           exit 1
         fi
 
-        chmod +x digger
+        if command -v sha256sum >/dev/null 2>&1; then
+          ACTUAL_DIGEST=$(sha256sum "$BINARY")
+        else
+          ACTUAL_DIGEST=$(shasum -a 256 "$BINARY")
+        fi
+        EXPECTED_DIGEST="${DIGEST#sha256:}"
+        if [[ "${ACTUAL_DIGEST%% *}" != "$(printf '%s' "$EXPECTED_DIGEST" | tr 'A-F' 'a-f')" ]]; then
+          echo "::error::SHA-256 mismatch for ${DIGGER_VERSION}/$ASSET_NAME"
+          exit 1
+        fi
 
-        if [[ ! -x digger ]]; then
+        chmod +x "$BINARY"
+
+        if [[ ! -x "$BINARY" ]]; then
           echo "Failed to make digger executable"
           exit 1
         fi
 
-        echo "Successfully downloaded and prepared Digger CLI"
-        PATH=$PATH:$(pwd)
-        cd $GITHUB_WORKSPACE
-        digger
+        echo "Verified Digger CLI ${DIGGER_VERSION} ($ASSET_NAME), $DIGEST"
+        cd "$GITHUB_WORKSPACE"
+        "$BINARY"
 
     - name: run digger in local dev mode
       if: ${{ steps.determine-binary-mode.outputs.binary-mode == 'local' }}
