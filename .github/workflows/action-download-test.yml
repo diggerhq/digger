@@ -1,0 +1,25 @@
+name: Test action CLI download
+on:
+  pull_request:
+    paths:
+      - action.yml
+      - tests/test_action_download.py
+      - .github/workflows/action-download-test.yml
+  push:
+    paths:
+      - action.yml
+      - tests/test_action_download.py
+      - .github/workflows/action-download-test.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Test download retries and integrity checks
+        run: python3 -m unittest discover -s tests -p 'test_action_download.py' -v
