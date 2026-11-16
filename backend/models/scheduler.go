@@ -25,8 +25,8 @@ type ImpactedProject struct {
 
 type DiggerJobParentLink struct {
 	gorm.Model
-	DiggerJobId       string `gorm:"size:50,index:idx_digger_job_id"`
-	ParentDiggerJobId string `gorm:"size:50,index:idx_parent_digger_job_id"`
+	DiggerJobId       string `gorm:"size:50;index:idx_digger_job_parent_links_digger_job_id"`
+	ParentDiggerJobId string `gorm:"size:50;index:idx_parent_digger_job_id"`
 }
 
 type DiggerVCSType string
@@ -41,7 +41,7 @@ type DiggerBatch struct {
 	DiggerBatchID            string    `gorm:"size:20,index:idx_digger_batch_id"` // shorter version of the ID to be able to use in check run
 	Layer                    uint
 	VCS                      DiggerVCSType
-	PrNumber                 int
+	PrNumber                 int `gorm:"index:idx_digger_batches_repo_pr,priority:2"`
 	CommitSha                string
 	CommentId                *int64
 	CheckRunId               *string
@@ -52,7 +52,7 @@ type DiggerBatch struct {
 	DiggerConfig             string
 	GithubInstallationId     int64
 	GitlabProjectId          int
-	RepoFullName             string
+	RepoFullName             string `gorm:"index:idx_digger_batches_repo_pr,priority:1"`
 	RepoOwner                string
 	RepoName                 string
 	BatchType                orchestrator_scheduler.DiggerCommand
@@ -66,7 +66,7 @@ type DiggerBatch struct {
 
 type DiggerJob struct {
 	gorm.Model
-	DiggerJobID                  string                                 `gorm:"size:50,index:idx_digger_job_id"`
+	DiggerJobID                  string                                 `gorm:"size:50;index:idx_digger_jobs_digger_job_id"`
 	Status                       orchestrator_scheduler.DiggerJobStatus `gorm:"index:idx_digger_jobs_status"`
 	RunName                      string
 	ProjectName                  string
@@ -92,7 +92,7 @@ type DiggerJob struct {
 	WorkflowFile    string
 	WorkflowRunUrl  *string
 	StatusUpdatedAt time.Time
-	ReporterType string `gorm:"default:'lazy'"` // temporary, to be replaced by SerializedReporterSpec
+	ReporterType    string `gorm:"default:'lazy'"` // temporary, to be replaced by SerializedReporterSpec
 }
 
 type DiggerJobSummary struct {
@@ -105,7 +105,7 @@ type DiggerJobSummary struct {
 // These tokens will be pre
 type JobToken struct {
 	gorm.Model
-	Value          string `gorm:"uniqueJobTokenIndex:idx_token"`
+	Value          string `gorm:"index:idx_job_tokens_value"`
 	Expiry         time.Time
 	OrganisationID uint
 	Organisation   Organisation
@@ -122,7 +122,7 @@ const (
 // GithubDiggerJobLink links GitHub Workflow Job id to Digger's Job Id
 type GithubDiggerJobLink struct {
 	gorm.Model
-	DiggerJobId         string `gorm:"size:50,index:idx_digger_job_id"`
+	DiggerJobId         string `gorm:"size:50;index:idx_github_digger_job_links_digger_job_id"`
 	RepoFullName        string
 	GithubJobId         int64 `gorm:"index:idx_github_job_id"`
 	GithubWorkflowRunId int64
@@ -259,9 +259,9 @@ func GetCheckRunConclusionForJob(job *DiggerJob) (string, error) {
 		return "failure", nil
 	}
 	slog.Error("Unknown job status in GetCheckRunConclusionForJob - this will cause GitHub API 422 error",
-	"jobId", job.DiggerJobID,
-	"jobStatus", job.Status,
-	"jobStatusInt", int(job.Status),
-	"validStatuses", []string{"created", "triggered", "started", "queued_for_run", "succeeded", "failed"})
+		"jobId", job.DiggerJobID,
+		"jobStatus", job.Status,
+		"jobStatusInt", int(job.Status),
+		"validStatuses", []string{"created", "triggered", "started", "queued_for_run", "succeeded", "failed"})
 	return "", fmt.Errorf("unknown job status: %v", job.Status)
 }
