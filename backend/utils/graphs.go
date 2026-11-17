@@ -141,30 +141,34 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType st
 				"parentCount", len(parents),
 			)
 
+			// create the child job once regardless of how many parents it
+			// has; gating on completion of ALL predecessors is achieved by
+			// linking every parent job to this single child job
+			childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl, jobReporterType, value)
+			if err != nil {
+				slog.Error("Failed to create child job",
+					"projectName", value,
+					"batchId", batch.ID,
+					"error", err,
+				)
+				return false
+			}
+
+			_, err = models.DB.CreateDiggerJobLink(childJob.DiggerJobID, repoFullName)
+			if err != nil {
+				slog.Error("Failed to create job link",
+					"jobId", childJob.DiggerJobID,
+					"repoFullName", repoFullName,
+					"error", err,
+				)
+				return false
+			}
+
+			result[value] = childJob
+
 			for _, edge := range parents {
 				parent := edge.Source
 				parentDiggerJob := result[parent]
-
-				childJob, err := models.DB.CreateDiggerJob(batch.ID, marshalledJobsMap[value], projectMap[value].WorkflowFile, jobCheckRunId, jobCheckRunUrl, jobReporterType, value)
-				if err != nil {
-					slog.Error("Failed to create child job",
-						"projectName", value,
-						"parentProject", parent,
-						"batchId", batch.ID,
-						"error", err,
-					)
-					return false
-				}
-
-				_, err = models.DB.CreateDiggerJobLink(childJob.DiggerJobID, repoFullName)
-				if err != nil {
-					slog.Error("Failed to create job link",
-						"jobId", childJob.DiggerJobID,
-						"repoFullName", repoFullName,
-						"error", err,
-					)
-					return false
-				}
 
 				err = models.DB.CreateDiggerJobParentLink(parentDiggerJob.DiggerJobID, childJob.DiggerJobID)
 				if err != nil {
@@ -176,7 +180,6 @@ func ConvertJobsToDiggerJobs(jobType scheduler.DiggerCommand, jobReporterType st
 					return false
 				}
 
-				result[value] = childJob
 				slog.Debug("Created job with parent",
 					"projectName", value,
 					"jobId", childJob.DiggerJobID,
@@ -297,23 +300,28 @@ func CollapsedGraph(impactedParent *string, currentNode string, adjMap map[strin
 
 		err := g.AddVertex(currentProject)
 		if err != nil {
-			if errors.Is(err, graph.ErrVertexAlreadyExists) {
-				return nil
-			}
-			slog.Error("Failed to add vertex",
-				"projectName", currentNode,
-				"error", err,
-			)
-			return err
-		}
-
-		slog.Debug("Added impacted project to graph", "projectName", currentNode)
-
-		// process all children nodes
-		for child := range adjMap[currentNode] {
-			err := CollapsedGraph(&currentNode, child, adjMap, g, impactedProjects)
-			if err != nil {
+			if !errors.Is(err, graph.ErrVertexAlreadyExists) {
+				slog.Error("Failed to add vertex",
+					"projectName", currentNode,
+					"error", err,
+				)
 				return err
+			}
+			// The vertex was already added via another impacted parent. Its
+			// children have already been processed, but the edge from the
+			// current parent still has to be added below: a child with
+			// multiple impacted parents must keep an incoming edge from
+			// every one of them, otherwise downstream job gating would only
+			// wait for one predecessor.
+		} else {
+			slog.Debug("Added impacted project to graph", "projectName", currentNode)
+
+			// process all children nodes
+			for child := range adjMap[currentNode] {
+				err := CollapsedGraph(&currentNode, child, adjMap, g, impactedProjects)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -321,18 +329,20 @@ func CollapsedGraph(impactedParent *string, currentNode string, adjMap map[strin
 		if impactedParent != nil {
 			err := g.AddEdge(*impactedParent, currentNode)
 			if err != nil {
-				slog.Error("Failed to add edge",
+				if !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+					slog.Error("Failed to add edge",
+						"parent", *impactedParent,
+						"child", currentNode,
+						"error", err,
+					)
+					return err
+				}
+			} else {
+				slog.Debug("Added edge between impacted projects",
 					"parent", *impactedParent,
 					"child", currentNode,
-					"error", err,
 				)
-				return err
 			}
-
-			slog.Debug("Added edge between impacted projects",
-				"parent", *impactedParent,
-				"child", currentNode,
-			)
 		}
 	} else {
 		// if current wasn't impacted, see children of current node and set currently known parent
