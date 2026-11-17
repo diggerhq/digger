@@ -12,6 +12,7 @@ import (
 
 	"github.com/diggerhq/digger/libs/digger_config/terragrunt/tac"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/samber/lo"
 
 	"github.com/dominikbraun/graph"
@@ -322,16 +323,35 @@ func validateTerragruntParallelism(value *int, scope string) error {
 	return nil
 }
 
-func checkBlockInChangedFiles(dir string, changedFiles []string) bool {
+func checkBlockInChangedFiles(dir string, includePatterns []string, changedFiles []string) bool {
 	if changedFiles == nil {
 		return true
 	}
 	for _, file := range changedFiles {
-		if strings.HasPrefix(NormalizeFileName(file), NormalizeFileName(dir)) {
+		normalizedFile := NormalizeFileName(file)
+		if strings.HasPrefix(normalizedFile, NormalizeFileName(dir)) {
 			slog.Debug("found changed file in block directory",
 				"dir", dir,
 				"file", file)
 			return true
+		}
+		for _, pattern := range includePatterns {
+			matched, err := doublestar.PathMatch(NormalizeFileName(pattern), normalizedFile)
+			if err != nil {
+				slog.Error("failed to match changed file against block include pattern",
+					"dir", dir,
+					"pattern", pattern,
+					"file", file,
+					"error", err)
+				continue
+			}
+			if matched {
+				slog.Debug("found changed file matching block include pattern",
+					"dir", dir,
+					"pattern", pattern,
+					"file", file)
+				return true
+			}
 		}
 	}
 	slog.Debug("no changed files found in block directory", "dir", dir)
@@ -435,7 +455,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string, 
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
 				if b.Terragrunt == true {
-					if checkBlockInChangedFiles(*b.RootDir, changedFiles) {
+					if checkBlockInChangedFiles(*b.RootDir, b.IncludePatterns, changedFiles) {
 						slog.Info("generating terragrunt projects for block",
 							"blockName", b.BlockName,
 							"rootDir", *b.RootDir)

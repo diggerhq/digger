@@ -1094,6 +1094,98 @@ generate_projects:
 	assert.Greater(t, terragruntProjectsFound, 0, "should have found at least one terragrunt project")
 }
 
+// Regression test for https://github.com/diggerhq/digger/issues/2485:
+// when changed files only match a block's include_patterns (none of them
+// inside the block's root_dir), the block must still be evaluated so its
+// generated projects trigger. Previously the block was skipped entirely.
+func TestDiggerGenerateProjectsTerragruntBlocksIncludePatternsOnlyChanges(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: test-terragrunt
+      terragrunt: true
+      root_dir: infrastructure
+      include_patterns: ["modules/**", "shared/**"]
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	dirsToCreate := []string{
+		"infrastructure/env1/app1",
+		"infrastructure/env1/app2",
+	}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		assert.NoError(t, err, "expected error to be nil")
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+	}
+
+	// None of the changed files is inside the block's root_dir ("infrastructure"),
+	// but "modules/foo.tf" matches the block's include_patterns.
+	changedFiles := []string{"modules/foo.tf", "docs/readme.md"}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, changedFiles, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+
+	terragruntProjectsFound := 0
+	for _, project := range dg.Projects {
+		if project.BlockName != "test-terragrunt" || !project.Terragrunt {
+			continue
+		}
+		terragruntProjectsFound++
+
+		assert.Contains(t, project.IncludePatterns, "modules/**", "include_patterns should be merged for project %s", project.Name)
+		assert.Contains(t, project.IncludePatterns, "shared/**", "include_patterns should be merged for project %s", project.Name)
+	}
+
+	assert.Equal(t, len(dirsToCreate), terragruntProjectsFound, "all terragrunt projects should be generated for include-pattern-only changes")
+}
+
+// Companion to the test above: when changed files match neither the block's
+// root_dir nor its include_patterns, the block is still skipped (the gate
+// remains a valid optimization for unrelated changes).
+func TestDiggerGenerateProjectsTerragruntBlocksUnrelatedChangesSkipBlock(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - block_name: test-terragrunt
+      terragrunt: true
+      root_dir: infrastructure
+      include_patterns: ["modules/**"]
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+
+	dirsToCreate := []string{
+		"infrastructure/env1/app1",
+	}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		assert.NoError(t, err, "expected error to be nil")
+		defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), hclFile)()
+	}
+
+	changedFiles := []string{"docs/readme.md", "scripts/run.sh"}
+
+	dg, _, _, _, err := LoadDiggerConfig(tempDir, true, changedFiles, nil)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger digger_config to be not nil")
+
+	for _, project := range dg.Projects {
+		assert.NotEqual(t, "test-terragrunt", project.BlockName, "block should be skipped for unrelated changes")
+		assert.False(t, project.Terragrunt, "no terragrunt projects should be generated for unrelated changes")
+	}
+}
+
 func TestDiggerGenerateProjectsTerragruntBlocksWithTerragruntParallelism(t *testing.T) {
 	tempDir, teardown := setUp()
 	defer teardown()
