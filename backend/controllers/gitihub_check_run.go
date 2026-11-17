@@ -120,7 +120,7 @@ func handleCheckRunActionEvent(gh utils.GithubClientProvider, identifier string,
 		impactedProjectsJobMap[j.ProjectName] = j
 	}
 
-	batchCheckRunData, jobCheckRunDataMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobs, commitSha, repoName, repoOwner)
+	batchCheckRunData, jobCheckRunDataMap, err := utils.SetPRCheckForJobs(ghService, prNumber, jobs, commitSha, repoName, repoOwner, config.DisableDiggerApplyStatusCheck)
 	if err != nil {
 		slog.Error("Error setting status for PR",
 			"prNumber", prNumber,
