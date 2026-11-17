@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-github/v61/github"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFindAllProjectsDependantOnImpactedProjects(t *testing.T) {
@@ -169,4 +170,47 @@ func TestGetApprovalsPaginatesBeyondFirstPage(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []string{"alice", "carol"}, approvals)
+}
+
+func pullRequestEvent(action string) *github.PullRequestEvent {
+	return &github.PullRequestEvent{
+		Action: github.String(action),
+		Repo: &github.Repository{
+			FullName:      github.String("org/repo"),
+			DefaultBranch: github.String("main"),
+		},
+		PullRequest: &github.PullRequest{
+			Number: github.Int(7),
+			Head:   &github.PullRequestBranch{Ref: github.String("feature")},
+			Base:   &github.PullRequestBranch{Ref: github.String("main")},
+		},
+		Sender: &github.User{Login: github.String("someone")},
+	}
+}
+
+func TestConvertGithubPullRequestEventToJobsReadyForReview(t *testing.T) {
+	config := digger_config.DiggerConfig{
+		Workflows: map[string]digger_config.Workflow{
+			"default": {
+				Configuration: &digger_config.WorkflowConfiguration{
+					OnPullRequestPushed: []string{"digger plan"},
+				},
+			},
+		},
+	}
+	projects := []digger_config.Project{{Name: "p", Dir: ".", Workflow: "default"}}
+
+	ready, _, err := ConvertGithubPullRequestEventToJobs(pullRequestEvent("ready_for_review"), projects, nil, config, false)
+	require.NoError(t, err)
+	pushed, _, err := ConvertGithubPullRequestEventToJobs(pullRequestEvent("synchronize"), projects, nil, config, false)
+	require.NoError(t, err)
+
+	require.Len(t, ready, 1)
+	assert.Equal(t, []string{"digger plan"}, ready[0].Commands)
+	assert.Equal(t, pushed, ready)
+
+	config.AllowDraftPRs = true
+	ready, _, err = ConvertGithubPullRequestEventToJobs(pullRequestEvent("ready_for_review"), projects, nil, config, false)
+	require.NoError(t, err)
+	assert.Empty(t, ready, "drafts were already planned on push")
 }

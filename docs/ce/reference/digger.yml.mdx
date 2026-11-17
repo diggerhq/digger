@@ -184,7 +184,7 @@ workflows:
 </ParamField>
 
 <ParamField path="allow_draft_prs" type="boolean" default="false">
-  Allow Digger to run on draft pull requests.
+  Allow Digger to run on draft pull requests. When `false`, Digger skips draft pull requests and plans them once they're marked ready for review. See [Draft PRs](/ce/howto/draft-prs).
 </ParamField>
 
 <ParamField path="apply_after_merge" type="boolean" default="false">
@@ -595,7 +595,7 @@ Define custom workflows using the `workflows` map. Each workflow can have its ow
     Configure how the workflow responds to CI events.
 
     <ParamField path="on_pull_request_pushed" type="array" default='["digger plan"]'>
-      Commands to run when a pull request is created or updated. Options: `digger plan`, `digger apply`, `digger lock`, `digger unlock`.
+      Commands to run when a pull request is created or updated, or marked ready for review while `allow_draft_prs` is `false`. Options: `digger plan`, `digger apply`, `digger lock`, `digger unlock`.
     </ParamField>
 
     <ParamField path="on_pull_request_closed" type="array" default='["digger unlock"]'>
@@ -641,7 +641,7 @@ apply:
 
 Workflow configuration describes how to react to CI events. It has 4 sections:
 
-- **on_pull_request_pushed** - describes what to do when a pull request is created or updated
+- **on_pull_request_pushed** - describes what to do when a pull request is created or updated, or marked ready for review while `allow_draft_prs` is `false`
 - **on_pull_request_closed** - describes what to do when a pull request is closed
 - **on_pull_request_to_draft** - describes what to do when a pull request is converted to draft
 - **on_commit_to_default** - describes what to do when a pull request is merged into the default branch
