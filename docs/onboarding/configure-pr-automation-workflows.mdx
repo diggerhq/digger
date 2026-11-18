@@ -66,6 +66,7 @@ description: "Set up and verify PR automation with a minimal OpenTofu project be
           pull-requests: write
           issues: read
           statuses: write
+          checks: read # required to check mergeability if digger/apply is a required status check
 
         steps:
           - uses: actions/checkout@v4

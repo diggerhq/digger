@@ -24,11 +24,38 @@ Here is an explanation of each:
 The mergeable requirement will prevent applies unless a pull request is able to be merged.
 In GitHub, if you're not using Protected Branches then all pull requests are mergeable unless there is a conflict.
 
-<Note>
-    There is a [known issue](https://github.com/diggerhq/digger/issues/1180) that would
-    cause the "mergability" check to conflict if you set the digger/apply check as required on github. We are working on a fix and in the meantime you have an option to turn off the mergability check if you want to have this digger/apply check as required. You can turn it off in the workflow configuration
-    by setting the `skip_merge_check` flag as follows (we have to set the other configurations since they are currently required):
+If `digger/apply` is itself a required status check, and the PR is blocked *only* by
+`digger/apply` (every other required check is passing, including any with a `neutral` or
+`skipped` conclusion), Digger proceeds with the apply anyway - it doesn't require
+`skip_merge_check` to do so. `skip_merge_check` remains available below if you want to
+disable the mergeable check entirely for other reasons.
 
+### Requiring apply to pass before merge
+
+Digger posts two kinds of check: an aggregate `digger/plan`/`digger/apply` (covering every
+project touched by the PR) and a per-project `<project-name>/plan`/`<project-name>/apply` for
+each one. To make sure a PR can't merge until Digger has actually applied successfully, add
+the aggregate checks as required:
+
+1. On GitHub, go to **Settings → Branches** and edit (or add) a branch protection rule for
+   your target branch.
+2. Enable **Require status checks to pass before merging**.
+3. Search for and select `digger/plan` and `digger/apply`.
+
+These checks only become selectable in this list after they've been posted to the repo at
+least once - trigger a `digger plan` on any PR first if you don't see them yet.
+
+<Note>
+  If you're on a self-hosted backend, see the "Re-installing or replacing the GitHub App"
+  section on [GitHub App Setup](/self-hosting/github-app-setup) before doing a blue/green or
+  other re-installation deployment - a required check pinned to the old installation's app ID
+  will silently block merges after the cutover.
+</Note>
+
+<Note>
+  Mergeability checks use the GitHub GraphQL API. This is confirmed working against
+  github.com; on GitHub Enterprise Server it should work the same way but has not been
+  tested against a real GHES instance.
 </Note>
 
 ### Usage

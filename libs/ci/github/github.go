@@ -1,9 +1,12 @@
 package github
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -726,34 +729,196 @@ func (svc GithubService) IsMergeable(prNumber int) (bool, error) {
 	// When the PR is blocked solely because digger/apply is a required check that hasn't
 	// passed yet, allow the apply to proceed — it's the only way to satisfy that check.
 	if strings.ToLower(pr.GetMergeableState()) == "blocked" {
-		return svc.isBlockedOnlyByDiggerApply(pr.GetHead().GetSHA())
+		return svc.isBlockedOnlyByDiggerApply(prNumber)
 	}
 
 	return false, nil
 }
 
-// isBlockedOnlyByDiggerApply returns true if the only non-successful check runs on the
-// commit are digger/apply checks. This breaks the chicken-and-egg problem where digger/apply
-// is a required branch protection check: the apply must run to pass the check, but the
-// mergeability gate would otherwise prevent it from running.
-func (svc GithubService) isBlockedOnlyByDiggerApply(headSHA string) (bool, error) {
-	checkRuns, err := svc.GetCheckRunsForCommit(headSHA)
+// requiredCheckContext is a normalized view of a single statusCheckRollup context, merging
+// GitHub's two distinct context types (CheckRun and the legacy StatusContext) into one shape.
+type requiredCheckContext struct {
+	Name       string
+	State      string // normalized upper-case conclusion/state, e.g. SUCCESS, NEUTRAL, SKIPPED, FAILURE, PENDING
+	IsRequired bool
+}
+
+type statusCheckRollupResponse struct {
+	Data struct {
+		Repository struct {
+			PullRequest struct {
+				Commits struct {
+					Nodes []struct {
+						Commit struct {
+							StatusCheckRollup struct {
+								Contexts struct {
+									Nodes []struct {
+										Typename   string `json:"__typename"`
+										Name       string `json:"name"`
+										Conclusion string `json:"conclusion"`
+										Context    string `json:"context"`
+										State      string `json:"state"`
+										IsRequired bool   `json:"isRequired"`
+									} `json:"nodes"`
+								} `json:"contexts"`
+							} `json:"statusCheckRollup"`
+						} `json:"commit"`
+					} `json:"nodes"`
+				} `json:"commits"`
+			} `json:"pullRequest"`
+		} `json:"repository"`
+	} `json:"data"`
+	Errors []struct {
+		Message string `json:"message"`
+	} `json:"errors"`
+}
+
+// getRequiredCheckContextsForPR fetches the PR's statusCheckRollup via GraphQL. Unlike the
+// REST check-runs list (GetCheckRunsForCommit), which returns every check-run ever posted to
+// a commit with no way to tell which ones actually gate merging, statusCheckRollup carries a
+// per-context isRequired flag — reflecting the same merge-box view any collaborator can
+// already see, not branch-protection configuration itself, so it doesn't need admin-level
+// access the way GET /branches/{branch}/protection or GraphQL's branchProtectionRules do
+// (both confirmed to return 403/FORBIDDEN for a standard token).
+func (svc GithubService) getRequiredCheckContextsForPR(prNumber int) ([]requiredCheckContext, error) {
+	query := `query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      commits(last: 1) {
+        nodes {
+          commit {
+            statusCheckRollup {
+              contexts(first: 100) {
+                nodes {
+                  __typename
+                  ... on CheckRun {
+                    name
+                    conclusion
+                    isRequired(pullRequestNumber: $number)
+                  }
+                  ... on StatusContext {
+                    context
+                    state
+                    isRequired(pullRequestNumber: $number)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+	body, err := json.Marshal(map[string]interface{}{
+		"query": query,
+		"variables": map[string]interface{}{
+			"owner":  svc.Owner,
+			"name":   svc.RepoName,
+			"number": prNumber,
+		},
+	})
 	if err != nil {
-		return false, fmt.Errorf("could not get check runs for commit %v: %v", headSHA, err)
+		return nil, fmt.Errorf("could not marshal graphql request: %v", err)
 	}
 
-	for _, run := range checkRuns {
-		if run.GetConclusion() == "success" {
-			continue
-		}
-		if strings.HasPrefix(run.GetName(), "digger/apply") {
-			continue
-		}
-		slog.Debug("PR blocked by non-digger check", "check", run.GetName(), "conclusion", run.GetConclusion())
-		return false, nil
+	// GraphQL lives at a different path than the REST base URL (which go-github's Client
+	// already has configured): api.github.com/graphql for github.com, or
+	// https://HOSTNAME/api/graphql for GHES (REST base ends .../api/v3/). The github.com case
+	// is confirmed against a live workflow run; the GHES case follows from the URL structure
+	// but has not been tested against a real GHES instance.
+	graphqlURL := strings.TrimSuffix(svc.Client.BaseURL.String(), "v3/") + "graphql"
+
+	req, err := http.NewRequest("POST", graphqlURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("could not build graphql request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := svc.Client.Client().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("graphql request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var parsed statusCheckRollupResponse
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return nil, fmt.Errorf("could not decode graphql response: %v", err)
+	}
+	if len(parsed.Errors) > 0 {
+		return nil, fmt.Errorf("graphql errors: %v", parsed.Errors)
 	}
 
-	return true, nil
+	commitNodes := parsed.Data.Repository.PullRequest.Commits.Nodes
+	if len(commitNodes) == 0 {
+		return nil, nil
+	}
+
+	var contexts []requiredCheckContext
+	for _, n := range commitNodes[0].Commit.StatusCheckRollup.Contexts.Nodes {
+		name := n.Name
+		state := strings.ToUpper(n.Conclusion)
+		if n.Typename == "StatusContext" {
+			name = n.Context
+			state = strings.ToUpper(n.State)
+		}
+		contexts = append(contexts, requiredCheckContext{
+			Name:       name,
+			State:      state,
+			IsRequired: n.IsRequired,
+		})
+	}
+	return contexts, nil
+}
+
+// isBlockedOnlyByDiggerApply returns true if the only *required* status contexts on the PR
+// that aren't passing are digger/apply itself. This breaks the chicken-and-egg problem where
+// digger/apply is a required branch protection check: the apply must run to pass the check,
+// but the mergeability gate would otherwise prevent it from running.
+func (svc GithubService) isBlockedOnlyByDiggerApply(prNumber int) (bool, error) {
+	contexts, err := svc.getRequiredCheckContextsForPR(prNumber)
+	if err != nil {
+		return false, fmt.Errorf("could not get required check contexts for PR %v: %v", prNumber, err)
+	}
+
+	return blockedOnlyByDiggerApply(contexts), nil
+}
+
+// blockedOnlyByDiggerApply is the pure decision logic behind isBlockedOnlyByDiggerApply,
+// separated out so it can be unit tested without a live GitHub API call.
+func blockedOnlyByDiggerApply(contexts []requiredCheckContext) bool {
+	// GitHub's branch protection docs state that a required status check passes with a
+	// "successful, skipped, or neutral" conclusion — not "success" alone:
+	// https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+	// ("Required status checks must have a successful, skipped, or neutral status before
+	// collaborators can make changes to a protected branch.").
+	passingStates := map[string]bool{
+		"SUCCESS": true,
+		"SKIPPED": true,
+		"NEUTRAL": true,
+	}
+
+	for _, ctx := range contexts {
+		// Only required contexts can block merging at all — matches GitHub's own
+		// mergeable_state calculation. Previously every context on the commit was
+		// evaluated regardless of required-ness, which incorrectly blocked apply on
+		// non-required checks (e.g. our own workflow's native job-status check, or
+		// Digger's own project-scoped status checks).
+		if !ctx.IsRequired {
+			continue
+		}
+		if strings.HasPrefix(ctx.Name, "digger/apply") {
+			continue
+		}
+		if passingStates[ctx.State] {
+			continue
+		}
+		slog.Debug("PR blocked by non-digger required check", "check", ctx.Name, "state", ctx.State)
+		return false
+	}
+
+	return true
 }
 
 func (svc GithubService) IsMerged(prNumber int) (bool, error) {
