@@ -770,17 +770,30 @@ func (db *Database) GetImpactedProjects(repoFullName string, commitSha string) (
 	return impactedProjects, nil
 }
 
-func (db *Database) GetImpactedProjectSingle(repoFullName string, commitSha string, projectName string) (*ImpactedProject, error) {
-	var impactedProject ImpactedProject
-	err := db.GormDB.Where("repo_full_name=? AND commit_sha = ?", repoFullName, commitSha).Find(&impactedProject).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		slog.Error("failed to get impacted projects", "error", err, "repoFullName", repoFullName, "commitSha", commitSha)
-		return nil, err
+// MarkImpactedProjectPlanned records a successful plan for every row of the project.
+func (db *Database) MarkImpactedProjectPlanned(repoFullName string, commitSha string, projectName string) (int64, error) {
+	return db.markImpactedProject(repoFullName, commitSha, projectName, ImpactedProject{Planned: true})
+}
+
+// MarkImpactedProjectApplied records a successful apply for every row of the project.
+func (db *Database) MarkImpactedProjectApplied(repoFullName string, commitSha string, projectName string) (int64, error) {
+	return db.markImpactedProject(repoFullName, commitSha, projectName, ImpactedProject{Applied: true})
+}
+
+// markImpactedProject updates every matching row rather than one. Rows are
+// created check-then-insert, so a PR event and a comment racing on the same
+// commit can leave duplicates, and a duplicate left false would keep
+// AllImpactedProjectApplied false. Updates skips zero-valued fields, so setting
+// one flag never clears the other.
+func (db *Database) markImpactedProject(repoFullName string, commitSha string, projectName string, status ImpactedProject) (int64, error) {
+	result := db.GormDB.Model(&ImpactedProject{}).
+		Where("repo_full_name = ? AND commit_sha = ? AND project_name = ?", repoFullName, commitSha, projectName).
+		Updates(status)
+	if result.Error != nil {
+		slog.Error("failed to mark impacted project", "error", result.Error, "repoFullName", repoFullName, "commitSha", commitSha, "projectName", projectName)
+		return 0, result.Error
 	}
-	return &impactedProject, nil
+	return result.RowsAffected, nil
 }
 
 func (db *Database) AllImpactedProjectPlanned(repoFullName string, commitSha string) (bool, []ImpactedProject, error) {
