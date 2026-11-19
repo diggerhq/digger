@@ -229,6 +229,10 @@ inputs:
     description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
     required: false
     default: ""
+  tool-cache-dir:
+    description: "Directory where the terraform and terragrunt binaries installed by this action are stored and reused. Defaults to the runner tool cache ($RUNNER_TOOL_CACHE). Point it at a persistent volume on self-hosted runners to download each version once."
+    required: false
+    default: ""
   cache-dependencies-s3:
     description: "Use S3 for caching terraform/terragrunt dependencies"
     required: false
@@ -413,13 +417,80 @@ runs:
       if: ${{ inputs.cache-dependencies-s3 == 'true' }}
 
     # Then terraform setup happens...
+    # Replaces hashicorp/setup-terraform (terraform_wrapper was already false) so the binary
+    # can be stored under tool-cache-dir (default RUNNER_TOOL_CACHE) in the <tool>/<version>/<arch>
+    # layout and reused when already present. Accepts "1.5.5", "v1.5.5" or "latest".
+    # Writes the TFE credentials block to the CLI config file exactly as setup-terraform did.
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
-      with:
-        terraform_version: ${{ inputs.terraform-version }}
-        terraform_wrapper: false
-        cli_config_credentials_token: ${{ inputs.terraform-tfe-token || '' }}
-        cli_config_credentials_hostname: ${{ inputs.terraform-tfe-hostname || 'otaco.app' }}
+      shell: bash
+      env:
+        TF_VERSION: ${{ inputs.terraform-version }}
+        TFE_TOKEN: ${{ inputs.terraform-tfe-token || '' }}
+        TFE_HOSTNAME: ${{ inputs.terraform-tfe-hostname || 'otaco.app' }}
+        TOOL_CACHE_DIR: ${{ inputs.tool-cache-dir }}
+      run: |
+        set -euo pipefail
+        if [ "$(echo "$TF_VERSION" | tr '[:upper:]' '[:lower:]')" = "latest" ]; then
+          TF_VERSION=$(curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 \
+            https://checkpoint-api.hashicorp.com/v1/check/terraform | \
+            sed -n 's/.*"current_version": *"\([^"]*\)".*/\1/p')
+          echo "Latest Terraform version: $TF_VERSION"
+        fi
+        TF_VERSION="${TF_VERSION#v}"
+        case "$TF_VERSION" in
+          [0-9]*.[0-9]*.[0-9]*) ;;
+          *) echo "Unsupported terraform-version '$TF_VERSION': use an exact version (1.5.5) or latest"; exit 1 ;;
+        esac
+
+        case "$(uname -s)" in
+          Linux)  OS=linux ;;
+          Darwin) OS=darwin ;;
+          MINGW*|MSYS*|CYGWIN*|Windows_NT) OS=windows ;;
+          *) echo "Unsupported OS: $(uname -s)"; exit 1 ;;
+        esac
+        case "$(uname -m)" in
+          x86_64|amd64)  ARCH=amd64 ;;
+          aarch64|arm64) ARCH=arm64 ;;
+          i386|i686)     ARCH=386 ;;
+          *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+        esac
+
+        EXT=""; [ "$OS" = "windows" ] && EXT=".exe"
+        CACHE_ROOT="${TOOL_CACHE_DIR:-${RUNNER_TOOL_CACHE:-$RUNNER_TEMP}}"
+        BIN_DIR="$CACHE_ROOT/terraform/${TF_VERSION}/${ARCH}"
+        BIN="$BIN_DIR/terraform${EXT}"
+        mkdir -p "$BIN_DIR"
+
+        if [ -x "$BIN" ] && CHECKPOINT_DISABLE=1 "$BIN" version >/dev/null 2>&1; then
+          echo "Using cached Terraform ${TF_VERSION} from ${BIN}"
+        else
+          URL="https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_${OS}_${ARCH}.zip"
+          echo "Downloading Terraform ${TF_VERSION} from ${URL}"
+          TMP_DIR="$(mktemp -d "$BIN_DIR/.terraform.XXXXXX")"
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 -o "$TMP_DIR/terraform.zip" "$URL"
+          if command -v unzip >/dev/null 2>&1; then
+            unzip -q -o "$TMP_DIR/terraform.zip" "terraform${EXT}" -d "$TMP_DIR"
+          else
+            python3 -c "import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract(sys.argv[2], sys.argv[3])" \
+              "$TMP_DIR/terraform.zip" "terraform${EXT}" "$TMP_DIR"
+          fi
+          chmod +x "$TMP_DIR/terraform${EXT}"
+          mv -f "$TMP_DIR/terraform${EXT}" "$BIN"
+          rm -rf "$TMP_DIR"
+        fi
+        echo "$BIN_DIR" >> "$GITHUB_PATH"
+        CHECKPOINT_DISABLE=1 "$BIN" version
+
+        if [ -n "$TFE_TOKEN" ] && [ -n "$TFE_HOSTNAME" ]; then
+          if [ "$OS" = "windows" ]; then
+            CREDS_FILE="${TF_CLI_CONFIG_FILE:-${APPDATA}/terraform.rc}"
+          else
+            CREDS_FILE="${TF_CLI_CONFIG_FILE:-${HOME}/.terraformrc}"
+          fi
+          mkdir -p "$(dirname "$CREDS_FILE")"
+          printf 'credentials "%s" {\n  token = "%s"\n}\n' "$TFE_HOSTNAME" "$TFE_TOKEN" >> "$CREDS_FILE"
+          echo "Added credentials for ${TFE_HOSTNAME} to ${CREDS_FILE}"
+        fi
       if: inputs.setup-terraform == 'true'
 
     # rhythmictech/actions-setup-tfenv is unmaintained and still declares node16,
@@ -437,15 +508,19 @@ runs:
     # autero1/action-terragrunt is unmaintained and still declares node20,
     # which GitHub removes from runners on 2026-09-23. This reproduces what it did:
     # accepts "0.73.7", "v0.73.7" or "latest"; supports linux/darwin/windows on amd64/arm64/386.
+    # The binary is stored under tool-cache-dir (default RUNNER_TOOL_CACHE) in the
+    # <tool>/<version>/<arch> layout actions/toolkit uses, and reused when already present.
     - name: Setup Terragrunt
       shell: bash
       env:
         TG_VERSION: ${{ inputs.terragrunt-version }}
         GH_TOKEN: ${{ github.token }}
+        TOOL_CACHE_DIR: ${{ inputs.tool-cache-dir }}
       run: |
         set -euo pipefail
         if [ "$(echo "$TG_VERSION" | tr '[:upper:]' '[:lower:]')" = "latest" ]; then
-          TG_VERSION=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+          TG_VERSION=$(curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | \
             sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
           echo "Latest Terragrunt version: $TG_VERSION"
@@ -465,15 +540,24 @@ runs:
           *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
         esac
 
-        BIN_DIR="$RUNNER_TEMP/terragrunt-bin"
-        mkdir -p "$BIN_DIR"
         EXT=""; [ "$OS" = "windows" ] && EXT=".exe"
-        URL="https://github.com/gruntwork-io/terragrunt/releases/download/${TG_VERSION}/terragrunt_${OS}_${ARCH}${EXT}"
-        echo "Downloading Terragrunt ${TG_VERSION} from ${URL}"
-        curl -fsSL -o "$BIN_DIR/terragrunt${EXT}" "$URL"
-        chmod +x "$BIN_DIR/terragrunt${EXT}"
+        CACHE_ROOT="${TOOL_CACHE_DIR:-${RUNNER_TOOL_CACHE:-$RUNNER_TEMP}}"
+        BIN_DIR="$CACHE_ROOT/terragrunt/${TG_VERSION#v}/${ARCH}"
+        BIN="$BIN_DIR/terragrunt${EXT}"
+        mkdir -p "$BIN_DIR"
+
+        if [ -x "$BIN" ] && "$BIN" --version >/dev/null 2>&1; then
+          echo "Using cached Terragrunt ${TG_VERSION} from ${BIN}"
+        else
+          URL="https://github.com/gruntwork-io/terragrunt/releases/download/${TG_VERSION}/terragrunt_${OS}_${ARCH}${EXT}"
+          echo "Downloading Terragrunt ${TG_VERSION} from ${URL}"
+          TMP="$(mktemp "$BIN_DIR/.terragrunt.XXXXXX")"
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 -o "$TMP" "$URL"
+          chmod +x "$TMP"
+          mv -f "$TMP" "$BIN"
+        fi
         echo "$BIN_DIR" >> "$GITHUB_PATH"
-        "$BIN_DIR/terragrunt${EXT}" --version
+        "$BIN" --version
       if: inputs.setup-terragrunt == 'true'
 
     - name: Setup OpenTofu
