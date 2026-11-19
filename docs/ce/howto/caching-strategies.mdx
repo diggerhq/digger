@@ -48,7 +48,39 @@ a common volume for all the runners to read and write to. Digger provides an arg
 Where this path points to the location of a mounted volume that all the runners can read and write to. With this configuration in place, all runners will update the provider cache in place
 which means there is no need to re-download providers or upload them back to github cache each time.
 
+## Cache the Terraform and Terragrunt binaries
+
+With `setup-terraform: true` or `setup-terragrunt: true`, Digger stores each binary in a tool cache directory
+(`<tool-cache-dir>/terraform/<version>/<arch>` and `<tool-cache-dir>/terragrunt/<version>/<arch>`) and only
+downloads it when no working binary is there. Downloads retry on transient network errors.
+
+By default the tool cache directory is the runner's own tool cache, `$RUNNER_TOOL_CACHE`. On GitHub-hosted
+runners that directory is fresh on every job, so the binaries are downloaded each run as before. On self-hosted
+runners, set `tool-cache-dir` to a path on a persistent volume so each version is downloaded once and reused by
+every later run. A subdirectory of the volume you already use for `terraform-cache-dir` works:
+
+```
+      - uses: diggerhq/digger@vLatest
+        with:
+            setup-terraform: true
+            terraform-version: 1.5.5
+            setup-terragrunt: true
+            terragrunt-version: 1.1.2
+            terraform-cache-dir: /home/myuser/mnt/terraform-cache
+            tool-cache-dir: /home/myuser/mnt/terraform-cache/tools
+```
+
+How the cache behaves:
+
+- A version is keyed by its directory, so changing `terraform-version` or `terragrunt-version` downloads the new
+  version once and leaves the old one in place. Nothing expires by time.
+- A binary that fails to run (for example a truncated download) is re-downloaded and replaced.
+- `latest` is resolved against the HashiCorp checkpoint API or the GitHub API on every run, then treated like a
+  pinned version. Pin a version to avoid that network call.
+- Old versions are never pruned. Delete `<tool-cache-dir>/<tool>/<version>` by hand when you no longer need it;
+  the next run that needs it downloads it again.
+
 <Note>
-    We are currently looking into cases where there might be conflicts between [different runners](https://terragrunt.gruntwork.io/docs/features/provider-cache-server/#why-opentofuterraforms-built-in-provider-caching-doesnt-work)
-    writing to the same cache directory. It seems that recent versions of opentofu and terraform have improved their cache handling to avoid this issue. But it is an area we hope to document better for digger in the near future.
+    `terraform-version` accepts an exact version such as `1.5.5` or `latest`. Version ranges such as `~1.5`
+    are not supported.
 </Note>

@@ -159,6 +159,14 @@ inputs:
     description: "Leverage actions/cache to cache dependencies to speed up execution"
     required: false
     default: 'false'
+  terraform-cache-dir:
+    description: "allows overriding of the terraform cache dir which defaults to ${github.workspace}/cache"
+    required: false
+    default: ""
+  tool-cache-dir:
+    description: "Directory where the terraform and terragrunt binaries installed by this action are stored and reused. Defaults to the runner tool cache ($RUNNER_TOOL_CACHE). Point it at a persistent volume on self-hosted runners to download each version once."
+    required: false
+    default: ""
 outputs:
   output:
     value: ${{ steps.digger.outputs.output }}
