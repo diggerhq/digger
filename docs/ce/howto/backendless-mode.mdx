@@ -51,7 +51,8 @@ create a small resource in your cloud account to store which PR locked which pro
 | AWS            | DynamoDB        |
 | GCP            | GCP Bucket      |
 | Azure          | Storage Tables  |
+| Alibaba Cloud  | OSS Bucket      |
 
-In case of AWS, during the first run digger will create this resource for you. However in case of GCP and azure you need to create it yourself and supply it as an argument.
+In case of AWS, during the first run digger will create this resource for you. However in case of GCP, Azure and Alibaba Cloud you need to create it yourself and supply it as an argument.
 
 After the resource is created digger will continue to use it for subsequent runs in order to store information about the locks and function correctly.

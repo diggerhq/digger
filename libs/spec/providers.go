@@ -22,6 +22,7 @@ import (
 	"github.com/diggerhq/digger/libs/ci/gitlab"
 	"github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/locking"
+	"github.com/diggerhq/digger/libs/locking/alicloud"
 	"github.com/diggerhq/digger/libs/locking/aws"
 	"github.com/diggerhq/digger/libs/locking/aws/envprovider"
 	"github.com/diggerhq/digger/libs/locking/azure"
@@ -118,6 +119,10 @@ func (l LockProvider) GetLock(lockSpec LockSpec) (locking.Lock, error) {
 		case "azure":
 			slog.Info("Using Azure lock provider")
 			return azure.NewStorageAccountLock()
+
+		case "alicloud":
+			slog.Info("Using Alibaba Cloud lock provider")
+			return alicloud.NewOSSLock()
 
 		}
 	}
