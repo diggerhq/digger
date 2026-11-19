@@ -170,3 +170,35 @@ func TestGetApprovalsPaginatesBeyondFirstPage(t *testing.T) {
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []string{"alice", "carol"}, approvals)
 }
+
+func TestListIssuesNilFields(t *testing.T) {
+	issueNum := 42
+	issueTitle := "Test issue without body"
+	issues := []*github.Issue{
+		{
+			Number: &issueNum,
+			Title:  &issueTitle,
+			Body:   nil,
+		},
+	}
+
+	mockedHTTPClient := mock.NewMockedHTTPClient(
+		mock.WithRequestMatchPages(
+			mock.GetReposIssuesByOwnerByRepo,
+			issues,
+		),
+	)
+
+	svc := GithubService{
+		Client:   github.NewClient(mockedHTTPClient),
+		Owner:    "diggerhq",
+		RepoName: "digger",
+	}
+
+	result, err := svc.ListIssues()
+	assert.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Equal(t, int64(42), result[0].ID)
+	assert.Equal(t, "Test issue without body", result[0].Title)
+	assert.Equal(t, "", result[0].Body)
+}
