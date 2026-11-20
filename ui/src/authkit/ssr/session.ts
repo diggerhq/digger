@@ -3,10 +3,11 @@ import { getCookie, setCookie } from '@tanstack/react-start/server';
 import { sealData, unsealData } from 'iron-session';
 import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
 import { getConfig } from './config';
+import { getStaticUserInfo, isStaticAuthMode } from './staticAuth';
 import { lazy } from './utils';
 import { getWorkOS } from './workos';
 import type { AccessToken, AuthenticationResponse } from '@workos-inc/node';
-import type { AuthkitOptions, AuthkitResponse, CookieOptions, GetAuthURLOptions, Session } from './interfaces';
+import type { AuthkitOptions, AuthkitResponse, CookieOptions, GetAuthURLOptions, NoUserInfo, Session, UserInfo } from './interfaces';
 
 const sessionHeaderName = 'x-workos-session';
 const middlewareHeaderName = 'x-workos-middleware';
@@ -55,7 +56,11 @@ export async function encryptSession(session: Session) {
   });
 }
 
-export async function withAuth() {
+export async function withAuth(): Promise<UserInfo | NoUserInfo> {
+  if (isStaticAuthMode()) {
+    return getStaticUserInfo();
+  }
+
   const session = await getSessionFromCookie();
 
   if (!session?.user) {
@@ -258,6 +263,10 @@ export async function updateSession(
 }
 
 export async function terminateSession({ returnTo }: { returnTo?: string } = {}) {
+  if (isStaticAuthMode()) {
+    return redirect({ to: returnTo ?? '/', throw: true, reloadDocument: true });
+  }
+
   const { sessionId } = await withAuth();
   if (sessionId) {
     const href = getWorkOS().userManagement.getLogoutUrl({ sessionId, returnTo });

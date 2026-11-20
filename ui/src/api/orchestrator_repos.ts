@@ -1,3 +1,4 @@
+import { getOrgSource } from '@/authkit/ssr/staticAuth';
 // Helper to generate request IDs for tracing
 function generateRequestId(): string {
     return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -56,7 +57,7 @@ export async function fetchRepos(organizationId: string, userId: string) {
       'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
       'DIGGER_ORG_ID': organizationId,
       'DIGGER_USER_ID': userId,
-      'DIGGER_ORG_SOURCE': 'workos',
+      'DIGGER_ORG_SOURCE': getOrgSource(),
       'X-Request-ID': generateRequestId(),
     },
   });
@@ -75,7 +76,7 @@ export async function fetchRepoDetails(repoId: string, organisationId: string, u
       'Authorization': `Bearer ${process.env.ORCHESTRATOR_BACKEND_SECRET}`,
       'DIGGER_ORG_ID': organisationId,
       'DIGGER_USER_ID': userId,
-      'DIGGER_ORG_SOURCE': 'workos',
+      'DIGGER_ORG_SOURCE': getOrgSource(),
       'X-Request-ID': generateRequestId(),
     },
   });
