@@ -32,6 +32,18 @@ func (d DiggerController) GithubAppWebHook(c *gin.Context) {
 	appID := c.GetHeader("X-GitHub-Hook-Installation-Target-ID")
 
 	_, _, webhookSecret, _, err := d.GithubClientProvider.FetchCredentials(appID)
+	if err != nil {
+		slog.Error("Failed to fetch GitHub app credentials for webhook", "appID", appID, "error", err)
+		c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
+		return
+	}
+	// ValidatePayload skips signature verification when the secret is empty,
+	// so refuse to process the webhook rather than accept an unsigned payload.
+	if webhookSecret == "" {
+		slog.Error("GitHub app webhook secret is not configured; rejecting webhook", "appID", appID)
+		c.String(http.StatusBadRequest, "Error validating github app webhook's payload")
+		return
+	}
 
 	payload, err := github.ValidatePayload(c.Request, []byte(webhookSecret))
 	if err != nil {
