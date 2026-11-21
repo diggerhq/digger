@@ -192,6 +192,7 @@ func JWTBearerTokenAuth(auth services.Auth) gin.HandlerFunc {
 			} else {
 				c.Set(ORGANISATION_ID_KEY, jobToken.OrganisationID)
 				c.Set(ACCESS_LEVEL_KEY, jobToken.Type)
+				c.Set(JOB_TOKEN_KEY, jobToken.Value)
 				slog.Debug("Job token verified", "organisationId", jobToken.OrganisationID, "accessLevel", jobToken.Type)
 			}
 		} else if strings.HasPrefix(token, "t:") {
