@@ -3,9 +3,6 @@ name: Recreate vLatest release from develop
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write  # needed to delete/create releases & tags
-
 jobs:
   recreate-vlatest:
     runs-on: ubuntu-latest
@@ -13,6 +10,7 @@ jobs:
       - name: Delete release "vLatest" if it exists
         uses: actions/github-script@v9
         with:
+          github-token: ${{ secrets.VLATEST_RELEASE_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -35,6 +33,7 @@ jobs:
       - name: Delete tag "vLatest" if it exists
         uses: actions/github-script@v9
         with:
+          github-token: ${{ secrets.VLATEST_RELEASE_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -58,6 +57,7 @@ jobs:
       - name: Create release "vLatest" from develop
         uses: actions/github-script@v9
         with:
+          github-token: ${{ secrets.VLATEST_RELEASE_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
