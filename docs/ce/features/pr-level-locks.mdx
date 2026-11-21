@@ -6,6 +6,16 @@ PR-level locking prevents concurrent infrastructure operations from different pu
 
 When you run with the OpenTaco backend/orchestrator, PR locks are stored in the backend database (`digger_locks`) automatically. No additional lock storage setup is required.
 
+## How locks are taken
+
+A plan, apply or `digger lock` locks every project the PR impacts. A comment with `-p`, `-d` or `--layer` locks only the projects it selects. With the OpenTaco backend, it takes them all or none: Digger checks every project first, and if another open PR holds any of them, it takes none, and its comment names the first locked project and the PR holding it.
+
+Within a repository, only one PR takes locks at a time, so two PRs that plan at the same moment can't both get the same project. If another PR is still taking its locks after a minute, the request fails with a message to try again.
+
+A PR releases its locks when it's closed or merged, converted to draft (with `allow_draft_prs: false`), or on `digger unlock`. If a closed PR still holds a lock, Digger releases it the next time another PR takes that project.
+
+In backendless mode, each project's job takes its own lock as it runs, so two PRs can still each hold part of what the other needs. Run `digger unlock` on one of them to clear it.
+
 ## Disabling PR-level locks
 
 In order to disable locking repo wide you can add a top-level flag to your digger.yml:

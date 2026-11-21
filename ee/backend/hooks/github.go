@@ -14,9 +14,7 @@ import (
 	"github.com/diggerhq/digger/backend/utils"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	dg_github "github.com/diggerhq/digger/libs/ci/github"
-	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	"github.com/diggerhq/digger/libs/digger_config"
-	dg_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/google/go-github/v61/github"
 	"github.com/samber/lo"
@@ -91,20 +89,10 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 	}
 
 	// attempting to lock for performing drift apply command
-	prLock := dg_locking.PullRequestLock{
-		InternalLock: locking.BackendDBLock{
-			OrgId: orgId,
-		},
-		CIService:        ghService,
-		Reporter:         comment_updater.NoopReporter{},
-		ProjectName:      projectName,
-		ProjectNamespace: repoFullName,
-		PrNumber:         issueNumber,
-	}
-	err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-	if err != nil {
-		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", projectName, err))
-		return fmt.Errorf("failed perform lock action on project: %v %v", projectName, err)
+	driftProjects := []digger_config.Project{{Name: projectName}}
+	if err := locking.PerformPRLockingAction(config, orgId, ghService, repoFullName, issueNumber, driftProjects, *diggerCommand); err != nil {
+		utils.InitCommentReporter(ghService, issueNumber, locking.LockFailureComment(err))
+		return fmt.Errorf("failed perform lock action: %v", err)
 	}
 
 	if *diggerCommand == scheduler.DiggerCommandUnlock {
@@ -182,10 +170,9 @@ var DriftReconcilliationHook ce_controllers.IssueCommentHook = func(gh utils.Git
 	}
 
 	// === now unlocking the project ===
-	err = dg_locking.PerformLockingActionFromCommand(prLock, scheduler.DiggerCommandUnlock)
-	if err != nil {
-		utils.InitCommentReporter(ghService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", projectName, err))
-		return fmt.Errorf("failed perform lock action on project: %v %v", projectName, err)
+	if err := locking.PerformPRLockingAction(config, orgId, ghService, repoFullName, issueNumber, driftProjects, scheduler.DiggerCommandUnlock); err != nil {
+		utils.InitCommentReporter(ghService, issueNumber, locking.LockFailureComment(err))
+		return fmt.Errorf("failed perform lock action: %v", err)
 	}
 
 	return nil

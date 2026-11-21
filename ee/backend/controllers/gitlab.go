@@ -21,7 +21,6 @@ import (
 	gitlab2 "github.com/diggerhq/digger/libs/ci/gitlab"
 	comment_updater "github.com/diggerhq/digger/libs/comment_utils/reporting"
 	dg_configuration "github.com/diggerhq/digger/libs/digger_config"
-	dg_locking "github.com/diggerhq/digger/libs/locking"
 	"github.com/diggerhq/digger/libs/scheduler"
 	"github.com/gin-gonic/gin"
 	"github.com/xanzy/go-gitlab"
@@ -220,24 +219,9 @@ func handlePullRequestEvent(gitlabProvider utils.GitlabProvider, payload *gitlab
 	}
 
 	// perform locking/unlocking in backend
-	if config.PrLocks {
-		for _, project := range impactedProjects {
-			prLock := dg_locking.PullRequestLock{
-				InternalLock: locking.BackendDBLock{
-					OrgId: organisationId,
-				},
-				CIService:        glService,
-				Reporter:         comment_updater.NoopReporter{},
-				ProjectName:      project.Name,
-				ProjectNamespace: repoFullName,
-				PrNumber:         prNumber,
-			}
-			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-			if err != nil {
-				utils.InitCommentReporter(glService, prNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-				return fmt.Errorf("failed to perform lock action on project: %v, %v", project.Name, err)
-			}
-		}
+	if err := locking.PerformPRLockingAction(config, organisationId, glService, repoFullName, prNumber, impactedProjects, *diggerCommand); err != nil {
+		utils.InitCommentReporter(glService, prNumber, locking.LockFailureComment(err))
+		return fmt.Errorf("failed to perform lock action: %v", err)
 	}
 
 	// if commands are locking or unlocking we don't need to trigger any jobs
@@ -416,24 +400,9 @@ func handleIssueCommentEvent(gitlabProvider utils.GitlabProvider, payload *gitla
 	}
 
 	// perform unlocking in backend
-	if config.PrLocks {
-		for _, project := range impactedProjectsForComment {
-			prLock := dg_locking.PullRequestLock{
-				InternalLock: locking.BackendDBLock{
-					OrgId: organisationId,
-				},
-				CIService:        glService,
-				Reporter:         comment_updater.NoopReporter{},
-				ProjectName:      project.Name,
-				ProjectNamespace: repoFullName,
-				PrNumber:         issueNumber,
-			}
-			err = dg_locking.PerformLockingActionFromCommand(prLock, *diggerCommand)
-			if err != nil {
-				utils.InitCommentReporter(glService, issueNumber, fmt.Sprintf(":x: Failed perform lock action on project: %v %v", project.Name, err))
-				return fmt.Errorf("failed perform lock action on project: %v %v", project.Name, err)
-			}
-		}
+	if err := locking.PerformPRLockingAction(config, organisationId, glService, repoFullName, issueNumber, impactedProjectsForComment, *diggerCommand); err != nil {
+		utils.InitCommentReporter(glService, issueNumber, locking.LockFailureComment(err))
+		return fmt.Errorf("failed perform lock action: %v", err)
 	}
 
 	// if commands are locking or unlocking we don't need to trigger any jobs
