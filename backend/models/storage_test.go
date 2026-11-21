@@ -268,3 +268,94 @@ func TestDiggerLockFunctionalities(t *testing.T) {
 	assert.Equal(t, "org/repo2#dev", existingLocksAfterDeletion[0].Resource)
 	assert.Equal(t, "org/repo2#prod", existingLocksAfterDeletion[1].Resource)
 }
+
+// setupImpactedSuite provisions an isolated DB migrating only ImpactedProject.
+// It deliberately avoids the shared setupSuite because the Project and
+// ImpactedProject models both declare a gorm index named "idx_org_repo", which
+// collides under SQLite (global index namespace) during a combined AutoMigrate.
+// Production schema is managed by Atlas migrations, not AutoMigrate.
+func setupImpactedSuite(tb testing.TB) (func(tb testing.TB), *Database) {
+	dbName := "database_impacted_test.db"
+	if e := os.Remove(dbName); e != nil && !strings.Contains(e.Error(), "no such file or directory") {
+		panic(e)
+	}
+
+	gdb, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	if err != nil {
+		panic(err)
+	}
+	if err = gdb.AutoMigrate(&ImpactedProject{}); err != nil {
+		panic(err)
+	}
+	database := &Database{GormDB: gdb}
+	DB = database
+	return func(tb testing.TB) {
+		if e := os.Remove(dbName); e != nil {
+			panic(e)
+		}
+	}, database
+}
+
+func TestGetImpactedProjectSingleReturnsRequestedProject(t *testing.T) {
+	teardownSuite, db := setupImpactedSuite(t)
+	defer teardownSuite(t)
+
+	repo := "acme/infra"
+	sha := "abc123"
+	projects := []string{"projectA", "projectB", "projectC"}
+
+	for _, name := range projects {
+		_, err := db.CreateImpactedProject(repo, sha, name, nil, nil)
+		assert.NoError(t, err)
+	}
+
+	for _, name := range projects {
+		ip, err := db.GetImpactedProjectSingle(repo, sha, name)
+		assert.NoError(t, err)
+		assert.NotNil(t, ip)
+		assert.Equal(t, name, ip.ProjectName)
+	}
+}
+
+func TestGetImpactedProjectSingleNotFound(t *testing.T) {
+	teardownSuite, db := setupImpactedSuite(t)
+	defer teardownSuite(t)
+
+	ip, err := db.GetImpactedProjectSingle("acme/infra", "abc123", "missing")
+	assert.NoError(t, err)
+	assert.Nil(t, ip)
+}
+
+// Regression test for multi-project auto_merge: each project's apply must flip its
+// own Applied flag so AllImpactedProjectApplied can reach true for N>1 projects.
+func TestAllImpactedProjectAppliedMultiProject(t *testing.T) {
+	teardownSuite, db := setupImpactedSuite(t)
+	defer teardownSuite(t)
+
+	repo := "acme/infra"
+	sha := "abc123"
+	projects := []string{"projectA", "projectB", "projectC"}
+
+	for _, name := range projects {
+		_, err := db.CreateImpactedProject(repo, sha, name, nil, nil)
+		assert.NoError(t, err)
+	}
+
+	allApplied, _, err := db.AllImpactedProjectApplied(repo, sha)
+	assert.NoError(t, err)
+	assert.False(t, allApplied)
+
+	for _, name := range projects {
+		ip, err := db.GetImpactedProjectSingle(repo, sha, name)
+		assert.NoError(t, err)
+		ip.Applied = true
+		assert.NoError(t, db.GormDB.Save(ip).Error)
+	}
+
+	allApplied, applied, err := db.AllImpactedProjectApplied(repo, sha)
+	assert.NoError(t, err)
+	assert.Len(t, applied, len(projects))
+	assert.True(t, allApplied)
+}
