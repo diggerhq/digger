@@ -4,10 +4,12 @@ title: "handling terraform.lock file"
 
 The `.terraform.lock.hcl` file is an important part of Terraform's dependency management system.
 Digger does not currently take opinions on how you manage .terraform.lock files however please be aware that since digger runs terraform
- within ephemeral jobs that if terraform.lock file gets updated within a job its not going to be commited back to the PR.
+ within ephemeral jobs that if terraform.lock file gets updated within a job its not going to be committed back to the PR.
  Having said that, digger does not pass any `-upgrade` flag during init flag currently. Therefore it is recommended that you use semantic versions
- in your terraform providers and commit .terraform.local file manually. Then when updating versions of providers you can run another `terraform init -upgrade` file to update the file again,
+ in your terraform providers and commit `.terraform.lock.hcl` manually. Then when updating versions of providers you can run another `terraform init -upgrade` file to update the file again,
  then commit it to the PR where you are upgrading provider versions.
+
+ If you use plan artifact storage and need Digger to carry a generated lock file from the plan job into the apply job, set the `upload-plan-lock-file` action input or the `PLAN_UPLOAD_LOCK_FILE` environment variable to the lock file path, for example `.terraform.lock.hcl`. The setting defaults to empty, so Digger only stores lock files when you opt in. When this is enabled, Digger expects the file to exist after plan and to be restorable before apply.
 
  Here are some general best practices for working with this file:
 
