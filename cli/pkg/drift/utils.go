@@ -49,3 +49,44 @@ func SendSlackMessage(slackUrl string, message string) error {
 	resp.Body.Close()
 	return nil
 }
+
+func SendMSTeamsMessage(teamsUrl string, message string) error {
+	type MSTeamsMessage struct {
+		Text string `json:"text"`
+	}
+
+	httpClient := &http.Client{}
+	teamsMessage := MSTeamsMessage{
+		Text: message,
+	}
+	jsonData, err := json.Marshal(teamsMessage)
+	if err != nil {
+		slog.Error("failed to marshal ms teams message", "error", err)
+		return err
+	}
+
+	request, err := http.NewRequest("POST", teamsUrl, bytes.NewBuffer(jsonData))
+	if err != nil {
+		slog.Error("failed to create ms teams drift request", "error", err)
+		return err
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+	resp, err := httpClient.Do(request)
+	if err != nil {
+		slog.Error("failed to send ms teams drift request", "error", err)
+		return err
+	}
+	if resp.StatusCode != 200 {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			slog.Error("failed to read response body", "error", err)
+			return err
+		}
+		slog.Error("failed to send ms teams drift request", "status code", resp.Status, "body", body)
+		msg := fmt.Sprintf("failed to send ms teams drift request. %v. Message: %v", resp.Status, string(body))
+		return fmt.Errorf("%s", msg)
+	}
+	resp.Body.Close()
+	return nil
+}
