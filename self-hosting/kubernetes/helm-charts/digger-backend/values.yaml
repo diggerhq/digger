@@ -8,6 +8,13 @@ digger:
     repository: registry.digger.dev/diggerhq/digger_backend
     tag: "v0.6.101"
 
+  # Secrets for pulling the backend image from a private registry
+  # (not the bundled test postgres)
+  # Format:
+  # imagePullSecrets:
+  #   - name: my-registry-credentials
+  imagePullSecrets: []
+
   # Custom environment variables to be added to the backend deployment
   # Format:
   # customEnv:
