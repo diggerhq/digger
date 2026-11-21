@@ -14,18 +14,20 @@ type SlackNotification struct {
 func SplitCodeBlocks(message string) []string {
 	var res []string
 
-	if strings.Count(message, "```") < 2 {
-		res = append(res, message)
-		return res
-	}
+	hasCodeBlocks := strings.Count(message, "```") >= 2
 
 	regex := regexp.MustCompile("\n")
 	split := regex.Split(message, -1)
 	part := ""
 	for _, line := range split {
-		if len(part+line) > 4000 {
-			res = append(res, part+"\n"+line+"\n```")
-			part = "```\n" + line
+		if len(part)+len(line)+1 > 4000 {
+			if hasCodeBlocks {
+				res = append(res, part+"\n```")
+				part = "```\n" + line
+			} else {
+				res = append(res, part)
+				part = line
+			}
 		} else {
 			part = part + "\n" + line
 		}
@@ -66,7 +68,15 @@ func (slack *SlackNotification) SendErrorNotificationForProject(projectName stri
 		projectName, repoFullName, err,
 	)
 
-	return SendSlackMessage(slack.Url, message)
+	parts := SplitCodeBlocks(message)
+	for _, part := range parts {
+		sendErr := SendSlackMessage(slack.Url, part)
+		if sendErr != nil {
+			slog.Error("failed to send slack error notification", "error", sendErr)
+			return sendErr
+		}
+	}
+	return nil
 }
 
 func (slack *SlackNotification) Flush() error {
