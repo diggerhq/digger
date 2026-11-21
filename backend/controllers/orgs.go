@@ -39,10 +39,11 @@ func GetOrgSettingsApi(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"drift_enabled":     org.DriftEnabled,
-		"drift_cron_tab":    org.DriftCronTab,
-		"drift_webhook_url": org.DriftWebhookUrl,
-		"billing_plan":      org.BillingPlan,
+		"drift_enabled":         org.DriftEnabled,
+		"drift_cron_tab":        org.DriftCronTab,
+		"drift_webhook_url":     org.DriftWebhookUrl,
+		"drift_teams_webhook_url": org.DriftTeamsWebhookUrl,
+		"billing_plan":          org.BillingPlan,
 	})
 }
 
@@ -66,6 +67,7 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 		DriftEnabled                *bool   `json:"drift_enabled,omitempty"`
 		DriftCronTab                *string `json:"drift_cron_tab,omitempty"`
 		DriftWebhookUrl             *string `json:"drift_webhook_url,omitempty"`
+		DriftTeamsWebhookUrl        *string `json:"drift_teams_webhook_url,omitempty"`
 		BillingPlan                 *string `json:"billing_plan,omitempty"`
 		BillingStripeSubscriptionId *string `json:"billing_stripe_subscription_id,omitempty"`
 		SlackChannelName            *string `json:"slack_channel_name,omitempty"`
@@ -87,6 +89,10 @@ func UpdateOrgSettingsApi(c *gin.Context) {
 
 	if reqBody.DriftWebhookUrl != nil {
 		org.DriftWebhookUrl = *reqBody.DriftWebhookUrl
+	}
+
+	if reqBody.DriftTeamsWebhookUrl != nil {
+		org.DriftTeamsWebhookUrl = *reqBody.DriftTeamsWebhookUrl
 	}
 
 	if reqBody.BillingPlan != nil {
