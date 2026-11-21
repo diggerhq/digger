@@ -239,7 +239,7 @@ func GetLock() (Lock, error) {
 		return &NoOpLock{}, nil
 	}
 
-	if lockProvider == "" || lockProvider == "aws" {
+	if lockProvider == "" || lockProvider == "aws" || lockProvider == "dynamodb" {
 		slog.Info("Using AWS lock provider")
 
 		// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/

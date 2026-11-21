@@ -23,6 +23,9 @@ inputs:
     description: AWS region
     required: false
     default: us-east-1
+  aws-s3-lock-bucket:
+    description: The AWS S3 bucket to use for PR locks in backendless mode (`no-backend: true`)
+    required: false
   setup-google-cloud:
     description: Setup google cloud
     required: false
