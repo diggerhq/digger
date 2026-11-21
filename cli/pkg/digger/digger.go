@@ -596,9 +596,9 @@ func reportTerraformPlanOutput(reporter reporting.Reporter, projectId string, pl
 	var formatter func(string) string
 
 	if reporter.SupportsMarkdown() {
-		formatter = reporting.GetTerraformOutputAsCollapsibleComment("Plan output", true)
+		formatter = reporting.GetTerraformOutputAsCollapsibleComment(fmt.Sprintf("Plan output for **%v**", projectId), true)
 	} else {
-		formatter = reporting.GetTerraformOutputAsComment("Plan output")
+		formatter = reporting.GetTerraformOutputAsComment(fmt.Sprintf("Plan output for %v", projectId))
 	}
 
 	_, _, err := reporter.Report(plan, formatter)
