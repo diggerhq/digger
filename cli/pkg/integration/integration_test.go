@@ -419,7 +419,7 @@ func TestHappyPath(t *testing.T) {
 
 	diggerProjectNamespace := repoOwner + "/" + repositoryName
 
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -446,7 +446,7 @@ func TestHappyPath(t *testing.T) {
 	prEvent := ghEvent.(github.PullRequestEvent)
 	jobs, _, err = dg_github.ConvertGithubPullRequestEventToJobs(&prEvent, impactedProjects, requestedProject, *diggerConfig, false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -460,7 +460,7 @@ func TestHappyPath(t *testing.T) {
 
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -483,7 +483,7 @@ func TestHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -572,7 +572,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 		CiService: &githubPrService,
 		PrNumber:  prNumber,
 	}
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -597,7 +597,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -610,7 +610,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -633,7 +633,7 @@ func TestMultiEnvHappyPath(t *testing.T) {
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, &dynamoDbLock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -791,7 +791,7 @@ workflows:
 		PrNumber:  prNumber,
 	}
 
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock := &locking.PullRequestLock{
@@ -816,7 +816,7 @@ workflows:
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	println("--- digger apply comment ---")
@@ -829,7 +829,7 @@ workflows:
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{
@@ -851,7 +851,7 @@ workflows:
 	assert.NoError(t, err)
 	jobs, _, err = generic.ConvertIssueCommentEventToJobs("", "", 0, "", impactedProjects, impactedProjects, diggerConfig.Workflows, "prBranch", "main", false)
 	assert.NoError(t, err)
-	_, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
+	_, _, _, err = digger.RunJobs(jobs, &githubPrService, &githubPrService, lock, reporter, planStorage, nil, comment_updater.NoopCommentUpdater{}, nil, "", false, false, "123", dir)
 	assert.NoError(t, err)
 
 	projectLock = &locking.PullRequestLock{

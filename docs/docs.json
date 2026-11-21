@@ -193,6 +193,7 @@
               "ce/howto/apply-on-merge",
               "ce/howto/apply-requirements",
               "ce/howto/auto-merge",
+              "ce/howto/fail-on-changes",
               "ce/howto/custom-commands",
               "ce/howto/draft-prs",
               "ce/howto/codeowners",

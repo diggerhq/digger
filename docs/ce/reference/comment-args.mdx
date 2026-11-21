@@ -43,3 +43,13 @@ digger plan -p dev_vpc -p staging_vpc
 ```
 digger plan -p dev_vpc -d staging/vpc
 ```
+
+`digger plan` accepts one further flag, `--fail-on-changes`, which is handled by the Digger
+CLI rather than by the parser above and therefore only works in backendless and manual mode.
+It doesn't change what the plan does or what Digger reports - it only makes the job exit
+non-zero when at least one planned project has a non-empty plan, so an outer CI workflow can
+gate on it. See [Fail on changes](/ce/howto/fail-on-changes).
+
+```
+digger plan --fail-on-changes
+```

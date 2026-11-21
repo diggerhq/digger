@@ -136,7 +136,7 @@ func RunSpecManualCommand(
 	commentUpdater := comment_summary.NoopCommentUpdater{}
 	// do not change these placeholders as they are parsed by dgctl to stream logs
 	slog.Info("<========= DIGGER RUNNING IN MANUAL MODE =========>")
-	allAppliesSuccess, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
+	allAppliesSuccess, _, _, err := digger.RunJobs(jobs, prService, orgService, lock, reporter, planStorage, policyChecker, commentUpdater, noopBackendApi, spec.JobId, false, false, commentId, currentDir)
 	slog.Info("<========= DIGGER COMPLETED =========>")
 	if err != nil || allAppliesSuccess == false {
 		usage.ReportErrorAndExit(spec.VCS.RepoOwner, "Terraform execution failed", 1)

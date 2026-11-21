@@ -1,0 +1,101 @@
+---
+title: "Fail on Changes"
+description: "Make digger plan exit non-zero when a project has a non-empty plan, so an outer CI workflow can gate merges on it"
+---
+
+Digger already knows whether a plan came back empty - it's what drives the "No changes in
+terraform output" comment - but nothing outside the run can see it. `digger/plan` reports
+`success` whether or not there were changes, and the process exit code doesn't distinguish
+"no changes" either.
+
+The `--fail-on-changes` flag on `digger plan` surfaces that signal through the process exit
+code, in the same spirit as terraform's `-detailed-exitcode`:
+
+* **0** - every project that asked for the flag has an empty plan
+* **9** - at least one project that asked for the flag has a non-empty plan
+* anything else - the command itself failed
+
+Terraform uses `2` for this, but Digger already returns `2` when it fails to create a lock
+provider, so a dedicated code is used instead to keep "there are changes" distinguishable
+from "something broke".
+
+The flag is purely additive. On a pull request the plan still runs, still comments on the PR,
+still sets the commit status and still persists the plan artifact - only the exit code
+changes. It is not a quiet mode.
+
+<Note>
+  `--fail-on-changes` is only supported on `digger plan` - using it on any other command is
+  an error. It is resolved by the Digger CLI from the command it is given, so it works on
+  GitHub in [backendless mode](/ce/howto/backendless-mode) and in manual mode. It is not part
+  of the job spec the orchestrator backend hands out, so it does not work with the managed
+  backend: a PR comment is rejected (`failed to parse input ...`), and putting it in
+  `digger.yml` there makes the run fail as an unsupported command. Use it in backendless or
+  manual mode.
+</Note>
+
+## Gating merges on "no changes"
+
+You can turn the exit code into a single required status check that only passes when
+re-planning the affected projects at HEAD shows nothing left to do - in other words,
+"everything in this PR has actually been applied, and nothing has drifted". Read the caveats
+below before adopting it: gating this way needs `skip_merge_check: true`, and that has a cost.
+
+Ask for it in `digger.yml` so it applies to every push to the PR:
+
+```yaml
+projects:
+  - name: dev
+    dir: dev
+    workflow: with-merge-gate
+
+workflows:
+  with-merge-gate:
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan --fail-on-changes"]
+      on_pull_request_closed: [digger unlock]
+      on_commit_to_default: [digger apply]
+      skip_merge_check: true
+```
+
+The Digger job now fails while the PR still has unapplied changes. Make that job a required
+status check in your branch protection rules and the PR can't be merged until an apply has
+brought the projects up to date. Only the projects using this workflow are gated - projects on
+another workflow can have pending changes and the job still exits `0`, so put the flag on every
+workflow you want covered.
+
+The gate runs on push, so a `digger apply` comment does not re-run it - the check stays red
+until the next push. Push again once the apply is done to refresh it; an empty commit
+(`git commit --allow-empty`) is enough.
+
+<Warning>
+  `skip_merge_check: true` is not optional here. Once the gate job goes red, GitHub reports
+  the PR as `blocked`, and `digger apply` refuses to run on a PR that isn't mergeable - which
+  is the only thing that would make the gate green again. Without it the PR is stuck the
+  moment the gate first fails. Note that this also turns off the check that stops you applying
+  a PR with merge conflicts, so you are trading one merge safeguard for another.
+
+  Separately, a project locked by another PR has its plan skipped and reported as successful,
+  so the gate exits `0` without having re-planned it. Set `pr_locks: false` if that matters to
+  you.
+</Warning>
+
+## Asking for it ad hoc
+
+The flag also works as a PR comment, to check the current state on demand:
+
+```
+digger plan --fail-on-changes
+```
+
+and in [manual mode](/ce/reference/action-inputs), through the `command` input:
+
+```yaml
+- uses: diggerhq/digger@vLatest
+  with:
+    mode: manual
+    command: "digger plan --fail-on-changes"
+    project: dev
+  env:
+    GITHUB_CONTEXT: ${{ toJson(github) }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
