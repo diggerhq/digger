@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dchest/uniuri"
+	"github.com/diggerhq/digger/backend/middleware"
 	"github.com/diggerhq/digger/backend/models"
 	"github.com/diggerhq/digger/libs/ci/generic"
 	"github.com/diggerhq/digger/libs/digger_config"
@@ -62,10 +63,15 @@ func (d DiggerEEController) GetSpec(c *gin.Context) {
 	}
 	job := jobs[0]
 
-	//temp  to get orgID TODO: fetch from db
-	org, err := models.DB.GetOrganisation(models.DEFAULT_ORG_NAME)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to get default organisation")
+	// The job token belongs to the organisation the caller authenticated as.
+	orgId, exists := c.Get(middleware.ORGANISATION_ID_KEY)
+	if !exists {
+		c.String(http.StatusForbidden, "Not allowed to access this resource")
+		return
+	}
+	org, err := models.DB.GetOrganisationById(orgId)
+	if err != nil || org == nil {
+		c.String(http.StatusInternalServerError, "Failed to get organisation")
 		return
 	}
 

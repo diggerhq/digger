@@ -206,6 +206,11 @@ var execCmd = &cobra.Command{
 		}
 
 		diggerHostname := os.Getenv("DIGGER_BACKEND_URL")
+		adminToken := os.Getenv("DIGGER_BACKEND_TOKEN")
+		if adminToken == "" {
+			log.Printf("DIGGER_BACKEND_TOKEN is not set; /get-spec requires an admin token")
+			os.Exit(1)
+		}
 		actor, err := getRepoUsername()
 		if err != nil {
 			log.Printf("could not get repo actor: %v", err)
@@ -237,7 +242,7 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		specBytes, err := GetSpec(diggerHostname, "abc123", command, actor, string(projectMarshalled), string(configMarshalled), repoFullname)
+		specBytes, err := GetSpec(diggerHostname, adminToken, command, actor, string(projectMarshalled), string(configMarshalled), repoFullname)
 		if err != nil {
 			log.Printf("failed to get spec from backend: %v", err)
 			os.Exit(1)
