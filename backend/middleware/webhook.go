@@ -17,7 +17,7 @@ func InternalApiAuth() gin.HandlerFunc {
 			return
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token != webhookSecret {
+		if !secretMatches(webhookSecret, token) {
 			c.String(http.StatusForbidden, "invalid token")
 			c.Abort()
 			return
