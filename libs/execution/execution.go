@@ -31,7 +31,6 @@ type LockingExecutorWrapper struct {
 }
 
 func (l LockingExecutorWrapper) Plan() (*iac_utils.IacSummary, bool, bool, string, string, error) {
-	plan := ""
 	locked, err := l.ProjectLock.Lock()
 	if err != nil {
 		return nil, false, false, "", "", fmt.Errorf("digger plan, error locking project: %v", err)
@@ -39,9 +38,8 @@ func (l LockingExecutorWrapper) Plan() (*iac_utils.IacSummary, bool, bool, strin
 	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Plan()
-	} else {
-		return nil, false, false, plan, "", nil
 	}
+	return nil, false, false, "", "", fmt.Errorf("failed to acquire lock for project")
 }
 
 func (l LockingExecutorWrapper) Apply() (*iac_utils.IacSummary, bool, string, error) {
@@ -53,9 +51,8 @@ func (l LockingExecutorWrapper) Apply() (*iac_utils.IacSummary, bool, string, er
 	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Apply()
-	} else {
-		return nil, false, "couldn't lock ", nil
 	}
+	return nil, false, "failed to acquire lock for project", fmt.Errorf("failed to acquire lock for project")
 }
 
 func (l LockingExecutorWrapper) Destroy() (bool, error) {
@@ -66,9 +63,8 @@ func (l LockingExecutorWrapper) Destroy() (bool, error) {
 	slog.Info("Lock result", "locked", locked)
 	if locked {
 		return l.Executor.Destroy()
-	} else {
-		return false, nil
 	}
+	return false, fmt.Errorf("failed to acquire lock for project")
 }
 
 func (l LockingExecutorWrapper) Unlock() error {
