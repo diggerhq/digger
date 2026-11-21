@@ -162,7 +162,7 @@ func (tf Terraform) Plan(params []string, envs map[string]string, planArtefactFi
 	params = append(params, "-lock-timeout=3m")
 	stdout, stderr, statusCode, err := tf.runTerraformCommand("plan", true, envs, filterRegex, params...)
 	if err != nil && statusCode != 2 {
-		return false, "", "", err
+		return false, stdout, stderr, err
 	}
 	return statusCode == 2, stdout, stderr, nil
 }

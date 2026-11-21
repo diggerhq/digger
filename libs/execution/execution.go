@@ -246,7 +246,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 			var stdout, stderr string
 			isEmptyPlan, stdout, stderr, err = d.TerraformExecutor.Plan(planArgs, d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), d.PlanStage.FilterRegex)
 			if err != nil {
-				reportTerraformError(d.Reporter, stderr)
+				reportTerraformError(d.Reporter, "plan", stderr)
 				return nil, false, false, "", "", fmt.Errorf("error executing plan: %v, stdout: %v, stderr: %v", err, stdout, stderr)
 			}
 
@@ -285,7 +285,7 @@ func (d DiggerExecutor) Plan() (*iac_utils.IacSummary, bool, bool, string, strin
 	if !hasPlanStep {
 		rawPlan, _, err := d.TerraformExecutor.Show(make([]string, 0), d.CommandEnvVars, d.PlanPathProvider.LocalPlanFilePath(), false)
 		if err != nil {
-			reportTerraformError(d.Reporter, err.Error())
+			reportTerraformError(d.Reporter, "show", err.Error())
 			return nil, false, false, "", "", fmt.Errorf("error running terraform show: %v", err)
 		}
 		plan, terraformPlanOutputJsonString, planSummary, isEmptyPlan, err = d.postProcessPlan(rawPlan)
@@ -396,7 +396,7 @@ func (d DiggerExecutor) Apply() (*iac_utils.IacSummary, bool, string, error) {
 		if step.Action == "init" {
 			stdout, stderr, err := d.TerraformExecutor.Init(step.ExtraArgs, d.StateEnvVars)
 			if err != nil {
-				reportTerraformError(d.Reporter, stderr)
+				reportTerraformError(d.Reporter, "init", stderr)
 				return nil, false, stdout, fmt.Errorf("error running init: %v", err)
 			}
 		}
@@ -468,14 +468,15 @@ func reportTerraformApplyOutput(r reporting.Reporter, projectId string, applyOut
 	}
 }
 
-func reportTerraformError(r reporting.Reporter, stderr string) {
+func reportTerraformError(r reporting.Reporter, step, stderr string) {
+	title := fmt.Sprintf("Error during %s.", step)
 	if r.SupportsMarkdown() {
-		_, _, commentErr := r.Report(stderr, reporting.GetTerraformOutputAsCollapsibleComment("Error during init.", false))
+		_, _, commentErr := r.Report(stderr, reporting.GetTerraformOutputAsCollapsibleComment(title, false))
 		if commentErr != nil {
 			slog.Error("error publishing comment", "error", commentErr)
 		}
 	} else {
-		_, _, commentErr := r.Report(stderr, reporting.GetTerraformOutputAsComment("Error during init."))
+		_, _, commentErr := r.Report(stderr, reporting.GetTerraformOutputAsComment(title))
 		if commentErr != nil {
 			slog.Error("error publishing comment", "error", commentErr)
 		}
