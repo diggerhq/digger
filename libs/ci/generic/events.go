@@ -72,7 +72,7 @@ func FindAllProjectsDependantOnImpactedProjects(impactedProjects []digger_config
 					return true
 				}
 				if _, ok := visited[node]; ok {
-					return true
+					return false
 				}
 				// add a project if it was impacted
 				if _, ok := impactedProjectsMap[node]; ok {
