@@ -14,6 +14,32 @@ type CommentUpdater interface {
 	UpdateComment(jobs []scheduler.SerializedJob, prNumber int, prService ci.PullRequestService, prCommentId string) error
 }
 
+// getStatusEmoji returns a custom emoji for the status text in the Status column
+func getStatusEmoji(statusText string) string {
+	switch statusText {
+	case "succeeded":
+		return "🎉" // Success celebration
+	case "running":
+		return "🚀" // Rocket - Work in progress
+	case "failed":
+		return "🚫" // Cross - failure
+	case "created":
+		return "➕" // Plus - newly created
+	case "unknown status":
+		return "❓" // Question - unknown
+	default:
+		return "❓" // Default for any unexpected status
+	}
+}
+
+// formatResourceCount formats resource counts with emojis and bold text for better visibility
+func formatResourceCount(count uint, emoji string) string {
+	if count > 0 {
+		return fmt.Sprintf("%v **%d**", emoji, count)
+	}
+	return "0"
+}
+
 type BasicCommentUpdater struct {
 }
 
@@ -40,8 +66,8 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 		"jobType", jobType)
 
 	message := ""
-	message = message + fmt.Sprintf("| Project | Status | %v | + | ~ | - |\n", jobTypeTitle)
-	message = message + fmt.Sprintf("|---------|--------|------|---|---|---|\n")
+	message = message + fmt.Sprintf("| Project | Status | %v | ➕ Add | 🔄 Modify | ➖ Delete |\n", jobTypeTitle)
+	message = message + fmt.Sprintf("|---------|--------|------|---------|-----------|----------|\n")
 
 	for _, job := range jobs {
 		prCommentUrl := job.PRCommentUrl
@@ -52,16 +78,17 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 			workflowUrl = *job.WorkflowRunUrl
 		}
 
-		message = message + fmt.Sprintf("|%v **%v** |<a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
+		message = message + fmt.Sprintf("|%v **%v** |%v <a href='%v'>%v</a> | <a href='%v'>%v</a> | %v | %v | %v|\n",
 			job.Status.ToEmoji(),
 			scheduler.GetProjectAlias(job),
+			getStatusEmoji(job.Status.ToString()),
 			workflowUrl,
-			job.Status.ToString(),
+			cases.Title(language.AmericanEnglish).String(job.Status.ToString()),
 			prCommentUrl,
 			jobTypeTitle,
-			job.ResourcesCreated,
-			job.ResourcesUpdated,
-			job.ResourcesDeleted)
+			formatResourceCount(job.ResourcesCreated, "➕"),
+			formatResourceCount(job.ResourcesUpdated, "🔄"),
+			formatResourceCount(job.ResourcesDeleted, "➖"))
 	}
 
 	message = message + "\n" + formatExampleCommands()
@@ -99,18 +126,30 @@ func (b BasicCommentUpdater) UpdateComment(jobs []scheduler.SerializedJob, prNum
 func formatExampleCommands() string {
 	return `
 <details>
-  <summary>Instructions</summary>
+  <summary><b>📖 How to use these results</b></summary>
 
-⏩ To apply these changes, run the following command:
+### ⏩ Apply Changes
+
+To apply the planned changes, comment on this PR:
 
 ` + "```" + `bash
 digger apply
 ` + "```" + `
 
-🚮 To unlock the projects in this PR run the following command:
+### 🔓 Unlock Projects
+
+If you need to unlock the projects in this PR (e.g., after a failed run), use:
+
 ` + "```" + `bash
 digger unlock
 ` + "```" + `
+
+### 💡 Tips
+
+- Click on the **Status** links to view detailed workflow runs
+- Click on the **Plan/Apply** links to see individual project comments
+- The table shows: **+** (resources to add), **~** (resources to modify), **-** (resources to delete)
+
 </details>
 `
 }
