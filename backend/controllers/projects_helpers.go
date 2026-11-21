@@ -65,6 +65,25 @@ func ProjectDriftStateMachineApply(project models.Project, tfplan string, resour
 	return nil
 }
 
+// ProjectDriftCheckFailed records that a drift check could not complete (e.g. the plan
+// errored) so a failed check is distinguishable from "no drift". Stamps LatestDriftCheck so
+// the failure isn't treated as stale, and clears the last-known drift counts so the NEXT
+// successful check re-derives drift from a clean baseline (wasEmptyPlan==true) and can
+// transition out of check_failed — otherwise a still-drifting project would stay stuck here.
+func ProjectDriftCheckFailed(project models.Project, errorOutput string) error {
+	project.DriftStatus = models.DriftStatusCheckFailed
+	project.DriftTerraformPlan = errorOutput
+	project.DriftToCreate = 0
+	project.DriftToUpdate = 0
+	project.DriftToDelete = 0
+	project.LatestDriftCheck = time.Now()
+	result := models.DB.GormDB.Save(&project)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
 func GenerateChecksSummaryForBatch(batch *models.DiggerBatch) (string, error) {
 	summaryEndpoint := os.Getenv("DIGGER_AI_SUMMARY_ENDPOINT")
 	if summaryEndpoint == "" {

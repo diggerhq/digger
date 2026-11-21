@@ -58,7 +58,7 @@ func (tf OpenTofu) Plan(params []string, envs map[string]string, planArtefactFil
 	params = append(append(append(params, "-input=false"), "-no-color"), "-detailed-exitcode")
 	stdout, stderr, statusCode, err := tf.runOpentofuCommand("plan", true, envs, filterRegex, params...)
 	if err != nil && statusCode != 2 {
-		return false, "", "", err
+		return false, stdout, stderr, err
 	}
 	return statusCode == 2, stdout, stderr, nil
 }

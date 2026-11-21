@@ -134,6 +134,16 @@ func sectionBlockForProject(project models.Project) (*slack.SectionBlock, error)
 			nil,
 		)
 		return sectionBlock, nil
+	case models.DriftStatusCheckFailed:
+		sectionBlock := slack.NewSectionBlock(
+			nil,
+			[]*slack.TextBlockObject{
+                slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("<%v/dashboard/projects/%v|%s — %s>", os.Getenv("DIGGER_APP_URL"), project.ID, project.RepoFullName, project.Name), false, false),
+				slack.NewTextBlockObject("mrkdwn", ":red_circle: Check failed", false, false),
+			},
+			nil,
+		)
+		return sectionBlock, nil
 	default:
 		return nil, fmt.Errorf("Could not")
 	}
