@@ -2,6 +2,7 @@ package s3compat
 
 import (
     "bytes"
+    "context"
     "crypto/hmac"
     "crypto/sha256"
     "encoding/base64"
@@ -33,13 +34,14 @@ import (
 // Handler implements minimal S3-compatible endpoint under /s3 with SigV4 verification.
 // Supported keys: <bucket>/<unit-id>/terraform.tfstate(.lock|.tflock)
 type Handler struct {
-    store     domain.StateOperations 
+    store     domain.StateOperations
     signer    *authpkg.Signer
     stsIssuer sts.Issuer
+    resolver  domain.IdentifierResolver
 }
 
-func NewHandler(store domain.StateOperations, signer *authpkg.Signer, stsIssuer sts.Issuer) *Handler {
-    return &Handler{store: store, signer: signer, stsIssuer: stsIssuer}
+func NewHandler(store domain.StateOperations, signer *authpkg.Signer, stsIssuer sts.Issuer, resolver domain.IdentifierResolver) *Handler {
+    return &Handler{store: store, signer: signer, stsIssuer: stsIssuer, resolver: resolver}
 }
 
 // Handle routes GET/HEAD/PUT/DELETE for both tfstate and lock objects.
@@ -52,7 +54,7 @@ func (h *Handler) Handle(c echo.Context) error {
             "method", c.Request().Method,
         )
         // Verify SigV4 first
-        _, err := h.verifySigV4(c)
+        _, _, err := h.verifySigV4(c)
         if err != nil {
             logger.Warn("S3 auth failed for list objects",
                 "operation", "s3_list_objects",
@@ -64,7 +66,7 @@ func (h *Handler) Handle(c echo.Context) error {
             }
             return c.JSON(http.StatusUnauthorized, map[string]string{"error":"unauthorized"})
         }
-        // Note: RBAC checks are handled at the service level for S3-compatible operations
+        // Note: no RBAC check needed here; handleListObjectsV2 doesn't touch the repository
         return handleListObjectsV2(c)
     }
 
@@ -87,7 +89,7 @@ func (h *Handler) Handle(c echo.Context) error {
     )
 
     // Verify SigV4 with OT stateless STS creds
-    _, err = h.verifySigV4(c)
+    principal, org, err := h.verifySigV4(c)
     if err != nil {
         logger.Warn("S3 auth failed",
             "operation", "s3_handle",
@@ -102,7 +104,18 @@ func (h *Handler) Handle(c echo.Context) error {
         return c.JSON(http.StatusUnauthorized, map[string]string{"error":"unauthorized"})
     }
 
-    // Note: RBAC checks are handled at the service level for S3-compatible operations
+    // RBAC checks are handled at the service level (authorizingRepository), which
+    // requires the verified principal and resolved org to be present on the request context.
+    ctx, err := h.authContext(c.Request().Context(), principal, org)
+    if err != nil {
+        logger.Error("S3 failed to resolve organization",
+            "operation", "s3_handle",
+            "unit_id", obj.unitID,
+            "error", err,
+        )
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"org_resolution_failed"})
+    }
+    c.SetRequest(c.Request().WithContext(ctx))
 
     // Dispatch
     switch c.Request().Method {
@@ -174,6 +187,12 @@ func handleListObjectsV2(c echo.Context) error {
 
 // --- Handlers ---
 
+// isAuthzError reports whether err is an RBAC denial from authorizingRepository,
+// which should surface as 403 rather than the generic 500 used for storage failures.
+func isAuthzError(err error) bool {
+    return errors.Is(err, storage.ErrUnauthorized) || errors.Is(err, storage.ErrForbidden)
+}
+
 func (h *Handler) getState(c echo.Context, id string) error {
     logger := logging.FromContext(c)
     logger.Info("S3 get state",
@@ -189,6 +208,9 @@ func (h *Handler) getState(c echo.Context, id string) error {
                 "unit_id", id,
             )
             return c.NoContent(http.StatusNotFound)
+        }
+        if isAuthzError(err) {
+            return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"})
         }
         logger.Error("S3 failed to get state metadata",
             "operation", "s3_get_state",
@@ -212,6 +234,9 @@ func (h *Handler) getState(c echo.Context, id string) error {
                 "unit_id", id,
             )
             return c.NoContent(http.StatusNotFound)
+        }
+        if isAuthzError(err) {
+            return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"})
         }
         logger.Error("S3 failed to download state",
             "operation", "s3_get_state",
@@ -239,6 +264,7 @@ func (h *Handler) headState(c echo.Context, id string) error {
     meta, err := h.store.Get(c.Request().Context(), id)
     if err != nil {
         if errors.Is(err, storage.ErrNotFound) { return c.NoContent(http.StatusNotFound) }
+        if isAuthzError(err) { return c.NoContent(http.StatusForbidden) }
         return c.NoContent(http.StatusInternalServerError)
     }
     if meta == nil || meta.Size == 0 {
@@ -259,6 +285,8 @@ func (h *Handler) putState(c echo.Context, id string) error {
         return c.JSON(http.StatusNotFound, map[string]string{
             "error": "Unit not found. Please create the unit first using 'taco unit create " + id + "' or the opentaco_unit Terraform resource.",
         })
+    } else if isAuthzError(err) {
+        return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"})
     } else if err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error":"check_failed"})
     }
@@ -282,6 +310,7 @@ func (h *Handler) putState(c echo.Context, id string) error {
             return c.JSON(http.StatusConflict, map[string]string{"error":"locked"})
         }
         if errors.Is(err, storage.ErrNotFound) { return c.NoContent(http.StatusNotFound) }
+        if isAuthzError(err) { return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"}) }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error":"upload_failed"})
     }
     // Best-effort dependency graph update
@@ -291,14 +320,20 @@ func (h *Handler) putState(c echo.Context, id string) error {
 
 func (h *Handler) getLock(c echo.Context, id string) error {
     li, err := h.store.GetLock(c.Request().Context(), id)
-    if err != nil { return c.JSON(http.StatusInternalServerError, map[string]string{"error":"lock_read_failed"}) }
+    if err != nil {
+        if isAuthzError(err) { return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"}) }
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error":"lock_read_failed"})
+    }
     if li == nil { return c.NoContent(http.StatusNotFound) }
     return c.JSON(http.StatusOK, li)
 }
 
 func (h *Handler) headLock(c echo.Context, id string) error {
     li, err := h.store.GetLock(c.Request().Context(), id)
-    if err != nil { return c.NoContent(http.StatusInternalServerError) }
+    if err != nil {
+        if isAuthzError(err) { return c.NoContent(http.StatusForbidden) }
+        return c.NoContent(http.StatusInternalServerError)
+    }
     if li == nil { return c.NoContent(http.StatusNotFound) }
     // No body; set type for completeness
     c.Response().Header().Set("Content-Type", "application/json")
@@ -333,6 +368,7 @@ func (h *Handler) putLock(c echo.Context, id string) error {
             }
             return c.JSON(http.StatusConflict, map[string]string{"error":"already_locked"})
         }
+        if isAuthzError(err) { return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"}) }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error":"lock_failed"})
     }
     return c.JSON(http.StatusOK, li)
@@ -353,9 +389,25 @@ func (h *Handler) deleteLock(c echo.Context, id string) error {
     if err := h.store.Unlock(c.Request().Context(), id, req.ID); err != nil {
         if errors.Is(err, storage.ErrNotFound) { return c.NoContent(http.StatusNotFound) }
         if errors.Is(err, storage.ErrLockConflict) { return c.JSON(http.StatusConflict, map[string]string{"error":"lock_id_mismatch"}) }
+        if isAuthzError(err) { return c.JSON(http.StatusForbidden, map[string]string{"error":"forbidden"}) }
         return c.JSON(http.StatusInternalServerError, map[string]string{"error":"unlock_failed"})
     }
     return c.NoContent(http.StatusOK)
+}
+
+// authContext populates ctx with the verified principal and resolved org so that
+// downstream RBAC-enforcing repository calls (authorizingRepository) can authorize.
+// Mirrors what the RequireAuth + JWTOrgResolverMiddleware pair does for /v1 routes.
+func (h *Handler) authContext(ctx context.Context, principal rbac.Principal, org string) (context.Context, error) {
+    ctx = rbac.ContextWithPrincipal(ctx, principal)
+    if h.resolver == nil {
+        return ctx, nil
+    }
+    orgName := org
+    if orgName == "" { orgName = "default" }
+    orgID, err := h.resolver.ResolveOrganization(ctx, orgName)
+    if err != nil { return nil, err }
+    return domain.ContextWithOrg(ctx, orgID), nil
 }
 
 // --- SigV4 verification ---
@@ -383,20 +435,20 @@ func parsePath(path string) (*parsedObject, error) {
     return &parsedObject{unitID: unitID, isLock: isLock}, nil
 }
 
-func (h *Handler) verifySigV4(c echo.Context) (rbac.Principal, error) {
+func (h *Handler) verifySigV4(c echo.Context) (rbac.Principal, string, error) {
     req := c.Request()
     // Extract token (session token) required
     sessionTok := req.Header.Get("X-Amz-Security-Token")
     if sessionTok == "" { sessionTok = c.QueryParam("X-Amz-Security-Token") }
-    if sessionTok == "" { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "missing security token"} }
+    if sessionTok == "" { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "missing security token"} }
 
-    if h.signer == nil { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "signer unavailable"} }
+    if h.signer == nil { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "signer unavailable"} }
     ac, err := h.signer.VerifyAccess(sessionTok)
-    if err != nil { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "invalid access token"} }
+    if err != nil { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "invalid access token"} }
     // Require explicit s3 audience if provided
     audOK := false
     for _, a := range ac.RegisteredClaims.Audience { if a == "s3" { audOK = true; break } }
-    if !audOK { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "audience not allowed"} }
+    if !audOK { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "audience not allowed"} }
 
     // Parse credentials and scope
     sigHeader := req.Header.Get("Authorization")
@@ -424,21 +476,21 @@ func (h *Handler) verifySigV4(c echo.Context) (rbac.Principal, error) {
         amzDate = q.Get("X-Amz-Date")
     }
     if algo == "" || credential == "" || signatureProvided == "" || amzDate == "" {
-        return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "missing signature"}
+        return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "missing signature"}
     }
 
     // Credential format: <AccessKeyID>/<Date>/<Region>/<Service>/aws4_request
     credParts := strings.Split(credential, "/")
-    if len(credParts) < 5 { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "invalid credential"} }
+    if len(credParts) < 5 { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "invalid credential"} }
     accessKeyID := credParts[0]
     date := credParts[1]
     region := credParts[2]
     service := credParts[3]
-    if service != "s3" { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "invalid service"} }
+    if service != "s3" { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "invalid service"} }
 
     // Derive secret string from AccessKeyID: OTC.<kid>.<sid>
     secretStr, err := h.deriveSecretString(accessKeyID)
-    if err != nil { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "invalid access key"} }
+    if err != nil { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "invalid access key"} }
 
     // Prepare signer inputs
     // Compute payload hash
@@ -463,9 +515,9 @@ func (h *Handler) verifySigV4(c echo.Context) (rbac.Principal, error) {
         // try build from scope date if needed
         if len(date) == 8 {
             t, err = time.Parse("20060102", date)
-            if err != nil { return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "bad date"} }
+            if err != nil { return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "bad date"} }
         } else {
-            return rbac.Principal{}, &authError{code: http.StatusUnauthorized, msg: "bad date"}
+            return rbac.Principal{}, "", &authError{code: http.StatusUnauthorized, msg: "bad date"}
         }
     }
 
@@ -483,17 +535,17 @@ func (h *Handler) verifySigV4(c echo.Context) (rbac.Principal, error) {
         // Determine expires if present
         // signer ignores mismatched expires in verification; we don't enforce it here.
         presignedURL, _, err := signer.PresignHTTP(c.Request().Context(), creds, cloned, payloadHash, service, region, t)
-        if err != nil { return rbac.Principal{}, &authError{code: http.StatusForbidden, msg: "sign_error"} }
+        if err != nil { return rbac.Principal{}, "", &authError{code: http.StatusForbidden, msg: "sign_error"} }
         u, _ := url.Parse(presignedURL)
         expSig := u.Query().Get("X-Amz-Signature")
         if expSig == "" || !secureCompare(expSig, signatureProvided) {
-            return rbac.Principal{}, &authError{code: http.StatusForbidden, msg: "sig_mismatch"}
+            return rbac.Principal{}, "", &authError{code: http.StatusForbidden, msg: "sig_mismatch"}
         }
     } else {
         // Header-based auth verification
         // Apply unsigned payload option when appropriate
         if err := signer.SignHTTP(c.Request().Context(), creds, cloned, payloadHash, service, region, t); err != nil {
-            return rbac.Principal{}, &authError{code: http.StatusForbidden, msg: "sign_error"}
+            return rbac.Principal{}, "", &authError{code: http.StatusForbidden, msg: "sign_error"}
         }
         generated := cloned.Header.Get("Authorization")
         // Extract Signature= from generated header
@@ -503,13 +555,13 @@ func (h *Handler) verifySigV4(c echo.Context) (rbac.Principal, error) {
             if i := strings.Index(expSig, ","); i >= 0 { expSig = expSig[:i] }
         }
         if expSig == "" || !secureCompare(expSig, signatureProvided) {
-            return rbac.Principal{}, &authError{code: http.StatusForbidden, msg: "sig_mismatch"}
+            return rbac.Principal{}, "", &authError{code: http.StatusForbidden, msg: "sig_mismatch"}
         }
     }
 
     // Build principal for RBAC
-    princ := rbac.Principal{Subject: ac.Subject, Roles: ac.Roles, Groups: ac.Groups}
-    return princ, nil
+    princ := rbac.Principal{Subject: ac.Subject, Email: ac.Email, Roles: ac.Roles, Groups: ac.Groups}
+    return princ, ac.Org, nil
 }
 
 func (h *Handler) deriveSecretString(accessKeyID string) (string, error) {
