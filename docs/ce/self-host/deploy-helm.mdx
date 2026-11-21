@@ -51,6 +51,25 @@ description: "Learn how to use Helm chart to install Digger on your Kubernetes c
             sslmode: "require"  # or "disable"
         ```
       </Tab>
+
+      <Tab title="Connection string from a Secret">
+        If something else already writes the full connection string to a Kubernetes Secret, such as a database operator or External Secrets, point the chart at that Secret:
+
+        ```yaml values.yaml
+        digger:
+          postgres:
+            databaseUrlSecretName: "digger-db"
+            databaseUrlSecretKey: "DATABASE_URL"  # the default
+        ```
+
+        Create the Secret in the release namespace before you install, with a complete `postgres://` URL under the key you set in `databaseUrlSecretKey`. If the Secret or the key is missing, the backend pod stays in `CreateContainerConfigError`.
+
+        The chart passes the value through unchanged as `DATABASE_URL`. It ignores the other `digger.postgres` connection settings and the built-in PostgreSQL connection, but `allow_dirty` still applies.
+
+        Because `digger.postgres.sslmode` is ignored too, put `sslmode` in the URL yourself, for example `?sslmode=verify-full` for an external database. Without it, the connection falls back to the driver default, which doesn't verify the server's certificate.
+
+        Use this when the password can contain characters such as `@`, `/`, or `:`. The other options insert the password into the URL without encoding it, so those characters break the URL. The chart doesn't encode this value either, so percent-encode them in the stored URL, for example `@` as `%40`.
+      </Tab>
       
       <Tab title="Built-in PostgreSQL (Testing Only)">
         For test or proof-of-concept purposes, you can use the built-in PostgreSQL:
